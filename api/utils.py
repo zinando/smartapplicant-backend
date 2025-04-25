@@ -10,7 +10,7 @@ from fuzzywuzzy import process
 from .ai import get_improvement_suggestions, get_basic_improvement_suggestion
 
 # Load NLP model
-nlp = spacy.load("en_core_web_lg")
+nlp = spacy.load("en_core_web_md")
 
 def get_similarity_score(text1, text2):
     """Calculate similarity score between two texts using spaCy."""
