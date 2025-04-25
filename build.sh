@@ -9,7 +9,7 @@ set -e
 
 # Install Python dependencies
 echo "Installing Python dependencies..."
-pip install gunicorn whitenoise
+pip install gunicorn whitenoise gevent
 pip install -r requirements.txt
 
 # Collect static files
