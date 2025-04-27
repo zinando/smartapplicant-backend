@@ -41,7 +41,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",  # Dev server
 ]
 ALLOWED_HOSTS = ["smartapplicant-backend-c4f2.onrender.com", "localhost"]  
-CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_CREDENTIALS = True 
 
 # Application definition
 
