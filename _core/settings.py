@@ -70,6 +70,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     
 ]
+# Reduce memory usage
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"  # Faster than DB
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"  # Smaller footprint
 
 resource.setrlimit(resource.RLIMIT_AS, (400_000_000, 400_000_000))  # Hard cap at 400MB
 
