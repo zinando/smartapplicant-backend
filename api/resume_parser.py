@@ -8,7 +8,7 @@ import json
 
 
 # Load English language model for NLP
-nlp = spacy.load("en_core_web_md")
+#nlp = spacy.load("en_core_web_md")
 
 class ResumeParser:
     def __init__(self, resume_text):
