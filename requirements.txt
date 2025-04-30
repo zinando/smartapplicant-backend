@@ -24,7 +24,7 @@ djangorestframework==3.16.0
 djangorestframework_simplejwt==5.5.0
 docx2txt==0.9
 # en_core_web_lg @ https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl#sha256=293e9547a655b25499198ab15a525b05b9407a75f10255e405e8c3854329ab63
-en_core_web_md @ https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.8.0/en_core_web_md-3.8.0-py3-none-any.whl#sha256=5e6329fe3fecedb1d1a02c3ea2172ee0fede6cea6e4aefb6a02d832dba78a310
+#en_core_web_md @ https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.8.0/en_core_web_md-3.8.0-py3-none-any.whl#sha256=5e6329fe3fecedb1d1a02c3ea2172ee0fede6cea6e4aefb6a02d832dba78a310
 fuzzywuzzy==0.18.0
 google-ai-generativelanguage==0.6.15
 google-api-core==2.24.2
@@ -78,9 +78,9 @@ rsa==4.9.1
 shellingham==1.5.4
 six==1.17.0
 smart-open==7.1.0
-spacy==3.8.5
-spacy-legacy==3.0.12
-spacy-loggers==1.0.5
+# spacy==3.8.5
+#spacy-legacy==3.0.12
+#spacy-loggers==1.0.5
 sqlparse==0.5.3
 srsly==2.5.1
 thinc==8.3.6
