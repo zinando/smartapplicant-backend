@@ -35,13 +35,20 @@ LOGGING = {
     },
 }  # Reduce log verbosity
 
-# settings.py
-CORS_ALLOWED_ORIGINS = [
-    "*",
-    "http://localhost:8080",  # Dev server
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "smartapplicant.net",  # Your actual production domain
+    ".smartapplicant.net"  # Allows all subdomains
 ]
-ALLOWED_HOSTS = ["*", "localhost"]  
-CORS_ALLOW_CREDENTIALS = True 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8080",  # Dev
+    "https://smartapplicant.net",  # Production
+    "https://app.smartapplicant.net"
+]
+
+CORS_ALLOW_CREDENTIALS = False 
+CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS.copy()
 
 # Application definition
 
