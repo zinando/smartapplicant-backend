@@ -25,9 +25,4 @@ python manage.py migrate
 
 # Start the application with Gunicorn
 echo "Starting Gunicorn..."
-exec gunicorn _core.wsgi:application \  # Changed _core to core?
-    --bind 0.0.0.0:${PORT:-8000} \    # Default to 8000 if $PORT not set
-    --workers 4 \
-    --threads 6 \
-    --timeout 120 \
-    --log-level=info
+exec gunicorn _core.wsgi:application --bind 0.0.0.0:8000 --workers 3 --threads 6 --timeout 120 --log-level=info
