@@ -39,13 +39,15 @@ LOGGING = {
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
+    '146.19.133.88',
     "smartapplicant.net",  # Your actual production domain
     ".smartapplicant.net"  # Allows all subdomains
 ]
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",  # Dev
     "https://smartapplicant.net",  # Production
-    "https://app.smartapplicant.net"
+    "https://app.smartapplicant.net",
+    'http://146.19.133.88:8000'
 ]
 
 CORS_ALLOW_CREDENTIALS = False 
