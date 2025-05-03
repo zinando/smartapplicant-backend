@@ -24,5 +24,5 @@ python manage.py makemigrations
 python manage.py migrate
 
 # Start the application with Gunicorn
-echo "Starting Gunicorn..."
-exec gunicorn _core.wsgi:application --bind 0.0.0.0:8000 --workers 3 --threads 6 --timeout 120 --log-level=info
+# echo "Starting Gunicorn..."
+# exec gunicorn _core.wsgi:application --bind 0.0.0.0:8000 --workers 3 --threads 6 --timeout 120 --log-level=info
