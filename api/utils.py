@@ -7,7 +7,7 @@ import re
 from .resume_parser import ResumeParser
 from .resources import job_fields, technical_keywords
 from fuzzywuzzy import process, fuzz
-from .ai import get_improvement_suggestions, get_basic_improvement_suggestion
+from .ai import get_improvement_suggestions, get_basic_improvement_suggestion, match_resume_to_jd_with_ai
 
 # Load NLP model
 # nlp = spacy.load("en_core_web_md", disable=["parser", "tagger"])
@@ -477,7 +477,6 @@ def analyze_certificates(resume_analysis_data: list, jd_analysis_data: list):
         'missing': sorted(missing_data)
     }
 
-
 def calculate_suitability_score(sectional_analysis:dict):
     """Calculates suitability score as an average of the analysis score for each section."""
     total_score = 0
@@ -684,3 +683,95 @@ def analyze_resume_with_jd(resume_text, job_description, user, job_title='',):
         raise Exception(str(e))
 
 
+def match_resume_with_jd(resume_text, job_description, user, job_title='',):
+    """Analyze resume against a job description."""
+    try:
+        """ STEPS:
+        1. Prompt AI with resume_text and JD and request a structured response in json string format
+        2. Parse the json string to a dict
+        3. Extract the relevant data from the dict
+        4. Return the data as a dict
+        """
+        response = match_resume_to_jd_with_ai(resume_text, job_description)
+        print(f'AI response: {response}')
+        #print(f'Analyzing resume: {resume_text}'
+        rar = ResumeParser(resume_text)
+        resume_analysis_results = rar.parse_all()
+        jd_ar = ResumeParser(job_description)
+        jd_analysis_results = jd_ar.parse_all()
+
+        field_matcher = match_job_field(job_title, technical_keywords)
+        kw_data = calculate_keyword_coverage(resume_text, field_matcher['expected_keywords'])
+
+        # Parse resume text
+        resume_data = parse_resume(resume_text)
+        
+        sectional_analysis_data = resume_sectional_analysis(resume_analysis_results, rar.known_skills['all'])
+
+        basic_suggestions = get_basic_improvement_suggestion(sectional_analysis_data)
+
+        analyzed_data = {
+            'metadata': analyze_metadata(resume_analysis_results['metadata']),
+            'education': analyze_education(resume_analysis_results['education'], jd_analysis_results['education']),
+            # 'skills': analyze_skills(resume_analysis_results['skills'], jd_analysis_results['skills']),
+            'skills': analyze_skills(jd_analysis_results['skills'], resume_text),
+            'experience': analyze_experience(resume_analysis_results['experience_duration'], jd_analysis_results['experience_duration']),
+            'certifications': analyze_certificates(resume_analysis_results['certifications'], jd_analysis_results['certifications'])
+        }
+        
+        keyword_coverage = {
+                    "Experience Level": analyzed_data['experience'].get('score',0),
+                    "Education Requirements": analyzed_data['education'].get('score',0)
+                }
+        kw_data.update(keyword_coverage)
+        ats_score = calculate_ats_score(resume_data)
+        suggestions = get_improvement_suggestions(resume_text, user.id, job_description)
+        if suggestions == '':
+            suggestions = [
+                    "Add missing keywords like 'TypeScript' and 'GraphQL' to your skills section",
+                    "Highlight your computer science education if applicable",
+                    "Mention any agile methodology experience you have"
+                ]
+        else:
+            suggestions = [part.strip() for part in suggestions.split(';') if part.strip()]
+            #print(suggestions)
+        analysis_results = {
+            "basic_analysis": {
+                "ats_score": ats_score,
+                "score_comparison": 65,
+                "sectional_analysis": sectional_analysis_data,
+                "suggestions": basic_suggestions
+            },
+            "job_matching": {
+                "suitability_score": calculate_suitability_score(kw_data | {'ats_score': ats_score}),
+                "keyword_coverage": kw_data,
+                "sectional_matching": {
+                    "skills": {
+                        "match_percentage": analyzed_data['skills'].get('score',0),
+                        "matched": analyzed_data['skills'].get('matched',[]),
+                        "missing": analyzed_data['skills'].get('missing',[])
+                    },
+                    "education": {
+                        "match_percentage": analyzed_data['education'].get('score',0),
+                        "matched": analyzed_data['education'].get('matched',[]),
+                        "missing": analyzed_data['education'].get('missing',[])
+                    },
+                    "experience": {
+                        "match_percentage": analyzed_data['experience'].get('score',0),
+                        "matched": analyzed_data['experience'].get('matched',[]),
+                        "missing": analyzed_data['experience'].get('missing',[])
+                    },
+                    "certifications": {
+                        "match_percentage": analyzed_data['certifications'].get('score',0),
+                        "matched": analyzed_data['certifications'].get('matched',[]),
+                        "missing": analyzed_data['certifications'].get('missing',[])
+                    }
+                },
+            
+                "suggestions": suggestions
+            }
+        }
+        return analysis_results
+    except Exception as e:
+        #print(e)
+        raise Exception(str(e))

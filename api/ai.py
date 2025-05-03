@@ -130,3 +130,60 @@ def get_basic_improvement_suggestion(analysis_result:dict):
             suggestion_list.append(suggestions[point])
     
     return suggestion_list
+
+def match_resume_to_jd_with_ai(resume_text:str, job_description:str):
+    """This method will route resume text and jd to ai and seek structured response on how the resume matches the jd."""
+    prompt = f"""
+    I want you to analyze my resume and the job description I want to apply for.
+    I want you to grade various sections of the resume against the job details. Follow the format below.
+
+    {{
+        suitability_score: ,
+        "keyword_coverage": kw_data,
+        "sectional_matching": {{
+            "skills": {{
+                "match_percentage": how many percent of the skills in the job description are present in the resume,
+                "matched": an array of skills that are present in both the resume and the job description,
+                "missing": an array of skills that are present in the job description but not in the resume
+            }},
+            "education": {{
+                "match_percentage": how many percent of the education requirements in the job description are present in the resume. If resume has the target degree, give 100%,
+                "matched": an array of education items that are present in both the resume and the job description,
+                "missing": an array of education items that are present in the job description but not in the resume
+            }},
+            "experience": {{
+                "match_percentage": quantify the years of experience in the resume against the required years of experience in the job description. If no experience is required, give 100%, 
+                "matched": an array of experience items that are present resume,
+                "missing": an array of experience items that are present in the job description but not in the resume
+            }},
+            "certifications": {{
+                "match_percentage": how many percent of the certifications in the job description are present in the resume, if no certification is required, give 100%,
+                "matched": an array of certifications that are present in both the resume and the job description,
+                "missing": an array of certifications that are present in the job description but not in the resume
+            }}
+        }},
+    
+        "suggestions": [
+        For each of the above sections, if the score is below 100%, give PRACTICAL suggestions on how i can improve on it. Separate each section suggestion with a comma.
+        ]
+    }}
+
+    I want your response to come in JSON format. I want you to be very brief and professional.
+    
+    My Resume:
+    {resume_text}
+
+    Job Description:
+    {job_description}
+    """
+
+    response = ''
+
+    try:
+        query = gen_model.generate_content(prompt)
+        response = query.text
+        #save_context(text, response)
+    except Exception as e:
+        print(e)
+    
+    return response
