@@ -1,14 +1,8 @@
 import re
 from datetime import datetime
 from collections import defaultdict
-#import spacy
 import os
 import json
-
-
-
-# Load English language model for NLP
-#nlp = spacy.load("en_core_web_md")
 
 class ResumeParser:
     def __init__(self, resume_text):
@@ -112,14 +106,6 @@ class ResumeParser:
             (\d{4})                        # Subscriber number
             (?:\s*(?:ext|x|\#)\s*(\d+))?    # Optional extension
         '''
-        # phone_pattern = r'''
-        #     (?:\+?(\d{1,3})[-. (]*)?     # Optional country code
-        #     (\d{3})[-. )]*                # Area code
-        #     (\d{3})[-. ]*                 # Exchange
-        #     (\d{4})                       # Subscriber number
-        #     (?: *x(\d+))?                 # Optional extension
-        #     \b                            # Word boundary
-        # '''
         
         matches = re.findall(phone_pattern, text, re.VERBOSE)
         phone_numbers = []
@@ -148,33 +134,53 @@ class ResumeParser:
         """Extract personal/contact information"""
         contact_text = self.sections.get('contact', '') or self.resume_text[:1000]
         
-        # Email extraction
+        # Email extraction (unchanged)
         emails = re.findall(r'[\w\.-]+@[\w\.-]+\.\w+', contact_text)
         if emails:
             self.parsed_data['metadata']['email'] = emails[0]
         
-        # Phone extraction (international formats)
-        # phones = re.findall(r'(?:(?:\+?(\d{1,3}))?[-. (]*(\d{3})[-. )]*(\d{3})[-. ]*(\d{4})(?: *x(\d+))?\b', contact_text)
+        # Phone extraction (unchanged)
         phones = self.extract_phone_numbers(contact_text)
         if phones:
             self.parsed_data['metadata']['phone'] = ''.join(phones[0])
         
-        # Name extraction (first line or before contact info)
-        doc = nlp(contact_text.split('\n')[0])
-        for ent in doc.ents:
-            if ent.label_ == "PERSON":
-                self.parsed_data['metadata']['name'] = ent.text
-                break
+        # Name extraction - improved rule-based approach
+        if not self.parsed_data['metadata'].get('name'):
+            # Strategy 1: First line that looks like a name
+            first_lines = [line.strip() for line in contact_text.split('\n') if line.strip()]
+            name_candidate = first_lines[0] if first_lines else ""
+            
+            # Basic validation (2-3 title-cased words, no obvious non-name words)
+            if (re.fullmatch(r'([A-Z][a-z]+)(?:\s+[A-Z][a-z]+){1,2}', name_candidate) and
+                not any(x in name_candidate.lower() for x in ['resume', 'cv', 'phone'])):
+                self.parsed_data['metadata']['name'] = name_candidate
+            
+            # Strategy 2: Before email/phone (common resume format)
+            if not self.parsed_data['metadata'].get('name') and emails:
+                pre_email_text = contact_text.split(emails[0])[0]
+                lines = [line.strip() for line in pre_email_text.split('\n') if line.strip()]
+                if lines:
+                    self.parsed_data['metadata']['name'] = lines[-1]
         
-        # Location extraction
-        doc = nlp(contact_text)
-        for ent in doc.ents:
-            if ent.label_ == "GPE":
-                self.parsed_data['metadata']['location'] = ent.text
-                break
-                
+        # Location extraction - hybrid approach
+        if not self.parsed_data['metadata'].get('location'):
+            # Strategy 1: Common city/state/country patterns
+            location_pattern = r'\b(?:[A-Z][a-z]+\s*,\s*)?(?:[A-Z]{2}|\b[A-Z][a-z]+\b)(?:\s*\d{5})?\b'
+            locations = re.findall(location_pattern, contact_text)
+            if locations:
+                self.parsed_data['metadata']['location'] = locations[0]
+            
+            # Strategy 2: After "Location:" or "Address:" markers
+            if not self.parsed_data['metadata'].get('location'):
+                for marker in ['location:', 'address:', 'based in']:
+                    if marker in contact_text.lower():
+                        marker_pos = contact_text.lower().find(marker)
+                        possible_loc = contact_text[marker_pos + len(marker):].strip().split('\n')[0]
+                        if possible_loc:
+                            self.parsed_data['metadata']['location'] = possible_loc.strip(',. ')
+                            break
+        
         return self.parsed_data['metadata']
-    
 
     def parse_education(self):
         """Extract education history with degrees and institutions"""

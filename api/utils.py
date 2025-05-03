@@ -1,22 +1,26 @@
-import spacy
+# import spacy
 import docx2txt
 import PyPDF2
 import io
 import re
-import mimetypes
+# import mimetypes
 from .resume_parser import ResumeParser
 from .resources import job_fields, technical_keywords
-from fuzzywuzzy import process
+from fuzzywuzzy import process, fuzz
 from .ai import get_improvement_suggestions, get_basic_improvement_suggestion
 
 # Load NLP model
-nlp = spacy.load("en_core_web_md", disable=["parser", "tagger"])
+# nlp = spacy.load("en_core_web_md", disable=["parser", "tagger"])
 
-def get_similarity_score(text1, text2):
+def get_similarity_scorexxx(text1, text2):
     """Calculate similarity score between two texts using spaCy."""
     doc1 = nlp(text1)
     doc2 = nlp(text2)
     return doc1.similarity(doc2)
+
+def get_similarity_score(text1, text2):
+    """Uses FuzzyWuzzy's token-based ratio (0-100 scale)."""
+    return fuzz.token_set_ratio(text1, text2) / 100
 
 def convert_words_to_numbers(text):
     number_words = {
@@ -55,7 +59,7 @@ def calculate_ats_score(data):
     ats_score = (filled_sections_count / total_sections) * 100
     return round(ats_score, 2)
 
-def extract_experience_with_nlp(text):
+def extract_experience_with_nlpxxx(text):
     doc = nlp(text)
     for sent in doc.sents:
         if "experience" in sent.text.lower():
@@ -64,6 +68,41 @@ def extract_experience_with_nlp(text):
             if match:
                 return match.group(0)
     return None
+
+def extract_experience_with_nlp(text):
+    # Normalize text (lowercase, replace common variations)
+    normalized_text = text.lower()\
+        .replace("+", " ")\
+        .replace("yrs", "years")\
+        .replace("yr", "year")
+    
+    # Regex to match experience patterns (e.g., "5 years", "3+ years", "2.5 years")
+    experience_pattern = re.compile(
+        r"""
+        (                          # Start of group
+        \d+\.?\d*                  # Match numbers (e.g., 5, 2.5)
+        \s*\+?\s*                  # Optional "+" (e.g., "5+")
+        \s*(?:years?|yrs?)         # Match "year", "years", "yr", "yrs"
+        )""", 
+        re.VERBOSE | re.IGNORECASE
+    )
+    
+    # Search for all matches in the text
+    matches = experience_pattern.findall(normalized_text)
+    if matches:
+        return matches[0]  # Return the first match
+    
+    # Fallback: Look for standalone numbers near "experience" (e.g., "5 years of experience")
+    fallback_pattern = re.compile(
+        r"(?:experience|exp|work)\D{0,20}(\d+\.?\d*)\s*\+?\s*(?:years?|yrs?)",
+        re.IGNORECASE
+    )
+    fallback_match = fallback_pattern.search(normalized_text)
+    if fallback_match:
+        return fallback_match.group(0)
+    
+    return None
+
 
 def extract_email(text):
     """Extract email using regex."""
@@ -81,13 +120,30 @@ def extract_skills(text):
     found_skills = [skill for skill in skills if skill.lower() in text.lower()]
     return found_skills if found_skills else None
 
-def extract_name(text):
+def extract_namexxx(text):
     """Extract name from the resume text"""
     doc = nlp(text)
     for ent in doc.ents:
         if ent.label_ == "PERSON":
             return ent.text
     return None
+
+def extract_name(text):
+    """Extract name using heuristic rules (works for most resumes)."""
+    # Common name prefixes/suffixes (adjust based on your target audience)
+    honorifics = r"(?:Mr\.|Ms\.|Mrs\.|Dr\.|Prof\.)\s*"
+    name_pattern = re.compile(
+        rf"""
+        (?:^|\n)                    # Start of line or newline
+        (?:{honorifics})?           # Optional honorific (e.g., "Dr.")
+        ([A-Z][a-z]+(?:\s[A-Z][a-z]+)+)  # 2+ capitalized words (e.g., "John Doe")
+        (?:$|\s|,)                  # End of line, space, or comma
+        """,
+        re.VERBOSE | re.IGNORECASE
+    )
+    
+    match = name_pattern.search(text.strip())
+    return match.group(1) if match else None
 
 def extract_education(text):
     """
@@ -358,7 +414,7 @@ def analyze_experience(resume_analysis_data, jd_analysis_data):
 
     return {'score': score, 'matched': [resume_analysis_data], 'missing': [jd_analysis_data] if jd_analysis_data != '' else []}
 
-def analyze_certificates(resume_analysis_data:list, jd_analysis_data:list):
+def analyze_certificatesxxx(resume_analysis_data:list, jd_analysis_data:list):
     """Checks relevant certificates from the analysis results by similarity comparison."""
     jd_certificates = [cert.get('name', None) for cert in jd_analysis_data if cert.get('name', None) != None]
     resume_certificates = [cert.get('name', None) for cert in resume_analysis_data if cert.get('name', None) != None]
@@ -390,6 +446,37 @@ def analyze_certificates(resume_analysis_data:list, jd_analysis_data:list):
         score = 0
 
     return {'score': score, 'matched': result_data, 'missing': missing_data}
+
+def analyze_certificates(resume_analysis_data: list, jd_analysis_data: list):
+    """Optimized certificate matching using FuzzyWuzzy's partial ratio."""
+    jd_certs = {cert['name'].lower().strip() for cert in jd_analysis_data if cert.get('name')}
+    resume_certs = {cert['name'].lower().strip() for cert in resume_analysis_data if cert.get('name')}
+
+    result_data = []
+    missing_data = []
+
+    for jd_cert in jd_certs:
+        # Find best match in resume certificates
+        best_match = max(
+            [(resume_cert, fuzz.partial_ratio(jd_cert, resume_cert)) 
+             for resume_cert in resume_certs],
+            key=lambda x: x[1],
+            default=(None, 0)
+        )
+        
+        if best_match[1] >= 80:  # 80% similarity threshold
+            result_data.append(jd_cert)
+        else:
+            missing_data.append(jd_cert)
+
+    score = 100 * len(result_data) / len(jd_certs) if jd_certs else 0
+
+    return {
+        'score': round(score),
+        'matched': sorted(result_data),
+        'missing': sorted(missing_data)
+    }
+
 
 def calculate_suitability_score(sectional_analysis:dict):
     """Calculates suitability score as an average of the analysis score for each section."""
