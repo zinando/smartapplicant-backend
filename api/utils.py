@@ -1,4 +1,4 @@
-# import spacy
+import spacy
 import docx2txt
 import PyPDF2
 import io
@@ -10,7 +10,7 @@ from fuzzywuzzy import process
 from .ai import get_improvement_suggestions, get_basic_improvement_suggestion
 
 # Load NLP model
-# nlp = spacy.load("en_core_web_md", disable=["parser", "tagger"])
+nlp = spacy.load("en_core_web_md", disable=["parser", "tagger"])
 
 def get_similarity_score(text1, text2):
     """Calculate similarity score between two texts using spaCy."""
