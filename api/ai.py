@@ -175,8 +175,9 @@ def match_resume_to_jd_with_ai(resume_text:str, job_description:str):
     }
 
     I want your response to come in JSON format. I want you to be very brief and professional.
+    Return empty string if no resume or jd is provided.
     """
-    prompt += f"""
+    promptn = f"""
 
     My Resume:
     {resume_text}
@@ -184,7 +185,7 @@ def match_resume_to_jd_with_ai(resume_text:str, job_description:str):
     Job Description:
     {job_description}
     """
-    print(f'AI PROMPT: {prompt}')
+    # print(f'AI PROMPT: {prompt}')
     response = ''
 
     try:
