@@ -184,11 +184,12 @@ def match_resume_to_jd_with_ai(resume_text:str, job_description:str):
     Job Description:
     {job_description}
     """
-
+    print(f'AI PROMPT: {prompt}')
     response = ''
 
     try:
         query = gen_model.generate_content(prompt)
+        print(f'AI QUERY: {query}')
         response = query.text
         #save_context(text, response)
     except Exception as e:
