@@ -597,7 +597,7 @@ def calculate_keyword_coverage(resume_text, expected_keywords):
     
     return coverage
 
-def analyze_resume_with_jd(resume_text, job_description, user, job_title='',):
+def analyze_resume_with_jd(resume_text, job_description, user, job_title=''):
     """Analyze resume against a job description."""
     try:
         #print(f'Analyzing resume: {resume_text}')
@@ -683,7 +683,7 @@ def analyze_resume_with_jd(resume_text, job_description, user, job_title='',):
         raise Exception(str(e))
 
 
-def match_resume_with_jd(resume_text, job_description, user, job_title='',):
+def match_resume_with_jd(resume_text, job_description, user, job_title=''):
     """Analyze resume against a job description."""
     try:
         """ STEPS:
