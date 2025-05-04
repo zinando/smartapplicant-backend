@@ -692,8 +692,8 @@ def match_resume_with_jd(resume_text, job_description, user, job_title='',):
         3. Extract the relevant data from the dict
         4. Return the data as a dict
         """
-        response = match_resume_to_jd_with_ai(resume_text, job_description)
-        print(f'AI response: {response}')
+        # response = match_resume_to_jd_with_ai(resume_text, job_description)
+        # print(f'AI response: {response}')
         #print(f'Analyzing resume: {resume_text}'
         rar = ResumeParser(resume_text)
         resume_analysis_results = rar.parse_all()
