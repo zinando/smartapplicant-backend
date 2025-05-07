@@ -631,7 +631,7 @@ def analyze_resume_with_jd(resume_text, job_description, user, job_title=''):
                 }
         kw_data.update(keyword_coverage)
         ats_score = calculate_ats_score(resume_data)
-        suggestions = get_improvement_suggestions(resume_text, user.id, job_description)
+        suggestions = '' #get_improvement_suggestions(resume_text, user.id, job_description)
         if suggestions == '':
             suggestions = [
                     "Add missing keywords like 'TypeScript' and 'GraphQL' to your skills section",
