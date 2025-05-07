@@ -278,7 +278,7 @@ class ResumeAnalysisView(generics.GenericAPIView):
             # print(resume["resume_text"])
 
             # Analyze the resume against the job description
-            analysis_result = match_resume_with_jd(resume["resume_text"], job_description, user, job_title)
+            analysis_result = analyze_resume_with_jd(resume["resume_text"], job_description, user, job_title)
 
             return Response({
                 'status': 1,
