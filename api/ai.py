@@ -9,7 +9,7 @@ load_dotenv()
 context = {}
 
 # Initialize Generative AI API
-genai.configure(api_key=os.getenv("GEMENAI-API-KEY"))
+genai.configure(api_key=os.getenv("GEMENAI_API_KEY"))
 gen_model = genai.GenerativeModel("gemini-1.5-flash")
 
 def save_context(text, response, user_id):
