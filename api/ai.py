@@ -1,4 +1,5 @@
 import google.generativeai as genai
+import traceback
 from dotenv import load_dotenv
 import os
 import json
@@ -200,5 +201,6 @@ def match_resume_to_jd_with_ai(resume_text:str, job_description:str):
         #save_context(text, response)
     except Exception as e:
         print(f'An error occured: {e}')
+        print(traceback.format_exc())
     
     return response
