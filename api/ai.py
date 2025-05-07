@@ -200,6 +200,8 @@ def match_resume_to_jd_with_ai(resume_text:str, job_description:str):
         response = json.loads(text)
         #save_context(text, response)
     except Exception as e:
+        # print gemini api key
+        print(f'Gemini key: {os.getenv("GEMENAI_API_KEY")}')
         print(f'An error occured: {e}')
         print(traceback.format_exc())
     
