@@ -1,7 +1,6 @@
 import google.generativeai as genai
 from dotenv import load_dotenv
 import os
-import requests
 import json
 
 # Load environment variables
@@ -44,7 +43,7 @@ def get_improvement_suggestions(resume_text:str, user_id:int, job_description:st
     starter += "separate your responses for each point with a semicolon (;)."
     starter += "Remember to be very brief, professional, but hitting the most relevant points."
 
-    prompt = get_context(user_id)
+    prompt = '' # get_context(user_id)
     prompt = prompt.replace(job_description, 'JD')
     prompt = prompt.replace(resume_text, 'RESUME')
     text = prompt
@@ -65,7 +64,7 @@ def get_improvement_suggestions(resume_text:str, user_id:int, job_description:st
         formatted_text = prompt + f'Let\'s continue from here: \n{text}'
         query = gen_model.generate_content(formatted_text)
         response = query.text
-        save_context(text, response, user_id)
+        #save_context(text, response, user_id)
     except Exception as e:
         print(e)
     #print(f'AI RESPONSE: {response}')
