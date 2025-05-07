@@ -12,6 +12,8 @@ context = {}
 genai.configure(api_key=os.getenv("GEMENAI_API_KEY"))
 gen_model = genai.GenerativeModel("gemini-1.5-flash")
 
+print(f'Gemini key: {os.getenv("GEMENAI_API_KEY")}')
+
 def save_context(text, response, user_id):
     mr ={}
     mr['User'] = text
