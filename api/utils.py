@@ -679,7 +679,7 @@ def analyze_resume_with_jd(resume_text, job_description, user, job_title=''):
         }
         return analysis_results
     except Exception as e:
-        #print(e)
+        print(e)
         raise Exception(str(e))
 
 
