@@ -1,6 +1,3 @@
-#import google.generativeai as genai
-import traceback
-from openai import OpenAI
 from dotenv import load_dotenv
 import os
 import json
@@ -9,16 +6,7 @@ import requests
 # Load environment variables
 load_dotenv()
 
-context = {}
-
-# Initialize Generative AI API
-# genai.configure(api_key=os.getenv("GEMENAI_API_KEY"))
-# gen_model = genai.GenerativeModel("gemini-1.5-flash")
-gen_model = OpenAI(
-    base_url="https://gemini.googleapis.com",
-    api_key=os.getenv("GEMENAI_API_KEY"),
-)
-print(f'Gemini key: {os.getenv("GEMENAI_API_KEY")}')
+# context = {}
 
 def call_gemini(prompt: str) -> str:
     """Call Gemini API directly using requests and return the model's response."""
@@ -230,40 +218,15 @@ def match_resume_to_jd_with_ai(resume_text:str, job_description:str):
 
     prompt += "Job Description:\n"
     prompt += f"{job_description}"
-
-    # print(f'AI PROMPT: {prompt}') 
+ 
     response = ''
 
     try:
-        # query = gen_model.chat.completions.create(
-        #     model="gemini-1.5-flash",
-        #     messages=[
-        #         {
-        #             "role": "system",
-        #             "content": "You are a helpful assistant.",
-        #         },
-        #         {
-        #             "role": "user",
-        #             "content": prompt,
-        #         }
-        #     ],
-        #     temperature=0.2,
-        #     max_tokens=500,
-        #     top_p=1,
-        #     frequency_penalty=0,
-        #     presence_penalty=0,
-        # )
         text = call_gemini(prompt)
-        # text = query.choices[0].message.content
         text = text.replace('```json', '')
         text = text.replace('```', '')
-        print(f'AI QUERY: {text}')
         response = json.loads(text)
-        #save_context(text, response)
     except Exception as e:
-        # print gemini api key
-        print(f'Gemini key: {os.getenv("GEMENAI_API_KEY")}')
-        print(f'An error occured: {e}')
-        print(traceback.format_exc())
+        response = ''
     
     return response
