@@ -1,4 +1,3 @@
-from api.models import GeneralData
 from api.resources import technical_keywords
 from api.utils import calculate_keyword_coverage, match_job_field
 from api.ai import get_basic_improvement_suggestion
@@ -30,36 +29,7 @@ def get_suggestions_for_resume(parsed_data: dict, kw_data: dict):
         'experience': experience_score,
         'certifications': certification_score
     }
-    print(metrics)
     return get_basic_improvement_suggestion(metrics)
-
-def compare_ats_score(resume_score):
-    """This function compares the ATS score of the resume with that of other user's resumes."""
-    # update general stat data
-    gen_obj, created = GeneralData.objects.get_or_create(
-        id = 1,
-        defaults= {
-            "ats_score": [resume_score],
-            "premium_users": 0,
-            "registered_users": 1,
-            "currently_online": 0
-        }
-    )
-    score = 100
-    ats_scores = set()
-    if not created:
-        # check if ats score is empty
-        if gen_obj.ats_score:
-            ats_scores = set(gen_obj.ats_score.copy())
-            lower_scores = [x for x in ats_scores if x < resume_score]
-            if not lower_scores:
-                score = 0
-            else:
-                score = int(len(lower_scores)/len(ats_scores)*100)
-    ats_scores.add(resume_score)
-    gen_obj.ats_score = list(ats_scores)
-    gen_obj.save()
-    return score
 
 def get_keyword_coverage(resume_text, job_title=''):
     """This function takes a resume text and a job description and returns the keyword coverage of the resume."""

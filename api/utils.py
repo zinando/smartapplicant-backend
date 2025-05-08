@@ -1,26 +1,46 @@
-# import spacy
 import docx2txt
 import PyPDF2
 import io
 import re
-# import mimetypes
 from .resume_parser import ResumeParser
 from .resources import job_fields, technical_keywords
 from fuzzywuzzy import process, fuzz
+from api.models import GeneralData
 from .ai import get_improvement_suggestions, get_basic_improvement_suggestion, match_resume_to_jd_with_ai
 
-# Load NLP model
-# nlp = spacy.load("en_core_web_md", disable=["parser", "tagger"])
-
-def get_similarity_scorexxx(text1, text2):
-    """Calculate similarity score between two texts using spaCy."""
-    doc1 = nlp(text1)
-    doc2 = nlp(text2)
-    return doc1.similarity(doc2)
 
 def get_similarity_score(text1, text2):
     """Uses FuzzyWuzzy's token-based ratio (0-100 scale)."""
     return fuzz.token_set_ratio(text1, text2) / 100
+
+def compare_ats_score(resume_score):
+    """This function compares the ATS score of the resume with that of other user's resumes."""
+    # update general stat data
+    gen_obj, created = GeneralData.objects.get_or_create(
+        id = 1,
+        defaults= {
+            "ats_score": [resume_score],
+            "premium_users": 0,
+            "registered_users": 1,
+            "currently_online": 0
+        }
+    )
+    score = 100
+    ats_scores = set()
+    if not created:
+        # check if ats score is empty
+        if gen_obj.ats_score:
+            ats_scores = set(gen_obj.ats_score.copy())
+            lower_scores = [x for x in ats_scores if x < resume_score]
+            if not lower_scores:
+                score = 0
+            else:
+                score = int(len(lower_scores)/len(ats_scores)*100)
+    ats_scores.add(resume_score)
+    gen_obj.ats_score = list(ats_scores)
+    gen_obj.save()
+    return score
+
 
 def convert_words_to_numbers(text):
     number_words = {
@@ -59,16 +79,6 @@ def calculate_ats_score(data):
     ats_score = (filled_sections_count / total_sections) * 100
     return round(ats_score, 2)
 
-def extract_experience_with_nlpxxx(text):
-    doc = nlp(text)
-    for sent in doc.sents:
-        if "experience" in sent.text.lower():
-            sentence_text = convert_words_to_numbers(sent.text.lower())
-            match = re.search(r"(\d+)\+?\s*(years|yrs)", sentence_text)
-            if match:
-                return match.group(0)
-    return None
-
 def extract_experience_with_nlp(text):
     # Normalize text (lowercase, replace common variations)
     normalized_text = text.lower()\
@@ -103,7 +113,6 @@ def extract_experience_with_nlp(text):
     
     return None
 
-
 def extract_email(text):
     """Extract email using regex."""
     match = re.search(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", text)
@@ -119,14 +128,6 @@ def extract_skills(text):
     skills = ["Python", "Django", "SQL", "Java", "JavaScript", "Machine Learning", "Data Analysis"]
     found_skills = [skill for skill in skills if skill.lower() in text.lower()]
     return found_skills if found_skills else None
-
-def extract_namexxx(text):
-    """Extract name from the resume text"""
-    doc = nlp(text)
-    for ent in doc.ents:
-        if ent.label_ == "PERSON":
-            return ent.text
-    return None
 
 def extract_name(text):
     """Extract name using heuristic rules (works for most resumes)."""
@@ -249,21 +250,13 @@ def extract_certificates(text):
         
     return certificates if certificates else None
 
-def parse_resume(text):
-    """Extract structured data from a resume file (PDF or DOCX)."""
-    # text = extract_text_from_file(file_obj)
-    rar = ResumeParser(text)
-    resume_analysis_results = rar.parse_all()
+def parse_resume(resume_text:str, resume_analysis_results:dict=None):
+    """Extract structured data from resume file (PDF or DOCX)."""
 
-    # return {
-    #     "name": extract_name(text),
-    #     "email": extract_email(text),
-    #     "phone": extract_phone(text),
-    #     "skills": extract_skills(text),
-    #     "experience": extract_experience_with_nlp(text),
-    #     "education": extract_education(text),
-    #     "certificates": extract_certificates(text)
-    # }
+    if not resume_analysis_results:
+        rar = ResumeParser(resume_text)
+        resume_analysis_results = rar.parse_all()
+
     return {
         "name": resume_analysis_results['metadata']['name'],
         "email": resume_analysis_results['metadata']['email'],
@@ -610,7 +603,7 @@ def analyze_resume_with_jd(resume_text, job_description, user, job_title=''):
         kw_data = calculate_keyword_coverage(resume_text, field_matcher['expected_keywords'])
 
         # Parse resume text
-        resume_data = parse_resume(resume_text)
+        resume_data = parse_resume(resume_text, resume_analysis_results)
         
         sectional_analysis_data = resume_sectional_analysis(resume_analysis_results, rar.known_skills['all'])
 
@@ -644,7 +637,7 @@ def analyze_resume_with_jd(resume_text, job_description, user, job_title=''):
         analysis_results = {
             "basic_analysis": {
                 "ats_score": ats_score,
-                "score_comparison": 65,
+                "score_comparison": compare_ats_score(ats_score),
                 "sectional_analysis": sectional_analysis_data,
                 "suggestions": basic_suggestions
             },
@@ -682,28 +675,31 @@ def analyze_resume_with_jd(resume_text, job_description, user, job_title=''):
         print(e)
         raise Exception(str(e))
 
-
 def match_resume_with_jd(resume_text, job_description, user, job_title=''):
     """Analyze resume against a job description."""
-    print(f'Analyzing resume')
-    response = match_resume_to_jd_with_ai(resume_text, job_description)
 
-    job_matching = response
+    # Parse resume text with manual ATS-like detection
+    rar = ResumeParser(resume_text)
+    resume_analysis_results = rar.parse_all()
 
-    sectional_analysis_data = {
-        "metadata": 25, # analyze_metadata(response['metadata']),
-        "education": 25, # analyze_education(response['education'], response['jd_education']),
-        "skills": 25, # analyze_skills(response['jd_skills'], resume_text),
-        "experience": 25, # analyze_experience(response['experience_duration'], response['jd_experience']),
-        "certifications": 25 # analyze_certificates(response['certifications'], response['jd_certifications'])
-    }
+    # Analyze different sections of the resume
+    sectional_analysis_data = resume_sectional_analysis(resume_analysis_results, rar.known_skills['all'])
 
+    # Get suggestions based on sectional analysis results
     basic_suggestions = get_basic_improvement_suggestion(sectional_analysis_data)
+
+    # 
+    resume_data = parse_resume(resume_text, resume_analysis_results)
+    ats_score = calculate_ats_score(resume_data)
+    
+    # Use AI to analyze the resume against the job description
+    response = match_resume_to_jd_with_ai(resume_text, job_description)
+    job_matching = response
     
     return {
             "basic_analysis": {
-                "ats_score": 85,
-                "score_comparison": 65,
+                "ats_score": ats_score,
+                "score_comparison": compare_ats_score(ats_score),
                 "sectional_analysis": sectional_analysis_data,
                 "suggestions": basic_suggestions
             },
