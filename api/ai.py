@@ -1,8 +1,10 @@
-import google.generativeai as genai
+#import google.generativeai as genai
 import traceback
+from openai import OpenAI
 from dotenv import load_dotenv
 import os
 import json
+import requests
 
 # Load environment variables
 load_dotenv()
@@ -10,10 +12,51 @@ load_dotenv()
 context = {}
 
 # Initialize Generative AI API
-genai.configure(api_key=os.getenv("GEMENAI_API_KEY"))
-gen_model = genai.GenerativeModel("gemini-1.5-flash")
-
+# genai.configure(api_key=os.getenv("GEMENAI_API_KEY"))
+# gen_model = genai.GenerativeModel("gemini-1.5-flash")
+gen_model = OpenAI(
+    base_url="https://gemini.googleapis.com",
+    api_key=os.getenv("GEMENAI_API_KEY"),
+)
 print(f'Gemini key: {os.getenv("GEMENAI_API_KEY")}')
+
+def call_gemini(prompt: str) -> str:
+    """Call Gemini API directly using requests and return the model's response."""
+    api_key = os.getenv("GEMENAI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMENAI_API_KEY not set in environment variables.")
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    
+    headers = {
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {
+                        "text": prompt
+                    }
+                ]
+            }
+        ]
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=60)
+        response.raise_for_status()  # Raise error for 4xx/5xx responses
+        data = response.json()
+
+        return data['candidates'][0]['content']['parts'][0]['text']
+    except requests.exceptions.RequestException as e:
+        print(f"Request error: {e}")
+        return ""
+    except (KeyError, IndexError) as parse_err:
+        print(f"Error parsing Gemini response: {parse_err}")
+        print(response.text)
+        return ""
 
 def save_context(text, response, user_id):
     mr ={}
@@ -192,8 +235,26 @@ def match_resume_to_jd_with_ai(resume_text:str, job_description:str):
     response = ''
 
     try:
-        query = gen_model.generate_content(prompt)
-        text = query.text
+        # query = gen_model.chat.completions.create(
+        #     model="gemini-1.5-flash",
+        #     messages=[
+        #         {
+        #             "role": "system",
+        #             "content": "You are a helpful assistant.",
+        #         },
+        #         {
+        #             "role": "user",
+        #             "content": prompt,
+        #         }
+        #     ],
+        #     temperature=0.2,
+        #     max_tokens=500,
+        #     top_p=1,
+        #     frequency_penalty=0,
+        #     presence_penalty=0,
+        # )
+        text = call_gemini(prompt)
+        # text = query.choices[0].message.content
         text = text.replace('```json', '')
         text = text.replace('```', '')
         print(f'AI QUERY: {text}')

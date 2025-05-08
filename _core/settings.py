@@ -3,10 +3,10 @@ import os
 from dotenv import load_dotenv
 from datetime import timedelta
 # import dj_database_url
-import resource
+#import resource
 
 # Load environment variables from .env file
-load_dotenv()
+load_dotenv(override=True)
 
 # print(f"Password: {os.getenv('POSTGRES_PASSWORD')}")
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -87,7 +87,7 @@ MIDDLEWARE = [
 # SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"  # Faster than DB
 # STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"  # Smaller footprint
 
-resource.setrlimit(resource.RLIMIT_AS, (400_000_000, 400_000_000))  # Hard cap at 400MB
+# resource.setrlimit(resource.RLIMIT_AS, (400_000_000, 400_000_000))  # Hard cap at 400MB
 
 # Media files (for resume uploads)
 MEDIA_URL = '/media/'
@@ -133,7 +133,7 @@ WSGI_APPLICATION = '_core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'smartapplicant_db',
+        'NAME': os.getenv('POSTGRES_DB'), 
         'USER': os.getenv('POSTGRES_USER'),
         'PASSWORD': os.getenv('POSTGRES_PASSWORD'),  # Use environment variable for password
         'HOST': os.getenv('POSTGRES_HOST'),
