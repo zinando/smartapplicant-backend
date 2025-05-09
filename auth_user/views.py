@@ -8,7 +8,7 @@ from django.contrib.auth.hashers import make_password
 from .serializers import UserSerializer
 from django.db.models import Q
 from api.utils import *
-from api.tasks import async_extract_and_score
+from api.tasks import *
 from api.models import GeneralData
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
@@ -275,15 +275,17 @@ class ResumeAnalysisView(generics.GenericAPIView):
                 raise Exception("Resume not found")
             resume = resume[0]
 
-            # print(resume["resume_text"])
-
             # Analyze the resume against the job description
-            analysis_result = match_resume_with_jd(resume["resume_text"], job_description, user, job_title)
+            # analysis_result = match_resume_with_jd(resume["resume_text"], job_description, user, job_title)
+
+            # Submit the analysis task
+            task = async_match_resume_with_jd.delay(resume["resume_text"], job_description, user.id, job_title)
 
             return Response({
                 'status': 1,
                 'message': 'Resume analysis completed successfully',
-                'analysis_result': analysis_result
+                'analysis_result': None,
+                'task_id': task.id,
             }, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(

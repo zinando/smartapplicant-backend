@@ -1,9 +1,8 @@
-# api/views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import GeneralData
-from .serializers import GeneralDataSerializer
+# from .serializers import GeneralDataSerializer
 from celery.result import AsyncResult
 from .utils import extract_text, calculate_ats_score, parse_resume
 from .tasks import async_extract_and_score
@@ -60,24 +59,24 @@ class ResumeParseView(APIView):
 class TaskStatusView(APIView):
     def get(self, request, task_id):
         task = AsyncResult(task_id)
+        result = None
 
         if task.state == 'PENDING':
-            status = 2
             message = 'Still Processing'
         elif task.state == 'SUCCESS':
-            status = 1
             message = 'Task Completed'
+            result = task.result
         elif task.state == 'FAILURE':
-            status = 0
             message = 'Task Failed'
+            result = str(task.result)
         
         data = {
             'task_id': task_id,
             'status': task.status,
-            'result': task.result if task.ready() else None
+            'result': result,
         }
         
-        return Response({'status': status, 'data': data, 'message': message}, status=status.HTTP_200_OK)
+        return Response({'status': 1, 'data': data, 'message': message}, status=status.HTTP_200_OK)
 
 
 class StatsAPIView(APIView):

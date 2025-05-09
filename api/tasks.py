@@ -1,6 +1,6 @@
 from celery import shared_task
 import time
-from .utils import extract_text, calculate_ats_score
+from .utils import *
 
 @shared_task
 def mock_heavy_parsing(file_data, filename):
@@ -19,3 +19,10 @@ def async_extract_and_score(file_bytes, filename):
         'text': text,
         'ats_score': calculate_ats_score(text)
     }
+
+@shared_task
+def async_match_resume_with_jd(resume_text, job_description, user, job_title):
+    """Simulate matching resume with job description"""
+    analysis_result = match_resume_with_jd(resume_text, job_description, user, job_title)
+
+    return analysis_result
