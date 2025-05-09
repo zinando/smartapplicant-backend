@@ -698,7 +698,7 @@ def match_resume_with_jd(resume_text, job_description, user, job_title=''):
     return {
             "basic_analysis": {
                 "ats_score": ats_score,
-                "score_comparison": 65,
+                "score_comparison": compare_ats_score(ats_score),
                 "sectional_analysis": sectional_analysis_data,
                 "suggestions": basic_suggestions
             },
