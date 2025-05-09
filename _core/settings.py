@@ -48,7 +48,9 @@ CORS_ALLOWED_ORIGINS = [
     "http://146.19.133.88",   # <-- This is the frontend origin!
     "http://146.19.133.88:8000",  # Backend (optional, not required)
     "https://smartapplicant.net",
-    "https://app.smartapplicant.net"
+    "https://apps.smartapplicant.net",
+    "https://www.smartapplicant.net",
+    "https://api.smartapplicant.net",
 ]
 
 CORS_ALLOW_CREDENTIALS = False 
