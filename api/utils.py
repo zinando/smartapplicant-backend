@@ -612,7 +612,6 @@ def analyze_resume_with_jd(resume_text, job_description, user, job_title=''):
         analyzed_data = {
             'metadata': analyze_metadata(resume_analysis_results['metadata']),
             'education': analyze_education(resume_analysis_results['education'], jd_analysis_results['education']),
-            # 'skills': analyze_skills(resume_analysis_results['skills'], jd_analysis_results['skills']),
             'skills': analyze_skills(jd_analysis_results['skills'], resume_text),
             'experience': analyze_experience(resume_analysis_results['experience_duration'], jd_analysis_results['experience_duration']),
             'certifications': analyze_certificates(resume_analysis_results['certifications'], jd_analysis_results['certifications'])
