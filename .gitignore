@@ -1,0 +1,9 @@
+.env
+virtual/
+virtual-wsl/
+node_modules/
+dist/
+coverage/
+*.log
+# pycache
+__pycache__/

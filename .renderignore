@@ -1,0 +1,5 @@
+*.zip
+*.mp4
+*.pdf
+/media/  # If using user-uploaded files
+/staticfiles/  # Let Render rebuild these
