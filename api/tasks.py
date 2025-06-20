@@ -30,8 +30,15 @@ def async_match_resume_with_jd(resume_text, job_description, user, job_title):
     return analysis_result
 
 @shared_task
-def async_generate_resume(resume_data: dict = {}, filename: str = ''):
+def async_generate_resume(resume_data: dict = {}, filename: str = '', user=None):
     """Simulate resume generation"""
-    generator = ResumeGenerator(resume_data, filename)
+    generator = ResumeGenerator(resume_data, filename, matching=False, user=user)
     file_name = generator.populate_template()
+    return file_name
+
+@shared_task
+def async_generate_matching_resume(resume_data: dict = {}, filename: str = '', user=None):
+    """Simulate resume generation"""
+    generator = ResumeGenerator(resume_data, filename, matching=True, user=user)
+    file_name = generator.populate_matching_template(resume_data['template_id'])
     return file_name

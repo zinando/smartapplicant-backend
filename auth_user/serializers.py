@@ -20,11 +20,14 @@ class UserSerializer(serializers.ModelSerializer):
     date_joined = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
     subscriptions = serializers.SerializerMethodField()
     account_type = serializers.SerializerMethodField()
+    is_admin = serializers.SerializerMethodField()
+    is_superAdmin = serializers.SerializerMethodField()
     class Meta:
         model = get_user_model()
         fields = ['id', 'email', 'resume_data', 'phone_number', 'date_joined', 
                   'is_active', 'is_staff', 'is_superuser', 'first_name', 'last_name', 'username',
-                  'subscriptions', 'account_type'
+                  'subscriptions', 'account_type', 'resume_credits', 'groups', 'user_permissions',
+                  'is_admin', 'is_superAdmin'
                   ]
         
     def get_account_type(self, obj):
@@ -61,3 +64,15 @@ class UserSerializer(serializers.ModelSerializer):
             object['is_auto_renew'] = active_sub.is_auto_renew
         
         return object
+    
+    def get_is_admin(self, obj):
+        """Checks if user is an admin"""
+        admin_emails = ['belovedsamex@yahoo.com']
+        # print(f"Checking if {obj.email} is an admin")
+        return obj.email in admin_emails
+    
+    def get_is_superAdmin(self, obj):
+        """Checks if user is a super admin"""
+        super_admin_emails = ['belovedsamex@yahoo.com']
+        return obj.email in super_admin_emails
+    

@@ -258,9 +258,9 @@ def parse_resume(resume_text:str, resume_analysis_results:dict=None):
         resume_analysis_results = rar.parse_all()
 
     return {
-        "name": resume_analysis_results['metadata']['name'],
-        "email": resume_analysis_results['metadata']['email'],
-        "phone": resume_analysis_results['metadata']['phone'],
+        "name": resume_analysis_results['metadata'].get('name', ''),
+        "email": resume_analysis_results['metadata'].get('email', ''),
+        "phone": resume_analysis_results['metadata'].get('phone', ''),
         "skills": resume_analysis_results['skills'],
         "experience": resume_analysis_results['experience'],
         "education": resume_analysis_results['education'],
@@ -677,7 +677,7 @@ def analyze_resume_with_jd(resume_text, job_description, user, job_title=''):
 def match_resume_with_jd(resume_text, job_description, user, job_title=''):
     """Analyze resume against a job description."""
 
-    # Parse resume text with manual ATS-like detection
+    # Parse resume text with manual ATS-like detection 
     rar = ResumeParser(resume_text)
     resume_analysis_results = rar.parse_all()
 

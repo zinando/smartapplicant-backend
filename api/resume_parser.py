@@ -25,9 +25,13 @@ class ResumeParser:
             'education': r'education|academic\s*background|qualifications',
             'experience': r'experience|work\s*history|employment\s*history|professional\s*experience',
             'skills': r'skills|technical\s*skills|competencies|key\s*skills',
-            'certifications': r'certifications|licenses|certificates|training',
-            'summary': r'summary|profile|objective|about'
+            'certifications': r'\b(certification(s)?|license(s)?|certificate(s)?|training(s)?)\b',
+            'summary': (
+                r'summary|profile|objective|about|introduction|career\s*summary|'
+                r'career\s*objective|professional\s*summary|professional\s*objective'
+            ),
         }
+
         sections = defaultdict(str)
         current_section = None
         lines = self.resume_text.split('\n')
@@ -144,16 +148,26 @@ class ResumeParser:
         if phones:
             self.parsed_data['metadata']['phone'] = ''.join(phones[0])
         
-        # Name extraction - improved rule-based approach
-        if not self.parsed_data['metadata'].get('name'):
-            # Strategy 1: First line that looks like a name
-            first_lines = [line.strip() for line in contact_text.split('\n') if line.strip()]
-            name_candidate = first_lines[0] if first_lines else ""
+        # # Name extraction - improved rule-based approach
+        # if not self.parsed_data['metadata'].get('name'):
+        #     # Strategy 1: First line that looks like a name
+        #     first_lines = [line.strip() for line in contact_text.split('\n') if line.strip()]
+        #     name_candidate = first_lines[0] if first_lines else ""
             
-            # Basic validation (2-3 title-cased words, no obvious non-name words)
-            if (re.fullmatch(r'([A-Z][a-z]+)(?:\s+[A-Z][a-z]+){1,2}', name_candidate) and
-                not any(x in name_candidate.lower() for x in ['resume', 'cv', 'phone'])):
-                self.parsed_data['metadata']['name'] = name_candidate
+        #     # Basic validation (2-3 title-cased words, no obvious non-name words)
+        #     if (re.fullmatch(r'([A-Z][a-z]+)(?:\s+[A-Z][a-z]+){1,2}', name_candidate) and
+        #         not any(x in name_candidate.lower() for x in ['resume', 'cv', 'phone'])):
+        #         self.parsed_data['metadata']['name'] = name_candidate
+
+        # Name extraction - ATS-style rule-based
+        if not self.parsed_data['metadata'].get('name'):
+            # Strategy 1: First 3 lines that look like a name
+            first_lines = [line.strip() for line in contact_text.split('\n') if line.strip()]
+            for line in first_lines[:3]:  # Check first 3 lines
+                if (re.fullmatch(r'([A-Z][a-z]+)(?:\s+[A-Z][a-z]+){1,2}', line) and
+                    not any(x in line.lower() for x in self.known_skills['all'])):
+                    self.parsed_data['metadata']['name'] = line
+                    break
             
             # Strategy 2: Before email/phone (common resume format)
             if not self.parsed_data['metadata'].get('name') and emails:
@@ -386,7 +400,7 @@ class ResumeParser:
         # print(f'Education match: {education}')
         return education
 
-    def _parse_date(self, date_str):
+    def _parse_datexxx(self, date_str):
         """Parse date string into datetime object"""
         try:
             # Try month-year format first
@@ -399,8 +413,39 @@ class ResumeParser:
             return None
         return None
 
+    def _parse_date(self, date_str):
+        """Parse date string into a datetime object from various common formats"""
+        date_str = date_str.strip()
+
+        # List of possible formats
+        formats = ['%B %Y', '%b %Y', '%Y-%m', '%Y']
+
+        for fmt in formats:
+            try:
+                return datetime.strptime(date_str, fmt)
+            except ValueError:
+                continue
+
+        return None  # If no format matched
 
     def _calculate_experience_years(self, date_ranges):
+        """Calculate total years of experience from date ranges"""
+        total_days = 0
+        today = datetime.now()
+        
+        for date_range in date_ranges:
+            dates = re.split(r'\s*(?:-|–|to)\s*', date_range, maxsplit=1)
+            if len(dates) == 2:
+                start_date = self._parse_date(dates[0].strip())
+                end_text = dates[1].strip().lower()
+                end_date = today if end_text in ['present', 'current'] else self._parse_date(dates[1].strip())
+                
+                if start_date and end_date and end_date > start_date:
+                    total_days += (end_date - start_date).days
+
+        return round(total_days / 365)  # Convert to years
+
+    def _calculate_experience_yearsxxx(self, date_ranges):
         """Calculate total years of experience from date ranges"""
         total_days = 0
         today = datetime.now()
@@ -418,7 +463,7 @@ class ResumeParser:
 
     def parse_experience(self):
         """Extract work experience duration from entire resume text"""
-        exp_text = self.resume_text
+        exp_text = self.sections.get('experience', '') or self.resume_text
         
         # First try explicit duration patterns (e.g., "5+ years", "3-5 years")
         range_pattern = r'(?P<min_years>\d+)\s*(?:\+|\–|-)\s*(?P<max_years>\d+)?\s*(?:year|yr)s?'
@@ -428,6 +473,7 @@ class ResumeParser:
             min_years = range_match.group('min_years')
             max_years = range_match.group('max_years') or min_years
             self.parsed_data['experience_duration'] = f"{min_years}-{max_years} years experience"
+            self.parsed_data['experience'] = self.parsed_data['experience_duration']
             #print(f'Experience duration (range match): {self.parsed_data["experience_duration"]}')
             return self.parsed_data['experience_duration']
         
@@ -448,14 +494,33 @@ class ResumeParser:
                 years = level_match.group('entry_years')
                 self.parsed_data['experience_duration'] = f"{years}-3 years experience"
             
+            self.parsed_data['experience'] = self.parsed_data['experience_duration']
             #print(f'Experience duration (level match): {self.parsed_data["experience_duration"]}')
             return self.parsed_data['experience_duration']
         
         # Fall back to date range calculation (your existing implementation)
+        # date_ranges = re.findall(
+        #     r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{4}'
+        #     r'\s*(?:-|–|to)\s*'
+        #     r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)?[a-z]* \d{4}|present|current',
+        #     exp_text,
+        #     re.IGNORECASE
+        # )
+
         date_ranges = re.findall(
-            r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{4}'
+            r'(?:'
+            r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{4}'  # e.g., Jan 2021
+            r'|'
+            r'\d{4}-\d{2}'  # e.g., 2021-06
+            r')'
             r'\s*(?:-|–|to)\s*'
-            r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)?[a-z]* \d{4}|present|current',
+            r'(?:'
+            r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)?[a-z]* \d{4}'  # e.g., Mar 2022
+            r'|'
+            r'\d{4}-\d{2}'  # e.g., 2022-03
+            r'|'
+            r'present|current'
+            r')',
             exp_text,
             re.IGNORECASE
         )
@@ -464,7 +529,11 @@ class ResumeParser:
             total_years = self._calculate_experience_years(date_ranges)
             if total_years > 0:
                 self.parsed_data['experience_duration'] = f"{total_years} years experience"
-                #print(f'Experience duration (date calculation): {self.parsed_data["experience_duration"]}')
+                self.parsed_data['experience'] = self.parsed_data['experience_duration']
+                return self.parsed_data['experience_duration']
+            else:
+                self.parsed_data['experience_duration'] = 'Less than 1 year experience'
+                self.parsed_data['experience'] = self.parsed_data['experience_duration']
                 return self.parsed_data['experience_duration']
         
         self.parsed_data['experience_duration'] = None

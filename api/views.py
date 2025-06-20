@@ -4,8 +4,11 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from .models import GeneralData
 from celery.result import AsyncResult
+from auth_user.serializers import UserSerializer
+from auth_user.models import PGRequest, Order, Subscription, SubscriptionType
 from .utils import extract_text, calculate_ats_score, parse_resume
 from .tasks import async_extract_and_score
+from .analytics import RevenueAnalytics
 import os
 from django.http import FileResponse, Http404
 
@@ -40,12 +43,13 @@ class ResumeParseView(APIView):
                 
                 text = result['text']
 
-                # parse resume text to get data
+                # parse resume text to get data 
                 parsed_data = parse_resume(text)
 
                 # Calculate ATS optimization score with the parsed data
                 ats_score = calculate_ats_score(parsed_data)
                 res_status = 1
+                # print(f'parsed_data: {parsed_data}')
                 data = {
                         'task_id': None,
                         'status': 'Completed',
@@ -144,3 +148,31 @@ class ResumeDownloadView(APIView):
 
         return response
         
+
+# view for fetching analytics data
+class AnalyticsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
+
+    def get(self, request, *args, **kwargs):
+        try:
+            # Ensure user is authenticated
+            if not request.user.is_authenticated:
+                raise Exception("User not authenticated")
+            
+            # Check if user is admin
+            serialized_user = self.serializer_class(request.user)
+            if not serialized_user.data.get('is_admin', False):
+                raise Exception("User does not have permission to access analytics data")
+            
+            duration_days = int(kwargs.get('duration_days', 30))  # Default to last 30 days
+
+            # Initialize analytics with the specified duration
+            analytics = RevenueAnalytics(duration_days=duration_days)
+            # Get dashboard data
+            dashboard_data = analytics.get_dashboard_data()
+
+            return Response({'status': 1, 'data': dashboard_data, 'message': 'success'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Analytics error: {e}")
+            return Response({'status': 0, 'message': str(e)}, status=status.HTTP_200_OK)

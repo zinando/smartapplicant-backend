@@ -12,7 +12,14 @@ from api.tasks import *
 from api.models import GeneralData
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
+from decimal import Decimal
 from .utils import *
+from .models import Order, PGRequest, SubscriptionType, Subscription
+import os
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 User = get_user_model()
@@ -454,7 +461,7 @@ class ResumeGeneratorView(generics.GenericAPIView):
 
             # Generate the new resume
             filename = f"{user.username}_resume.docx"
-            task = async_generate_resume.delay(resume_data, filename)
+            task = async_generate_resume.delay(resume_data, filename, user)
 
             return Response({
                 'status': 1,
@@ -466,3 +473,324 @@ class ResumeGeneratorView(generics.GenericAPIView):
                 {'status': 0, 'message': str(e)},
                 status=status.HTTP_200_OK
             )
+        
+class ResumeMatchAndGenerateView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
+
+    def post(self, request, *args, **kwargs):
+        try:
+            user = request.user
+            resume_data = request.data
+
+            # authenticate the user
+            if not user.is_authenticated:
+                raise ValueError("User is not authenticated")
+            
+            # check if user is a premium user
+            serialized_user = self.get_serializer(user).data
+            if serialized_user['account_type'] != 'premium' or serialized_user['resume_credits'] <= 0:
+                raise Exception('You must be a premium user to generate a matching resume. Please purchase resume credits or subscribe to our premium service.')
+            
+            # Generate resume text
+            resume = [resume for resume in serialized_user['resume_data'] if resume['id'] == resume_data['resume_id']]
+            if not resume:
+                raise ValueError('Resume not found')
+            
+            resume_data['resume_text'] = resume[0]['resume_text']
+
+            # Generate the new resume
+            filename = f"{user.username}_matched_resume.docx"
+            task = async_generate_matching_resume.delay(resume_data, filename, user)
+
+            return Response({
+                'status': 1,
+                'message': 'Resume generation started successfully',
+                'user': self.get_serializer(user).data,
+                'task_id': task.id,
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'status': 0,
+                 'user': self.get_serializer(user).data if user.is_authenticated else None, 
+                 'message': str(e)},
+                status=status.HTTP_200_OK
+            )
+
+# create a view for checking if user is a premium user or not
+class PremiumServiceOrderView(generics.GenericAPIView):
+    """This view is used to prepare order for premium service"""
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
+
+    def get_premium_cost(self, order_type):
+        """Returns the cost of the premium service based on the order type"""
+        cost = 0
+        subscription_type = SubscriptionType.objects.get(name=order_type)
+        if subscription_type:
+            cost += int(subscription_type.price)
+        return cost
+        
+    def log_subscription_type(self):
+        """This is used to log subscription types applicable to the app"""
+        sub_types = [
+            {"name":"resume_credit", "price": os.getenv('cost_per_credit_unit'), "description":"Purchase resume credits for premium services."},
+            {"name":"one_month_subscription", "price": os.getenv('cost_per_one_month_subscription'), "description":"Subscribe to our premium service for 30 days."},
+            {"name":"three_months_subscription", "price": os.getenv('cost_per_three_months_subscription'), "description":"Subscribe to our premium service for 90 days."},
+            {"name":"six_months_subscription", "price": os.getenv('cost_per_six_months_subscription'), "description": "Subscribe to our premium service for 180 days."},
+            {"name":"one_year_subscription", "price": os.getenv('cost_per_one_year_subscription'), "description": "Subscribe to our premium service for 365 days."}
+        ]
+
+        for sub in sub_types:
+            # check if subscription type already exists
+            if not SubscriptionType.objects.filter(name=sub['name']).exists():
+                # determine number of days for sub
+                if sub['name'] == 'one_month_subscription':
+                    duration = 30
+                elif sub['name'] == 'three_months_subscription':
+                    duration = 90
+                elif sub['name'] == 'six_months_subscription':
+                    duration = 180
+                elif sub['name'] == 'one_year_subscription':
+                    duration = 365
+                else:
+                    duration = 0
+
+                SubscriptionType.objects.create(
+                    name=sub['name'],
+                    price=Decimal(sub['price']),
+                    description=sub['description'],
+                    duration_days=duration
+                )
+            else:
+                # compare prices and update if necessary
+                subscription_type = SubscriptionType.objects.get(name=sub['name'])
+                if subscription_type.price != Decimal(sub['price']):
+                    subscription_type.price = Decimal(sub['price'])
+                    subscription_type.save()
+
+
+    def post(self, request, *args, **kwargs):
+        self.log_subscription_type()
+        try:
+            user = request.user
+            data = request.data
+            serialized_user = self.get_serializer(user).data
+
+            # authenticate the user
+            if not user.is_authenticated:
+                raise ValueError("User is not authenticated")
+
+            # check if user is a premium user
+            if serialized_user['account_type'] == 'premium':
+                raise Exception('User is already a premium user.')
+            
+            order_type = data.get('order_type', None)
+            if not order_type:
+                raise ValueError("Order type is required")
+            
+            if order_type == 'resume_credits':
+                credits = data.get('credits', None)
+                if not credits or not isinstance(credits, int) or credits <= 0:
+                    raise ValueError("Invalid number of resume credits")
+                
+                # log the order
+                cost = self.get_premium_cost(order_type)
+                order = Order.objects.create(
+                    user=user,
+                    price= cost,
+                    quantity=credits,
+                    total= float(cost * credits),
+                    txn_ref= f'{order_type}-{timezone.now().timestamp()}',  # unique transaction reference
+                    order_type='CREDIT'
+                )
+                # Log the order in PGRequest
+                PGRequest.objects.create(
+                    user=user,
+                    order=order,
+                    ref_id=order.txn_ref,  # unique transaction reference
+                    amount=order.total,
+                    currency= data.get('currency', 'NGN'),
+                    txn_type='CREDIT',
+                    customer_email=user.email
+                )
+                
+                # prepare order for resume credits
+                order_data = {
+                    'type': 'resume_credits',
+                    'name': user.username,
+                    'phone': user.phone_number,
+                    'email': user.email,
+                    'app': 'Smart Applicant',
+                    'reference': order.txn_ref,  # unique transaction reference
+                    'amount': order.total,  # in Naira
+                    'currency': data.get('currency', 'NGN'),
+                    'description': f'Purchase {credits} resume credit units',
+                    'paystackPublicKey': os.getenv('PAYSTACK_PUBLIC_KEY')
+                }
+                return Response({
+                    'status': 1,
+                    'message': 'Order prepared successfully',
+                    'order': order_data
+                }, status=status.HTTP_200_OK)
+            
+            elif order_type in ['one_month_subscription', 'three_months_subscription', 'six_months_subscription', 'one_year_subscription']:
+                # log the order
+                cost = self.get_premium_cost(order_type)
+                order = Order.objects.create(
+                    user=user,
+                    price= cost,
+                    quantity=1,
+                    total=float(cost * 1),  # total is the cost for one subscription
+                    txn_ref= f'{order_type}-{timezone.now().timestamp()}',  # unique transaction reference
+                    order_type='SUBSCRIPTION'
+                )
+                # Log the order in PGRequest
+                PGRequest.objects.create(
+                    user=user,
+                    order=order,
+                    ref_id=order.txn_ref,  # unique transaction reference
+                    amount=order.total,
+                    currency= data.get('currency', 'NGN'),
+                    txn_type='SUBSCRIPTION',
+                    customer_email=user.email
+                )
+                
+                # prepare order for subscription
+                order_data = {
+                    'type': 'subscription',
+                    'name': user.username,
+                    'phone': user.phone_number,
+                    'email': user.email,
+                    'app': 'Smart Applicant',
+                    'reference': order.txn_ref,  # unique transaction reference
+                    'amount': order.total,  # in Naira
+                    'currency': data.get('currency', 'NGN'),
+                    'description': f'Subscription to {order_type} plan',
+                    'paystackPublicKey': os.getenv('PAYSTACK_PUBLIC_KEY')
+                }
+                return Response({
+                    'status': 1,
+                    'message': 'Order prepared successfully',
+                    'order': order_data
+                }, status=status.HTTP_200_OK)
+            
+            else:
+                raise ValueError("Invalid order type. Must be one of: resume_credits, one_month_subscription, three_months_subscription, six_months_subscription, one_year_subscription")
+        except Exception as e:
+            return Response(
+                {'status': 0, 'message': str(e)},
+                status=status.HTTP_200_OK
+            )
+
+# class view for verifying paystack payment
+class PremiumServiceOrderVerificationView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
+
+    def get(self, request, *args, **kwargs):
+        try:
+            user = request.user
+            reference = kwargs.get('reference', None)
+
+            if not reference:
+                raise ValueError("Transaction reference is required")
+            
+            # Verify the payment with Paystack API
+            verification = self.verify_paystack_payment(reference)
+            if not verification['status']:
+                raise Exception(verification['message'])
+            
+            # update the PGRequest object
+            txn = PGRequest.objects.get(ref_id=reference)
+            txn.res_status = verification['data']['status'].upper()
+            txn.callback_body = verification['data']
+            txn.txn_verified = verification['status']
+            txn.save()
+
+            order_type = reference.split('-')[0]  # Extract order type from reference
+            order = Order.objects.get(txn_ref=reference)
+
+            # update the order payment status
+            order.payment_status = 'PAID'
+            order.save()
+            
+            if order.order_type == 'CREDIT':
+                user.resume_credits += order.quantity 
+                user.save()
+                message = f"You have successfully purchased {order.quantity} resume credit units."
+            elif order.order_type == 'SUBSCRIPTION':
+                # Activate the subscription for the user
+                self.activate_user_subscription(user, order, order_type)
+                message = f"You have successfully subscribed to {order_type} plan."
+            
+            return Response({
+                'status': 1,
+                'message': message,
+                'user': self.get_serializer(user).data
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'status': 0, 'message': str(e)},
+                status=status.HTTP_200_OK
+            )
+    
+    def verify_paystack_payment(self, txn_reference):
+        url = f"https://api.paystack.co/transaction/verify/{txn_reference}"
+        
+        headers = {
+            "Authorization": f"Bearer {os.getenv('PAYSTACK_SECRETE_KEY')}",
+            "Content-Type": "application/json"
+        }
+
+        response = requests.get(url, headers=headers)
+
+        data = {
+                    "status": False,
+                    "message": "Verification failed",
+                    "data": {}
+                }
+
+        if response.status_code == 200:
+            data = response.json()
+            if data['status']:
+                data['data']['amount'] = data['data']['amount'] / 100
+                # check if the amount is correct
+                txn = PGRequest.objects.get(ref_id=txn_reference)
+                if txn.amount == data['data']['amount']:
+                    data['status'] = True
+                    data['message'] = "Verification successful"
+                else:
+                    data['message'] = "Amount mismatch"
+                    data['status'] = False
+        else:
+            data['message'] = response.text
+        return data
+    
+    def activate_user_subscription(self, user, order, subscription_plan):
+        """Activates subscription for user"""
+        # Log subscription for user if none exists
+        subscription_type = SubscriptionType.objects.get(name=subscription_plan)
+
+        if not user.subscriptions.filter(subscription_type=subscription_type).exists():
+            subscription = Subscription.objects.create(
+                user = user,
+                subscription_type = subscription_type,
+                status= 'active',
+                start_date = timezone.now(),
+                expiry_date = timezone.now() + timezone.timedelta(days=subscription_type.duration_days),
+                payment_amount = Decimal(order.price),
+            )
+        else:
+            # update existing record
+            subscription = user.subscriptions.get(subscription_type=subscription_type)
+            subscription.status = 'active'
+            subscription.start_date = timezone.now()
+            subscription.expiry_date = timezone.now() + timezone.timedelta(days=subscription_type.duration_days)
+            subscription.payment_amount = Decimal(order.price)
+            subscription.is_renewed = True
+            subscription.save()
+        
+        # update order
+        order.subscription = subscription
+        order.save()

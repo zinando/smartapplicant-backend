@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path
-from api.views import ResumeParseView, TaskStatusView, StatsAPIView, ResumeDownloadView
-from auth_user.views import ResumeUploadView, ResumeAnalysisView, ResumeGeneratorView
+from api.views import ResumeParseView, TaskStatusView, StatsAPIView, ResumeDownloadView, AnalyticsAPIView
+from auth_user.views import ResumeUploadView, ResumeAnalysisView, ResumeGeneratorView, ResumeMatchAndGenerateView
 from django.urls import include
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -22,4 +22,6 @@ urlpatterns = [
     path('api/stats/', StatsAPIView.as_view()),
     path('api/download/<str:file_name>/', ResumeDownloadView.as_view(), name='download-resume'),
     path('api/user/resumes/generate/', ResumeGeneratorView.as_view(), name='resume-generator'),
+    path('api/user/resumes/generate_matching/', ResumeMatchAndGenerateView.as_view()),
+    path('api/analytics/<duration_days>/', AnalyticsAPIView.as_view(), name='analytics'),
 ]
