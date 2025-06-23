@@ -107,6 +107,9 @@ class RevenueAnalytics:
             "by_plan": by_plan
         }
 
+    def get_total_users(self) -> int:
+        """Get all registered users that are active."""
+        return User.objects.filter(is_active=True).count()
     
     def get_payment_method_distribution(self) -> Dict[str, float]:
         """Get revenue distribution by payment method."""
@@ -351,19 +354,17 @@ class RevenueAnalytics:
 
         new_customers = len(first_orders)
 
-        # # group users by marketing channels
-        # market_channel_distribution = (
-        #     first_orders
-        #     .values('user__marketing_channel')
-        #     .annotate(count=Count('user'))
-        # )
+        # group users by marketing channels
+        market_channel_distribution_data = User.objects.filter(
+            id__in=[x['user'] for x in first_orders]
+        ).values('how_you_heard').annotate(count=Count('id'))
+
+        # market_channel_distribution_data = User.objects.values('how_you_heard').annotate(count=Count('id'))
+
 
         market_channel_distribution = {
-            'organic': 45,
-            'paid': 62,
-            'referral': 18,
-            'social': 12,
-            'email': 5
+            x['how_you_heard'].lower(): x['count']
+            for x in market_channel_distribution_data
         }
 
         cac = marketing_spend / new_customers if new_customers else 0
@@ -371,7 +372,7 @@ class RevenueAnalytics:
         return {
             "new_customers": new_customers,
             "cac": round(cac, 2),
-            'channels': market_channel_distribution.values()
+            'channels': market_channel_distribution
         }
 
     def get_plan_performance(self) -> List[Dict[str, any]]:
@@ -437,6 +438,7 @@ class RevenueAnalytics:
         mmr_breakdown = self.get_mrr_breakdown()
         customer_acquisition = self.get_customer_acquisition()
         plan_performance = self.get_plan_performance()
+        total_users = self.get_total_users()
         # conversion_rate = self.get_conversion_rate()
         # payment_methods = self.get_payment_method_distribution()
         recent_orders = self.get_recent_orders()
@@ -451,6 +453,7 @@ class RevenueAnalytics:
                 "credit_purchases": credit_stats,
                 "subscriptions": sub_stats,
                 "active_users": active_users,
+                "total_users": total_users,
                 "growth_rates": growth_rates,
                 "recent_orders": recent_orders,
                 "mrr_breakdown": mmr_breakdown,

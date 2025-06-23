@@ -26,6 +26,16 @@ class CustomUserManager(BaseUserManager):
 
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
+    class HowYouHeardOptions(models.TextChoices):
+        EMAIL = "EMAIL", "Email"
+        SOCIAL_MEDIA = "SOCIAL", "Social Media"
+        SEARCH = "ORGANIC", "Organic"
+        REFERRAL = "REFERRAL", "Referral"
+        BLOG = "BLOG", "Blog/Content"
+        AD = "AD", "Paid Ad"
+        OTHER = "OTHER", "Other"
+        UNSPECIFIED = "UNSPECIFIED", "Unspecified"
+
     username = models.CharField(
         max_length=150,
         unique=True,
@@ -38,6 +48,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     resume_data = models.JSONField(null=True, blank=True, help_text="Store list of resume data in JSON format.")
     phone_number = models.CharField(max_length=15, null=True, blank=True, help_text="Enter your phone number.")
     resume_credits = models.PositiveIntegerField(default=0, help_text="Number of resume credits available for the user.")
+    how_you_heard = models.CharField(        max_length=20,
+        choices=HowYouHeardOptions.choices,
+        default=HowYouHeardOptions.UNSPECIFIED,
+        help_text="How the user heard about the service."
+    )
     
     # Standard fields
     is_active = models.BooleanField(default=True, help_text='Designates whether this user should be treated as active.')

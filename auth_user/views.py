@@ -26,6 +26,19 @@ User = get_user_model()
 
 class SignUpView(generics.CreateAPIView):
     serializer_class = UserSerializer
+
+    def sanitize_string(self, value):
+        """Sanitize a string by removing leading/trailing whitespace and converting to lowercase."""
+        if value:
+            return value.strip().lower()
+        return None
+    def normalize_how_you_heard_value(self, value: str) -> str:
+        value = self.sanitize_string(value).title() if value else 'Unspecified'
+        try:
+            # Match input with enum by value or label (case-insensitive)
+            return User.HowYouHeardOptions[value.upper()].value
+        except KeyError:
+            return User.HowYouHeardOptions.UNSPECIFIED
     def create(self, request, *args, **kwargs):
         try:
             email = request.data.get('email')
@@ -33,6 +46,7 @@ class SignUpView(generics.CreateAPIView):
             phone = request.data.get('phone', None)
             first_name = request.data.get('first_name', None)
             last_name = request.data.get('last_name', None)
+            how_you_heard = request.data.get('how_you_heard', 'Unspecified')
             
             if not email or not password:
                 raise ValueError("Email and password are required")
@@ -44,11 +58,12 @@ class SignUpView(generics.CreateAPIView):
                 raise ValueError("Email already exists")
             
             user = User.objects.create(
-                email=email,
-                password=make_password(password),
-                phone_number=phone,
-                first_name=first_name,
-                last_name=last_name
+                email= self.sanitize_string(email),
+                password= make_password(password),
+                phone_number= self.sanitize_string(phone),
+                first_name= self.sanitize_string(first_name).title() if first_name else None,
+                last_name= self.sanitize_string(last_name).title() if last_name else None,
+                how_you_heard= self.normalize_how_you_heard_value(how_you_heard)
             )
 
             # update general data table 
@@ -65,6 +80,8 @@ class SignUpView(generics.CreateAPIView):
                 gen_obj.registered_users += 1
                 gen_obj.currently_online += 1
                 gen_obj.save() 
+
+            print(f'how_you_heard: {how_you_heard}')
             
             refresh = RefreshToken.for_user(user)
             serializer = self.get_serializer(user)
