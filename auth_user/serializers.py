@@ -67,7 +67,7 @@ class UserSerializer(serializers.ModelSerializer):
     
     def get_is_admin(self, obj):
         """Checks if user is an admin"""
-        admin_emails = ['belovedsamex@yahoo.com']
+        admin_emails = ['belovedsamex@yahoo.com', 'azeezbolarinwa@gmail.com']
         # print(f"Checking if {obj.email} is an admin")
         return obj.email in admin_emails
     
