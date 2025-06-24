@@ -811,3 +811,81 @@ class PremiumServiceOrderVerificationView(generics.GenericAPIView):
         # update order
         order.subscription = subscription
         order.save()
+
+# admin change password view
+class AdminChangePasswordView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
+
+    def get(self, request, *args, **kwargs):
+        """This method is used to get the user profile information"""
+        try:
+            user = request.user
+            serialized_user = self.get_serializer(user).data
+
+            # check if user is authenticated
+            if not user.is_authenticated or not serialized_user['is_superAdmin']:
+                raise ValueError("You are not authorized to perform this operation.")
+            
+            # get the email of user whose password is to be changed
+            email = kwargs.get('email', None)
+            if not email:
+                raise ValueError("Email is required to retrieve user profile")
+            
+            # Check if the user exists
+            user_to_change = User.objects.filter(email=email).first()
+            if not user_to_change:
+                raise ValueError("User with this email does not exist")
+            
+            # Serialize the user data
+            serializer = self.get_serializer(user_to_change)
+
+            return Response({
+                'status': 1,
+                'message': 'User profile retrieved successfully',
+                'user': serializer.data
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            # print(e)
+            return Response(
+                {'status': 0, 'message': str(e)},
+                status=status.HTTP_200_OK
+            )
+
+    def post(self, request, *args, **kwargs):
+        try:
+            user = request.user
+            serialized_user = self.get_serializer(user).data
+
+            # check if user is authenticated
+            if not user.is_authenticated or not serialized_user['is_superAdmin']:
+                raise ValueError("You are not authorized to perform this operation.")
+            
+            # Get the user data: user_id, new_password
+            user_id = request.data.get('user_id', None)
+            new_password = request.data.get('new_password', None)
+
+            if not user_id or not new_password:
+                raise ValueError("User ID and new password are required")
+            
+            # Check if the user exists
+            user_to_change = User.objects.filter(id=user_id).first()
+            if not user_to_change:
+                raise ValueError("User with this ID does not exist")
+            
+            # Change user password
+            user_to_change.password = make_password(new_password)
+            user_to_change.save()
+
+            serializer = self.get_serializer(user_to_change)
+
+            return Response({
+                'status': 1,
+                'message': f'Password changed successfully.',
+                'user': serializer.data
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'status': 0, 'message': str(e)},
+                status=status.HTTP_200_OK
+            )
