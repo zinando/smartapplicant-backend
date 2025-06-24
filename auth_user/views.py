@@ -587,7 +587,7 @@ class PremiumServiceOrderView(generics.GenericAPIView):
                     subscription_type.save()
 
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs): 
         self.log_subscription_type()
         try:
             user = request.user
@@ -606,7 +606,7 @@ class PremiumServiceOrderView(generics.GenericAPIView):
             if not order_type:
                 raise ValueError("Order type is required")
             
-            if order_type == 'resume_credits':
+            if order_type == 'resume_credit':
                 credits = data.get('credits', None)
                 if not credits or not isinstance(credits, int) or credits <= 0:
                     raise ValueError("Invalid number of resume credits")
@@ -693,7 +693,7 @@ class PremiumServiceOrderView(generics.GenericAPIView):
                 }, status=status.HTTP_200_OK)
             
             else:
-                raise ValueError("Invalid order type. Must be one of: resume_credits, one_month_subscription, three_months_subscription, six_months_subscription, one_year_subscription")
+                raise ValueError("Invalid order type. Must be one of: resume_credit, one_month_subscription, three_months_subscription, six_months_subscription, one_year_subscription")
         except Exception as e:
             return Response(
                 {'status': 0, 'message': str(e)},
