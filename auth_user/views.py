@@ -10,12 +10,18 @@ from django.db.models import Q
 from api.utils import *
 from api.tasks import *
 from api.models import GeneralData
+from api.email_service import EmailService
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 from decimal import Decimal
 from .utils import *
 from .models import Order, PGRequest, SubscriptionType, Subscription
 import os
+from django.core.cache import cache
+from django.core import signing
+from django.core.signing import BadSignature, SignatureExpired
+from datetime import timedelta
+import random
 import requests
 from dotenv import load_dotenv
 
@@ -889,3 +895,146 @@ class AdminChangePasswordView(generics.GenericAPIView):
                 {'status': 0, 'message': str(e)},
                 status=status.HTTP_200_OK
             )
+
+class RequestPasswordResetView(generics.GenericAPIView):
+    """This view is used to request a password reset code"""
+    def get(self, request, email):
+        try:
+            user = User.objects.filter(email=email).first()
+            if not user:
+                raise ValueError("User with this email does not exist")
+
+            # Generate 6-digit code
+            reset_code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+            
+            # Store in cache with 15 minute expiration
+            cache_key = f'password_reset_{email}'
+            cache.set(cache_key, {
+                'code': reset_code,
+                'attempts': 0,
+                'user_id': user.id
+            }, timeout=3600*3)  # 3 hours expiration
+
+            # Send email with code
+            email_service = EmailService(
+                subject='Password Reset Code',
+                to_emails=[email],
+                template_name='emails/reset_password.html',
+                context={
+                    'user': user,
+                    'reset_code': reset_code,
+                    'expiration_time': '3 hours',
+                    'reset_link': f'{os.getenv("FRONTEND_URL")}/reset_password',
+                    'unsubscribe_url': f'{os.getenv("FRONTEND_URL")}/unsubscribe'
+                },
+                from_email="Smart Applicant <support@smartapplicant.net>"
+            )
+            sent = email_service.send_email()
+            if not sent:
+                raise Exception('Failed to send reset code email')
+
+            return Response({
+                'status': 1,
+                'message': 'Reset code sent to email'
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print(f'Error in RequestPasswordResetView: {e}')
+            return Response({
+                'status': 0,
+                'message': str(e)
+            }, status=status.HTTP_200_OK)
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            email = request.data.get('email')
+            code = request.data.get('reset_code')
+            
+            if not email or not code:
+                raise ValueError('Email and reset code are required')
+
+            cache_key = f'password_reset_{email}'
+            cached_data = cache.get(cache_key)
+            
+            if not cached_data:
+                raise ValueError('Invalid or expired code')
+
+            # Check attempts
+            if cached_data['attempts'] >= 3:
+                cache.delete(cache_key)
+                raise ValueError('Too many attempts. Please request a new code')
+
+            # Verify code
+            if cached_data['code'] != code:
+                # Increment attempts
+                cached_data['attempts'] += 1
+                cache.set(cache_key, cached_data, timeout=3600*3) # 3 hours expiration
+                raise ValueError(f'Invalid code. You have {3 - cached_data["attempts"]} attempts left.')
+
+            # Generate token for password reset (valid for 10 minutes)
+            token = signing.dumps({
+                'user_id': cached_data['user_id'],
+                'email': email,
+                'expires': str(timezone.now() + timedelta(minutes=10))
+            })
+
+            # Delete the cached code
+            cache.delete(cache_key)
+
+            print(f'Token generated for {email}: {token}')
+
+            return Response({
+                'status': 1,
+                'message': 'Code verified',
+                'token': token
+            },
+            status=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            print(f'Error in RequestPasswordResetView POST: {e}')
+            return Response({
+                'status': 0,
+                'message': str(e)
+            }, status=status.HTTP_200_OK)
+        
+    def put(self, request, *args, **kwargs):
+        try:
+            token = request.data.get('token')
+            new_password = request.data.get('new_password')
+
+            print(f'Token: {token}, New Password: {new_password}')
+            
+            if not token or not new_password:
+                raise ValueError('Token and new password are required')
+
+            # Verify token
+            try:
+                data = signing.loads(token, max_age=600)  # 10 minutes
+                user = User.objects.get(id=data['user_id'], email=data['email'])
+                
+                # Update password
+                user.password = make_password(new_password)
+                user.save()
+
+                return Response({
+                    'status': 1,
+                    'message': 'Password reset successfully'
+                },
+                status=status.HTTP_200_OK
+                )
+
+            except SignatureExpired:
+                raise ValueError('Reset token has expired')
+            except BadSignature:
+                raise ValueError('Invalid reset token')
+            except User.DoesNotExist:
+                raise ValueError('User not found')
+
+        except Exception as e:
+            print(f'Error in RequestPasswordResetView PUT: {e}')
+            return Response({
+                'status': 0,
+                'message': str(e)
+            }, status=status.HTTP_200_OK)
+

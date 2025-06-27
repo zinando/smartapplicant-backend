@@ -1,0 +1,30 @@
+Welcome to Smart Applicant!
+
+Dear {{ user.first_name }},
+
+Thank you for joining Smart Applicant, your intelligent job application assistant. We're excited to help you streamline your job search and land your dream position.
+
+With Smart Applicant, you can:
+- Track all your job applications in one place
+- Get personalized recommendations for your next career move
+- Receive alerts for application deadlines and follow-ups
+- Analyze your application success rate
+
+Go to Your Dashboard: {{ dashboard_url }}
+
+If you have any questions or need assistance, don't hesitate to reach out to our support team at support@smartapplicant.com.
+
+Best regards,
+The Smart Applicant Team
+
+---
+Connect with us:
+Facebook: https://facebook.com/smartapplicant
+Twitter: https://twitter.com/smartapplicant
+LinkedIn: https://linkedin.com/company/smartapplicant
+
+Smart Applicant helps job seekers manage their applications efficiently and effectively.
+
+© {% now "Y" %} Smart Applicant. All rights reserved.
+Unsubscribe from these emails: {{ unsubscribe_url }}
+Our address: 28 Alhaji Waheed Adeyemi Street, Elebu, Ibadan, Oyo State, Nigeria.
