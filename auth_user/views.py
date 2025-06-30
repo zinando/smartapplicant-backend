@@ -484,7 +484,7 @@ class ResumeGeneratorView(generics.GenericAPIView):
 
             # Generate the new resume
             filename = f"{user.username}_resume.docx"
-            task = async_generate_resume.delay(resume_data, filename, user)
+            task = async_generate_resume.delay(resume_data, filename, user.id)
 
             return Response({
                 'status': 1,
@@ -492,6 +492,7 @@ class ResumeGeneratorView(generics.GenericAPIView):
                 'task_id': task.id,
             }, status=status.HTTP_200_OK)
         except Exception as e:
+            print(f'server error: {e}')
             return Response(
                 {'status': 0, 'message': str(e)},
                 status=status.HTTP_200_OK
@@ -524,7 +525,7 @@ class ResumeMatchAndGenerateView(generics.GenericAPIView):
 
             # Generate the new resume
             filename = f"{user.username}_matched_resume.docx"
-            task = async_generate_matching_resume.delay(resume_data, filename, user)
+            task = async_generate_matching_resume.delay(resume_data, filename, user.id)
 
             return Response({
                 'status': 1,

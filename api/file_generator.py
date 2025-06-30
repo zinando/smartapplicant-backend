@@ -12,6 +12,9 @@ from auth_user.models import MatchedResumeData
 from docx.oxml import OxmlElement
 from docx.text.paragraph import Paragraph
 from .template_layouts import tp_layouts
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 def insert_paragraph_afterxxx(paragraph: Paragraph, text='', style=None):
     """
@@ -208,10 +211,10 @@ class ResumeGenerator:
         ]
     }
 
-    def __init__(self, resume_data=None, filename=None, matching=False, user=None):
+    def __init__(self, resume_data=None, filename=None, matching=False, user_id=0):
         self.filename = filename
         self.resume_data = resume_data
-        self.user_object = user
+        self.user_object = User.objects.filter(id=user_id).first() if user_id != 0 else None
         if not matching:
             prompt = self.__generate_prompt()
             self.user_data = self.__promptGemini(prompt)
