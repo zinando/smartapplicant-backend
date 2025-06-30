@@ -411,13 +411,13 @@ class ResumeGenerator:
 
         if template_id:
             self.template_path = f"templates/{template_id}.docx"        
-        elif self.resume_data.get("certifications"):
+        else:
             self.template_path = "templates/general_certification.docx"
         
         if not os.path.exists(self.template_path):
             raise FileNotFoundError(f"{self.template_path} not found")
         
-        return self.template_path
+        #return self.template_path
     
     def populate_template(self):
         """Populate a Word template with user data and save the result."""
@@ -429,7 +429,8 @@ class ResumeGenerator:
             print("No filename available.")
             return ''
         # Select template
-        self.template_path = self.__select_template()
+        # self.template_path = 
+        self.__select_template()
 
         try:
             doc = Document(self.template_path)
