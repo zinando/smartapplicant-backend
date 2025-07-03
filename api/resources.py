@@ -212,3 +212,53 @@ technical_keywords = {
         "Soft Skills": soft_skills_keywords['hospitality']
     }
 }
+
+supported_country_phonecodes = {
+    # 🌍 Africa
+    'NG': {'name': 'Nigeria', 'code': '+234'},
+    'GH': {'name': 'Ghana', 'code': '+233'},
+    'KE': {'name': 'Kenya', 'code': '+254'},
+    'ZA': {'name': 'South Africa', 'code': '+27'},
+    'EG': {'name': 'Egypt', 'code': '+20'},
+    'MA': {'name': 'Morocco', 'code': '+212'},
+    'ET': {'name': 'Ethiopia', 'code': '+251'},
+    'TZ': {'name': 'Tanzania', 'code': '+255'},
+    'UG': {'name': 'Uganda', 'code': '+256'},
+    'SN': {'name': 'Senegal', 'code': '+221'},
+
+    # 🌎 Americas
+    'US': {'name': 'United States', 'code': '+1'},
+    'CA': {'name': 'Canada', 'code': '+1'},
+    'MX': {'name': 'Mexico', 'code': '+52'},
+    'BR': {'name': 'Brazil', 'code': '+55'},
+    'AR': {'name': 'Argentina', 'code': '+54'},
+    'CO': {'name': 'Colombia', 'code': '+57'},
+    'CL': {'name': 'Chile', 'code': '+56'},
+    'JM': {'name': 'Jamaica', 'code': '+1-876'},
+    'TT': {'name': 'Trinidad and Tobago', 'code': '+1-868'},
+    'DO': {'name': 'Dominican Republic', 'code': ['+1-809', '+1-829', '+1-849']},
+
+    # 🌍 Europe
+    'GB': {'name': 'United Kingdom', 'code': '+44'},
+    'DE': {'name': 'Germany', 'code': '+49'},
+    'FR': {'name': 'France', 'code': '+33'},
+    'IT': {'name': 'Italy', 'code': '+39'},
+    'ES': {'name': 'Spain', 'code': '+34'},
+    'NL': {'name': 'Netherlands', 'code': '+31'},
+    'SE': {'name': 'Sweden', 'code': '+46'},
+    'CH': {'name': 'Switzerland', 'code': '+41'},
+    'PL': {'name': 'Poland', 'code': '+48'},
+    'PT': {'name': 'Portugal', 'code': '+351'},
+
+    # 🌏 Asia
+    'CN': {'name': 'China', 'code': '+86'},
+    'IN': {'name': 'India', 'code': '+91'},
+    'JP': {'name': 'Japan', 'code': '+81'},
+    'KR': {'name': 'South Korea', 'code': '+82'},
+    'PH': {'name': 'Philippines', 'code': '+63'},
+    'TH': {'name': 'Thailand', 'code': '+66'},
+    'PK': {'name': 'Pakistan', 'code': '+92'},
+    'ID': {'name': 'Indonesia', 'code': '+62'},
+    'BD': {'name': 'Bangladesh', 'code': '+880'},
+    'VN': {'name': 'Vietnam', 'code': '+84'}
+}

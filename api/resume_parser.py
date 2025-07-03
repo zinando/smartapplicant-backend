@@ -3,6 +3,58 @@ from datetime import datetime
 from collections import defaultdict
 import os
 import json
+import re
+import phonenumbers
+from phonenumbers.phonenumberutil import NumberParseException
+from .resources import supported_country_phonecodes
+
+class SmartPhoneExtractor:
+    def __init__(self, supported_regions=None):
+        self.supported_regions = supported_regions or  supported_country_phonecodes.keys()
+
+    def extract_phone_numbers(self, text):
+        """
+        Extracts valid phone numbers from free text using phonenumbers.
+        - Tries Nigerian format first
+        - Falls back to other supported regions
+        - Preserves unmatched numbers as raw
+        """
+        # Step 1: Extract digit-rich candidates (>=9 digits)
+        candidates = candidates = re.findall(r'(?:\+?\d[\d\s().-]{8,}\d)', text) 
+        cleaned_candidates= [re.sub(r'[^\d+]', '', c) for c in candidates] # remove non-digit characters except '+'
+        
+        if not cleaned_candidates:
+            return []
+
+        found_numbers = []
+
+        for raw in cleaned_candidates:
+            parsed_number = None
+
+            # Step 2: Try Nigeria first
+            try:
+                number_obj = phonenumbers.parse(raw, 'NG')
+                if phonenumbers.is_valid_number(number_obj):
+                    parsed_number = phonenumbers.format_number(number_obj, phonenumbers.PhoneNumberFormat.E164)
+            except NumberParseException:
+                pass
+
+            # Step 3: If Nigeria failed, try other supported regions
+            if not parsed_number:
+                for region in self.supported_regions:
+                    try:
+                        number_obj = phonenumbers.parse(raw, region)
+                        if phonenumbers.is_valid_number(number_obj):
+                            parsed_number = phonenumbers.format_number(number_obj, phonenumbers.PhoneNumberFormat.E164)
+                            break
+                    except NumberParseException:
+                        continue
+
+            # Step 4: Fallback to raw
+            found_numbers.append(parsed_number or raw)
+
+        return list(set(found_numbers))  # remove duplicates
+
 
 class ResumeParser:
     def __init__(self, resume_text):
@@ -93,46 +145,54 @@ class ResumeParser:
         
         return skills_dict
     
-    def extract_phone_numbers(self, text):
+    def extract_phone_numbers(self, text, default_country_code='234'):
         """
         Extract phone numbers from text with various international formats
         
         Supports:
-        - International: +1 (123) 456-7890
+        - International: +234 123 456 7890
         - US/CAN: (123) 456-7890, 123-456-7890, 123.456.7890
         - With extensions: 123-456-7890 x1234
         - Without separators: 1234567890
         """
-        phone_pattern = r'''
-            (?:\+?(\d{1,3})[-.\s(]*)??    # Optional country code
-            (?:\(?(\d{3})\)?[-.\s]*)??    # Optional area code with parentheses
-            (\d{3})[-.\s]*                 # Exchange code
-            (\d{4})                        # Subscriber number
-            (?:\s*(?:ext|x|\#)\s*(\d+))?    # Optional extension
+
+        # Match international and US/CAN formats with optional extension
+        pattern = r'''
+            (?:
+                (?:\+|00)?(\d{1,3})?       # Optional country code (e.g., +234, 1)
+                [\s\-\.()]*                # Optional separators
+            )?
+            (\d{3})                        # Area code or first chunk
+            [\s\-\.()]*
+            (\d{3})                        # Second chunk
+            [\s\-\.()]*
+            (\d{4})                        # Third chunk
+            (?:\s*(?:ext|x|\#)\s*(\d{1,5}))?  # Optional extension
         '''
-        
-        matches = re.findall(phone_pattern, text, re.VERBOSE)
+
+
+        matches = re.findall(pattern, text, re.VERBOSE)
         phone_numbers = []
-        
-        for match in matches:
-            country_code, area_code, exchange, subscriber, extension = match
-            
-            # Format the number
-            phone_parts = []
-            if country_code:
-                phone_parts.append(f"+{country_code}")
-            
-            if area_code and exchange and subscriber:
-                main_number = f"({area_code}) {exchange}-{subscriber}"
-                phone_parts.append(main_number)
-            
+
+        for country_code, part1, part2, part3, extension in matches:
+            digits = part1 + part2 + part3
+
+            if not country_code:
+                if digits.startswith('0'):
+                    digits = digits[1:]
+                    country_code = default_country_code
+                else:
+                    # Assume US/Canada (country code 1) if not specified
+                    country_code = '1'
+
+            full_number = f"+{country_code}{digits}"
             if extension:
-                phone_parts.append(f"x{extension}")
-            
-            if phone_parts:
-                phone_numbers.append(' '.join(phone_parts))
-        
-        return phone_numbers
+                full_number += f" x{extension}"
+
+            if re.fullmatch(r'\+\d{10,15}(?: x\d{1,5})?', full_number):
+                phone_numbers.append(full_number)
+
+        return list(set(phone_numbers)) # Remove duplicates and return unique phone numbers
     
     def parse_metadata(self):
         """Extract personal/contact information"""
@@ -143,22 +203,18 @@ class ResumeParser:
         if emails:
             self.parsed_data['metadata']['email'] = emails[0]
         
-        # Phone extraction (unchanged)
-        phones = self.extract_phone_numbers(contact_text)
+        # Phone extraction 
+        phone_extractor = SmartPhoneExtractor(supported_regions=supported_country_phonecodes.keys())
+        phones = phone_extractor.extract_phone_numbers(contact_text)
         if phones:
-            self.parsed_data['metadata']['phone'] = ''.join(phones[0])
+            valid_numbers = [number for number in phones if re.fullmatch(r'\+\d{10,15}(?: x\d{1,5})?', number)]
+            self.parsed_data['metadata']['phone'] = valid_numbers[0] if valid_numbers else None
+        # phones = self.extract_phone_numbers(contact_text)
+        # if phones:
+        #     valid_numbers = [number for number in phones if re.fullmatch(r'\+\d{10,15}(?: x\d{1,5})?', number)]
+        #     self.parsed_data['metadata']['phone'] = valid_numbers[0] if valid_numbers else None
         
-        # # Name extraction - improved rule-based approach
-        # if not self.parsed_data['metadata'].get('name'):
-        #     # Strategy 1: First line that looks like a name
-        #     first_lines = [line.strip() for line in contact_text.split('\n') if line.strip()]
-        #     name_candidate = first_lines[0] if first_lines else ""
-            
-        #     # Basic validation (2-3 title-cased words, no obvious non-name words)
-        #     if (re.fullmatch(r'([A-Z][a-z]+)(?:\s+[A-Z][a-z]+){1,2}', name_candidate) and
-        #         not any(x in name_candidate.lower() for x in ['resume', 'cv', 'phone'])):
-        #         self.parsed_data['metadata']['name'] = name_candidate
-
+        
         # Name extraction - ATS-style rule-based
         if not self.parsed_data['metadata'].get('name'):
             # Strategy 1: First 3 lines that look like a name
