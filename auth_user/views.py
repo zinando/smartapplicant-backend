@@ -513,7 +513,7 @@ class ResumeMatchAndGenerateView(generics.GenericAPIView):
             
             # check if user is a premium user
             serialized_user = self.get_serializer(user).data
-            if serialized_user['account_type'] != 'premium' or serialized_user['resume_credits'] <= 0:
+            if serialized_user['account_type'] != 'premium' and serialized_user['resume_credits'] <= 0:
                 raise Exception('You must be a premium user to generate a matching resume. Please purchase resume credits or subscribe to our premium service.')
             
             # Generate resume text
