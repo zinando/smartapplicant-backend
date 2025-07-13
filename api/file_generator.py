@@ -751,7 +751,8 @@ class ResumeGenerator:
         placeholder_groups = {
             'simple': [
                 '{{name}}', '{{email}}', '{{phone}}', 
-                '{{city}}', '{{state}}', '{{country}}'
+                '{{city}}', '{{state}}', '{{country}}',
+                '{{git}}', '{{portfolio}}', '{{linkedin}}'
             ],
             'labeled': [
                 ('Git:', '{{git}}'),
