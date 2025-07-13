@@ -4,8 +4,9 @@ from docx.oxml.ns import qn
 from io import BytesIO
 from .ai import call_gemini
 import json
+import re
 from docx.oxml import OxmlElement
-from docx.shared import Inches
+from docx.shared import Inches, Pt
 from docx.enum.text import WD_TAB_ALIGNMENT
 import os
 from auth_user.models import MatchedResumeData
@@ -13,40 +14,11 @@ from docx.oxml import OxmlElement
 from docx.text.paragraph import Paragraph
 from .template_layouts import tp_layouts
 from django.contrib.auth import get_user_model
+from typing import Dict, List, Union
+
+
 
 User = get_user_model()
-
-def insert_paragraph_afterxxx(paragraph: Paragraph, text='', style=None):
-    """
-    Insert a new paragraph after the given paragraph.
-
-    Args:
-        paragraph (Paragraph): The reference paragraph after which the new paragraph will be inserted.
-        text (str): The text for the new paragraph.
-        style (str): The style to apply (e.g., 'List Bullet').
-
-    Returns:
-        Paragraph: The newly inserted paragraph.
-    """
-    # Get the XML element of the reference paragraph
-    p_element = paragraph._p
-
-    # Create a new XML paragraph element <w:p>
-    new_p_element = OxmlElement('w:p')
-
-    # Insert the new paragraph element after the reference paragraph element
-    p_element.addnext(new_p_element)
-
-    # Wrap the XML element back into a python-docx Paragraph object
-    new_paragraph = Paragraph(new_p_element, paragraph._parent)
-
-    # Add text and style
-    if text:
-        new_paragraph.add_run(text)
-    if style:
-        new_paragraph.style = style
-
-    return new_paragraph
 
 def insert_paragraph_after(paragraph: Paragraph, text='', style=None):
     """
@@ -101,7 +73,23 @@ def insert_paragraph_after(paragraph: Paragraph, text='', style=None):
 
     return new_paragraph
 
+def enforce_font(doc, font_name="Arial"):
+    for para in doc.paragraphs:
+        for run in para.runs:
+            run.font.name = font_name
+            r = run._element
+            r.rPr.rFonts.set(qn('w:eastAsia'), font_name)  # Necessary for compatibility with Word
 
+def add_contact_symbol(key, value):
+    """Add contact symbol to the value based on the key."""
+    symbols = {
+        'email': '✉️',
+        'phone': '📞',
+        'git': '🐱',
+        'linkedin': '🔗' if 'https' in value else '🔗 https://linkedin.com/in/',
+        'portfolio': '🌐'
+    }
+    return f"{symbols.get(key, '')} {value}" if value else ''
 
 class ResumeGenerator:
     template_path = "templates/general.docx"
@@ -123,7 +111,7 @@ class ResumeGenerator:
         "certification": {"cert_name": "AWS Certified Solutions Architect", "cert_issuer": "Amazon", "issue_date": "2023-01", "cert_expiry": "2025-03 or Never"},
         "experience": {"company": "Tech Company", "position": "Software Engineer", "experience_duration": "2022-01 to 2023-01", "descriptions": ["Developed web applications using Python and Django.", "Collaborated with cross-functional teams to define, design, and ship new features."], "achievements": ["Increased application performance by 20%.", "Led a team of 5 developers to deliver a project ahead of schedule."]}, 
         "project": {"title": "Automated Machine Monitoring System", "technologies": "python, pylogix, SQLite", "date": "2023", "description": ["Developed a real-time monitoring app to track PLC machine status and log downtimes.", "Improved maintenance response time by 40%."]},
-        "education": {"degree": "B.Sc in Computer Science", "institution": "University of Ibadan", "graduation_date": "2022-11"},
+        "education": {"degree": "B.Sc in Computer Science", "institution": "University of Ibadan", "graduation_date": "2022-11", "description": "Graduated with First Class Honours"},
     }
 
     matching_user_data = {
@@ -235,7 +223,6 @@ class ResumeGenerator:
             else:
                 raise ValueError("Insufficient resume credits.")
         
-    
     def log_matched_resume_data(self):
         """Logs the matched resume data to the database."""
         if not self.matching_user_data:
@@ -264,7 +251,7 @@ class ResumeGenerator:
         For the experience, generate 4 quantied achievements based on the experience data provided.
         Return the most relevant education data provided, well-presented for job applications in the field.
 
-        SPECIAL CONSIDERATIONS:
+        SPECIAL CONSIDERATIONS
 
         Work Experience Section:
         * if no end_date is provided, use "Present" as the end date.
@@ -274,6 +261,10 @@ class ResumeGenerator:
         Skills Section:
         * return a maximum of 4 skills items if certification data was provided, otherwise return 6 skills items only.
         * each item should be a single word or a short phrase not more than 35 characters long.
+
+        Certification Section:
+        * if no expiry date is provide, return N/A
+        * return a maximum of 2 certifications items.
 
         The numbers in the the expected format represents the maximum number of characters for each item.
         Please do not include the numbers in your response.
@@ -428,9 +419,38 @@ class ResumeGenerator:
         if not self.filename:
             print("No filename available.")
             return ''
-        # Select template
-        # self.template_path = 
-        self.__select_template()
+        
+        # Get template ID
+        template_id = self.resume_data.get('template_id', '')
+
+        if template_id == 'modern':
+            try:
+                self.__select_template(template_id)
+                template_layout = tp_layouts.get(template_id)
+                user_data = self.user_data.copy()
+
+                # Use ColumnAwareTemplatePopulator for modern templates
+                populator = ColumnAwareTemplatePopulator(self.template_path, template_layout)
+                this_doc = populator.populate_template(user_data)
+                if not this_doc:
+                    raise Exception("Failed to populate modern template.")
+                
+                # Clean unused placeholders
+                self._clean_unused_placeholders(this_doc)
+
+                # Apply font style to the entire document
+                enforce_font(this_doc, font_name="Arial")
+
+                # save document to file
+                self.__save_document(this_doc)
+                return self.filename
+            except Exception as e:
+                print({str(e)})
+                return ''
+
+            
+        # Select the template based on the provided template ID
+        self.__select_template(template_id)
 
         try:
             doc = Document(self.template_path)
@@ -450,6 +470,7 @@ class ResumeGenerator:
                         placeholder = f"{{{{{key}}}}}"
                         if placeholder in para_text:
                             para_text = para_text.replace(placeholder, value)
+                            # self._apply_style_to_run(para, key, value)
                             modified = True
                     elif isinstance(value, dict):
                         for sub_key, sub_value in value.items():
@@ -464,6 +485,10 @@ class ResumeGenerator:
                     # Clear existing runs more efficiently
                     para.clear()
                     para.add_run(para_text)
+                    if self.user_data.get('name') in para_text:
+                        # Apply specific style for name (make the font size 28)
+                        self._apply_style_to_run(para, 'name', self.user_data.get('name', ''))
+                    
 
             # Process lists
             list_fields = {
@@ -479,12 +504,13 @@ class ResumeGenerator:
             # Remove unused placeholders
             self._clean_unused_placeholders(doc)
 
-            # Create directory if it doesn't exist
-            os.makedirs('generated_docs', exist_ok=True)
+            # # Create directory if it doesn't exist
+            # os.makedirs('generated_docs', exist_ok=True)
             
-            # Save directly to file instead of using BytesIO
-            save_path = os.path.join('generated_docs', self.filename)
-            doc.save(save_path)
+            # # Save directly to file instead of using BytesIO
+            # save_path = os.path.join('generated_docs', self.filename)
+            # doc.save(save_path)
+            self.__save_document(doc)
             
             return self.filename
             
@@ -538,6 +564,9 @@ class ResumeGenerator:
                 if modified:
                     para.clear()
                     para.add_run(para_text)
+                    if self.matching_user_data.get('name') in para_text:
+                        # Apply specific style for name (make the font size 28)
+                        self._apply_style_to_run(para, 'name', self.user_data.get('name', ''))
         
         def process_multi_item_sections(doc):
             """Process sections with perfectly aligned dates at line ends."""
@@ -677,6 +706,7 @@ class ResumeGenerator:
             return ''
         # Select template
         self.__select_template(self.resume_data.get('template_id', ''))
+        print(f"Selected template path: {self.template_path}")
 
         try:
             doc = Document(self.template_path)
@@ -784,6 +814,7 @@ class ResumeGenerator:
 
         for i, paragraph in enumerate(paragraphs):
             if placeholder in paragraph.text:
+                # print('sectionl placeholder found:', placeholder)
                 # Always remove the placeholder paragraph
                 to_remove.add(i)
                 
@@ -820,3 +851,221 @@ class ResumeGenerator:
         p = paragraph._element
         p.getparent().remove(p)
         p._p = p._element = None
+    
+    def __save_document(self, doc: Document) -> None:
+        """Save the populated document to the specified filename."""
+        os.makedirs('generated_docs', exist_ok=True)
+        save_path = os.path.join('generated_docs', self.filename)
+        doc.save(save_path)
+    
+    def _apply_style_to_run(self, para, key, value):
+        """Optional styling based on field type."""
+        for run in para.runs:
+            if key == 'name':
+                run.bold = True
+                run.font.size = Pt(28)
+            elif key == 'professional_title':
+                run.italic = True
+                run.font.size = Pt(11)
+            elif key in ['email', 'phone']:
+                run.font.size = Pt(10)
+
+class ColumnAwareTemplatePopulator:
+    def __init__(self, template_path: str, layout_config: Dict):
+        self.doc = Document(template_path)
+        self.layout_config = layout_config
+
+    def populate_template(self, user_data: Dict) -> Document:
+        self.user_data = user_data
+        self._process_inline_fields()
+        self._process_multi_item_sections()
+        # self._process_list_only_sections()
+        # self._remove_unused_placeholders()
+        return self.doc
+
+    def _process_inline_fields(self):
+        for para in self.doc.paragraphs:
+            if not para.text:
+                continue
+            text = para.text
+            modified = False
+
+            if isinstance(self.user_data, dict):
+                for key, value in self.user_data.items():
+                    if isinstance(value, str):
+                        placeholder = f"{{{{{key}}}}}"
+                        if placeholder in text:
+                            # add contact symbol
+                            value = add_contact_symbol(key, value)
+                            text = text.replace(placeholder, value)
+                            modified = True
+                    elif isinstance(value, dict):
+                        for sub_key, sub_val in value.items():
+                            if isinstance(sub_val, str):
+                                placeholder = f"{{{{{sub_key}}}}}"
+                                if placeholder in text:
+                                    text = text.replace(placeholder, sub_val)
+                                    modified = True
+
+                if modified:
+                    para.clear()
+                    para.add_run(text)
+                    if self.user_data.get('name') in text:
+                        # Apply specific style for name (make the font size 28)
+                        self._apply_style_to_run(para, 'name', self.user_data.get('name', ''))
+
+    def _process_multi_item_sections(self):
+        if isinstance(self.layout_config, dict):
+            for section, config in self.layout_config.items():
+                placeholder = config.get("template_anchor")
+                if not placeholder:
+                    continue
+
+                items = self.user_data.get(section, [])
+                if not items:
+                    continue
+
+                for para in self.doc.paragraphs:
+                    if placeholder in para.text:
+                        # print(f"Processing section: {section} with placeholder: {placeholder}")
+                        new_paragraphs = []
+                        for item_index, item in enumerate(items if isinstance(items, list) else [items]):
+                            item_paragraphs = []
+
+                            for line_config in config["item_template"]:
+                                new_para = insert_paragraph_after(para, style="List Bullet" if line_config.get("bullet") else None)
+
+                                # Handle list of strings (is_list)
+                                if line_config.get("is_list"):
+                                    key = self._extract_placeholder_key(line_config["text"])
+                                    list_items = item.get(key, []) if isinstance(item, dict) else item
+                                    if isinstance(list_items, list):
+                                        for li in list_items:
+                                            para_style = "List Bullet" if line_config.get("bullet", False) else None
+                                            new_line = insert_paragraph_after(new_para, li, style=para_style)
+
+                                            if line_config.get("bullet"):
+                                                indent_val = line_config.get("indent", 0)
+                                                if indent_val > 0:
+                                                    new_line.paragraph_format.left_indent = Inches(indent_val)
+                                                    new_line.paragraph_format.first_line_indent = Inches(-0.25)
+
+                                            item_paragraphs.append(new_line)
+                                        continue
+
+
+                                # Handle dated line
+                                if line_config.get("type") == "dated_line":
+                                    content = self._replace_placeholders(line_config["content"], item)
+                                    dates = self._replace_placeholders(line_config["dates"], item)
+
+                                    new_para.paragraph_format.tab_stops.add_tab_stop(Inches(6), WD_TAB_ALIGNMENT.RIGHT)
+                                    run = new_para.add_run(content)
+                                    if line_config.get("content_bold"):
+                                        run.bold = True
+                                    new_para.add_run('\t')
+                                    new_para.add_run(dates)
+                                    item_paragraphs.append(new_para)
+                                    continue
+
+                                # Handle string or templated line
+                                if "text" in line_config:
+                                    line = self._replace_placeholders(line_config["text"], item)
+                                    run = new_para.add_run(line)
+                                    if line_config.get("content_bold"):
+                                        run.bold = True
+                                    if line_config.get("italic"):
+                                        run.italic = True
+                                    item_paragraphs.append(new_para)
+
+                            # Optional separator
+                            if item_index < len(items) - 1 and config.get("separator"):
+                                sep_para = insert_paragraph_after(item_paragraphs[-1], config["separator"])
+                                item_paragraphs.append(sep_para)
+
+                            new_paragraphs.extend(item_paragraphs)
+
+                        # Replace original placeholder paragraph
+                        self._replace_placeholder_with_paragraphs(para, new_paragraphs)
+                        break
+
+    def _process_list_only_sections(self):
+        if isinstance(self.layout_config, dict):
+            for section, config in self.layout_config.items():
+                if not config.get("item_template"):
+                    continue
+
+                # Only apply this logic if the section is flat (list of strings)
+                items = self.user_data.get(section)
+                if not isinstance(items, list) or not items:
+                    continue
+
+                placeholder = config.get("template_anchor")
+                if not placeholder:
+                    continue
+
+                # We assume only one line_config for flat list sections
+                line_config = config["item_template"][0]
+
+                for para in self.doc.paragraphs:
+                    if placeholder in para.text:
+                        new_paragraphs = []
+
+                        for item in items:
+                            para_style = "List Bullet" if line_config.get("bullet", False) else None
+                            bullet_para = insert_paragraph_after(para, item, style=para_style)
+
+                            if line_config.get("bullet"):
+                                indent_val = line_config.get("indent", 0)
+                                if indent_val > 0:
+                                    bullet_para.paragraph_format.left_indent = Inches(indent_val)
+                                    bullet_para.paragraph_format.first_line_indent = Inches(-0.25)
+
+                            new_paragraphs.append(bullet_para)
+
+                        self._replace_placeholder_with_paragraphs(para, new_paragraphs)
+                        break
+
+    def _replace_placeholder_with_paragraphs(self, placeholder_para: Paragraph, new_paragraphs: List[Paragraph]):
+        parent = placeholder_para._element.getparent()
+        index = parent.index(placeholder_para._element)
+        parent.remove(placeholder_para._element)
+        for p in reversed(new_paragraphs):
+            parent.insert(index, p._element)
+
+    def _remove_unused_placeholders(self):
+        for para in self.doc.paragraphs:
+            if "{{" in para.text and "}}" in para.text:
+                para.text = ""
+
+    def _extract_placeholder_key(self, text: str) -> str:
+        match = re.search(r"\{\{(\w+)\}\}", text)
+        return match.group(1) if match else ""
+
+    def _replace_placeholders(self, text: str, data: Union[Dict, str]) -> str:
+        if isinstance(data, dict):
+            # Find all placeholders in the text
+            matches = re.findall(r"{{(.*?)}}", text)
+            for key in matches:
+                value = data.get(key, "")
+                if isinstance(value, (str, int, float)):
+                    text = text.replace(f"{{{{{key}}}}}", str(value))
+                else:
+                    text = text.replace(f"{{{{{key}}}}}", "")
+        elif isinstance(data, str):
+            # Simple case like skill strings
+            text = text.replace("{{skill}}", data)
+        return text
+    
+    def _apply_style_to_run(self, para, key, value):
+        """Optional styling based on field type."""
+        for run in para.runs:
+            if key == 'name':
+                run.bold = True
+                run.font.size = Pt(28)
+            elif key == 'professional_title':
+                run.italic = True
+                run.font.size = Pt(11)
+            elif key in ['email', 'phone']:
+                run.font.size = Pt(10)
+

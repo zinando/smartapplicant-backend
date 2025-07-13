@@ -2,13 +2,10 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 from datetime import timedelta
-# import dj_database_url
-#import resource
 
 # Load environment variables from .env file
 load_dotenv(override=True)
 
-# print(f"Password: {os.getenv('POSTGRES_PASSWORD')}")
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -143,13 +140,6 @@ DATABASES = {
     }
 }
 
-# DATABASES = {
-#     'default': dj_database_url.config(
-#         default=os.environ.get('DATABASE_URL', 'DATABASE_URL_EXTERNAL'),
-#         conn_max_age=600,
-#         ssl_require=True
-#     )
-# }
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (

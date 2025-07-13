@@ -1,7 +1,7 @@
 tp_layouts = {}
 tp_layouts['ats_bold_classic_resume'] = {
                                         'education': {
-                                            'template_placeholder': '{{education_section}}',
+                                            'template_anchor': '{{education_section}}',
                                             'item_template': [
                                                 {
                                                     "type": "dated_line",
@@ -56,7 +56,7 @@ tp_layouts['ats_bold_classic_resume'] = {
 tp_layouts['ats_bold_classic_resume_techpro'] = {
                                                     **tp_layouts['ats_bold_classic_resume'],
                                                     'project': {
-                                                                    'template_placeholder': '{{project_section}}',
+                                                                    'template_anchor': '{{project_section}}',
                                                                     'item_template': [
                                                                         {
                                                                             "type": "dated_line",
@@ -162,3 +162,85 @@ tp_layouts['ats_bold_classic_resume_scinece_and_research'] = {
                                             'separator': ""
                                         }
 }
+
+tp_layouts['professional'] = tp_layouts['ats_bold_classic_resume']
+tp_layouts['modern'] =             {
+                                        'education': {
+                                            'template_anchor': '{{education_section}}',
+                                            'item_template': [
+                                                {
+                                                    "type": "dated_line",
+                                                    "content": "{{degree}}",
+                                                    "dates": "{{graduation_date}}",
+                                                    "content_bold": True,
+                                                    "new_paragraph": True
+                                                },
+                                                {"text": "{{institution}}", "italic": True, "new_paragraph": True},
+                                                {"text": "{{description}}", "style": None, "new_paragraph": True}
+                                            ],
+                                            'separator': "\n"
+                                        },
+                                        'experience': {
+                                            'template_anchor': '{{experience_section}}',
+                                            'item_template': [
+                                                {
+                                                    "type": "dated_line",
+                                                    "content": "{{position}}",
+                                                    "dates": "{{experience_duration}}",
+                                                    "content_bold": True,
+                                                    "new_paragraph": True
+                                                },
+                                                {"text": "{{company}}", "italic": True, "new_paragraph": True},
+                                                {"text": "Key Responsibilities / Achievements:", "style": None, "new_paragraph": True},
+                                                {
+                                                    "text": "{{descriptions}}", 
+                                                    "bullet": True, 
+                                                    "indent": 0.5, 
+                                                    "new_paragraph": True,
+                                                    "is_list": True
+                                                }
+                                            ],
+                                            'separator': "\n"
+                                        },
+                                        'certification': {
+                                            'template_anchor': '{{certification_section}}',
+                                            'item_template': [
+                                                {
+                                                    "text": "{{cert_name}}",
+                                                    "content_bold": True,
+                                                    "new_paragraph": True
+                                                },
+                                                {"text": "{{cert_issuer}}", "italic": False, "new_paragraph": True},
+                                                {"text": "{{issue_date}}", "italic": True, "new_paragraph": True}
+                                            ],
+                                            'separator': ""
+                                        },
+                                        'project': {
+                                            'template_anchor': '{{project_section}}',
+                                            'item_template': [
+                                                {
+                                                    "type": "dated_line",
+                                                    "content": "{{title}}",
+                                                    "dates": "{{date}}",
+                                                    "content_bold": True,
+                                                    "new_paragraph": True
+                                                },
+                                                {"text": "{{technologies}}", "italic": True, "new_paragraph": True},
+                                                {
+                                                    "text": "{{description}}", 
+                                                    "bullet": True, 
+                                                    "indent": 0.5, 
+                                                    "new_paragraph": True,
+                                                    "is_list": True
+                                                }
+                                            ],
+                                            'separator': "\n"
+                                        },
+                                        'skills': {
+                                            'template_anchor': '{{skills_section}}',
+                                            'item_template': [
+                                                {"text": "{{skill}}", "new_paragraph": True, 'bullet': True, 'indent': 0.5, 'is_list': True}
+                                            ],
+                                            'separator': ""
+                                        }
+                                    }
