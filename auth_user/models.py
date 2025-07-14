@@ -298,3 +298,19 @@ class MatchedResumeData(models.Model):
             models.Index(fields=['user', 'job_title']),
             models.Index(fields=['matched_date']),
         ]
+
+class ResumeDraft(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='resume_drafts')
+    draft_data = models.JSONField(help_text="Draft resume data in JSON format.")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'Resume Draft for {self.user.username} created on {self.created_at.strftime("%Y-%m-%d %H:%M:%S")}'
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user']),
+            models.Index(fields=['created_at']),
+        ]

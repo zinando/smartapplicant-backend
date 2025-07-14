@@ -15,7 +15,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 from decimal import Decimal
 from .utils import *
-from .models import Order, PGRequest, SubscriptionType, Subscription
+from .models import Order, PGRequest, SubscriptionType, Subscription, ResumeDraft
 import os
 from django.core.cache import cache
 from django.core import signing
@@ -1039,3 +1039,65 @@ class RequestPasswordResetView(generics.GenericAPIView):
                 'message': str(e)
             }, status=status.HTTP_200_OK)
 
+
+# class view for fetching and updating resume draft
+class ResumeDraftView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
+
+    def get(self, request, *args, **kwargs):
+        """Fetch the resume draft for the user"""
+        try:
+            user = request.user
+            if not user.is_authenticated:
+                raise ValueError("User is not authenticated")
+
+            serialized_user = self.get_serializer(user).data
+            
+            if not serialized_user['resume_draft']:
+                raise ValueError("No resume draft found for this user")
+            
+            return Response({
+                'status': 1,
+                'message': 'Resume draft fetched successfully',
+                'user': serialized_user,
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'status': 0, 'message': str(e)},
+                status=status.HTTP_200_OK
+            )
+    
+    def post(self, request, *args, **kwargs):
+        """Update the resume draft for the user"""
+        try:
+            user = request.user
+            if not user.is_authenticated:
+                raise ValueError("User is not authenticated")
+            resume_data = request.data
+
+            print(f'Resume draft: {resume_data}')
+
+            if not resume_data:
+                raise ValueError("Resume data is required")
+            
+            # Update the user's resume draft
+            resume_obj = ResumeDraft.objects.filter(user=user).first()
+            if not resume_obj:
+                resume_obj = ResumeDraft(user=user, draft_data=resume_data)
+            else:
+                resume_obj.draft_data = resume_data
+            resume_obj.save()
+
+            # serialize the user data
+            serializer = self.get_serializer(user)
+            return Response({
+                'status': 1,
+                'message': 'Resume draft updated successfully',
+                'user': serializer.data
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'status': 0, 'message': str(e)},
+                status=status.HTTP_200_OK
+            )

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Subscription, SubscriptionType
+from .models import Subscription, SubscriptionType, ResumeDraft
 from django.utils import timezone
 
 
@@ -22,13 +22,22 @@ class UserSerializer(serializers.ModelSerializer):
     account_type = serializers.SerializerMethodField()
     is_admin = serializers.SerializerMethodField()
     is_superAdmin = serializers.SerializerMethodField()
+    resume_draft = serializers.SerializerMethodField()
     class Meta:
         model = get_user_model()
         fields = ['id', 'email', 'resume_data', 'phone_number', 'date_joined', 
                   'is_active', 'is_staff', 'is_superuser', 'first_name', 'last_name', 'username',
                   'subscriptions', 'account_type', 'resume_credits', 'groups', 'user_permissions',
-                  'is_admin', 'is_superAdmin'
+                  'is_admin', 'is_superAdmin', 'resume_draft'
                   ]
+        
+    def get_resume_draft(self, obj):
+        """Returns the latest resume draft for the user"""
+        try:
+            resume_draft = ResumeDraft.objects.filter(user=obj).latest('created_at')
+            return resume_draft.draft_data
+        except ResumeDraft.DoesNotExist:
+            return None
         
     def get_account_type(self, obj):
         """Checks if user has an active subscription or not"""
