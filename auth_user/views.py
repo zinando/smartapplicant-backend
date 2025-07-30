@@ -8,6 +8,7 @@ from django.contrib.auth.hashers import make_password
 from .serializers import UserSerializer
 from django.db.models import Q
 from api.utils import *
+from api.resources import technical_keywords
 from api.tasks import *
 from api.models import GeneralData
 from api.email_service import EmailService
@@ -212,15 +213,31 @@ class ResumeUploadView(generics.GenericAPIView):
                 parsed_data = parse_resume(text)
 
                 # Calculate ATS optimization score with the parsed data
-                ats_score = calculate_ats_score(parsed_data)
-                kw_data = get_keyword_coverage(text, title)
+                ats_score = parsed_data.get('ats_score', 0)  # calculate_ats_score(parsed_data)
+                kw = match_job_field(title, technical_keywords)
+                # kw_data = get_keyword_coverage(text, expected_kw)
+                kw_data = calculate_keyword_coverage(text, kw.get('expected_keywords', {}))
+                metadata = {
+                    "name": parsed_data.get('name', ''),
+                    "email": parsed_data.get('email', ''),
+                    "phone": parsed_data.get('phone', '')
+                }
+                sectional_input = {
+                    "metadata": metadata,
+                    "certifications": parsed_data.get('certificates', []),
+                    "experience_duration": parsed_data.get('experience', ''),
+                    "skills": parsed_data.get('skills', []),
+                    "education": parsed_data.get('education', []),
+                }
+                sectional_analysis_data = resume_sectional_analysis(sectional_input)
 
                 analytics = {}
                 analytics['ats_score'] = ats_score
                 analytics['parsed_data'] = parsed_data
-                analytics['suggestions'] = get_suggestions_for_resume(parsed_data, kw_data)
+                analytics['suggestions'] = parsed_data.get('errors', [])  # get_suggestions_for_resume(parsed_data, kw_data)
                 analytics['score_comparison'] = compare_ats_score(ats_score)
                 analytics['keyword_coverage'] = kw_data
+                analytics['sectional_analysis'] = sectional_analysis_data
                 analytics['score_rating'] = get_resume_score_rating(ats_score)
 
                 mr = {}
@@ -287,7 +304,7 @@ class ResumeAnalysisView(generics.GenericAPIView):
     serializer_class = UserSerializer
 
     def post(self, request, *args, **kwargs):
-        try:
+        try: 
             user = request.user
             resume_id = request.data.get('resume_id')
             job_title = request.data.get('job_title')

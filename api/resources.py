@@ -262,3 +262,291 @@ supported_country_phonecodes = {
     'BD': {'name': 'Bangladesh', 'code': '+880'},
     'VN': {'name': 'Vietnam', 'code': '+84'}
 }
+
+common_job_titles = [
+    # Executive & Leadership
+    "chief executive officer", "ceo", "chief operating officer", "coo", "chief financial officer", "cfo",
+    "chief technology officer", "cto", "chief marketing officer", "cmo", "president", "vice president", "vp",
+    "managing director", "executive director", "general manager", "head of operations", "director",
+
+    # Administrative
+    "administrative assistant", "office manager", "executive assistant", "receptionist", "secretary",
+
+    # Engineering & Technical
+    "software engineer", "software developer", "web developer", "backend developer", "frontend developer",
+    "full stack developer", "mobile developer", "devops engineer", "qa engineer", "data engineer", "machine learning engineer",
+    "systems engineer", "embedded engineer", "cloud engineer", "network engineer", "site reliability engineer", "technical support engineer",
+
+    # Data & Analytics
+    "data analyst", "data scientist", "business analyst", "data architect", "bi analyst", "research analyst",
+
+    # IT & Infrastructure
+    "it support specialist", "systems administrator", "network administrator", "it manager", "database administrator",
+
+    # Product & Project Management
+    "product manager", "product owner", "project manager", "scrum master", "program manager", "business analyst",
+
+    # Design & UX
+    "graphic designer", "ui designer", "ux designer", "product designer", "visual designer", "creative director",
+
+    # Marketing & Sales
+    "marketing manager", "digital marketing specialist", "seo specialist", "social media manager",
+    "content marketer", "copywriter", "brand manager", "sales representative", "account manager",
+    "business development manager", "growth manager", "customer success manager",
+
+    # Finance & Accounting
+    "accountant", "financial analyst", "auditor", "controller", "bookkeeper", "finance manager",
+
+    # Human Resources
+    "hr manager", "hr specialist", "recruiter", "talent acquisition specialist", "people operations manager",
+
+    # Legal
+    "lawyer", "attorney", "legal counsel", "legal assistant", "paralegal", "compliance officer",
+
+    # Education
+    "teacher", "professor", "instructor", "tutor", "academic advisor", "curriculum designer",
+
+    # Healthcare
+    "nurse", "doctor", "physician", "pharmacist", "medical assistant", "dentist", "therapist", "caregiver",
+
+    # Manufacturing & Operations
+    "machine operator", "plant manager", "production supervisor", "maintenance technician",
+    "quality assurance inspector", "supply chain manager", "logistics coordinator", "warehouse manager",
+    "forklift operator", "assembly line worker", "production planner", "inventory specialist", "engineering technician",
+    "mechanical engineer", "mechanical technician", "electrical engineer", "electrical technician", "civil engineer", "industrial engineer", "process engineer", "production engineer",
+    "operations manager", "manufacturing engineer", "quality control engineer", "project engineer", "field service engineer",
+    "construction manager", "site engineer", "safety officer", "environmental engineer", "materials engineer",
+    "production technician", "machinist", "welding technician", "fabrication technician", "assembly technician",
+
+    # Others
+    "freelancer", "consultant", "intern", "volunteer", "contractor", "entrepreneur", "founder"
+]
+
+career_objective_titles = [
+    "Objective",
+    "Career Objective",
+    "Professional Objective",
+    "Career Summary",
+    "Professional Summary",
+    "Summary",
+    "Summary of Qualifications",
+    "Personal Statement",
+    "Profile",
+    "Professional Profile",
+    "Career Profile",
+    "Executive Summary",
+    "About Me",
+    "Highlights",
+    "Personal Overview",
+    "Professional Overview",
+    "Career Highlights",
+    "Background Summary",
+    "Introductory Statement",
+    "Candidate Summary",
+    "Overview"
+]
+
+experience_section_titles = [
+    "Experience",
+    "Work Experience",
+    "Professional Experience",
+    "Employment History",
+    "Career History",
+    "Relevant Experience",
+    "Work History",
+    "Professional Background",
+    "Project Experience",
+    "Industry Experience",
+    "Job Experience",
+    "Employment Experience"
+]
+
+skills_section_titles = [
+    "Skills",
+    "Technical Skills",
+    "Professional Skills",
+    "Key Skills",
+    "Core Competencies",
+    "Competencies",
+    "Areas of Expertise",
+    "Skill Set",
+    "Relevant Skills",
+    "Summary of Skills",
+    "Capabilities",
+    "Technologies"
+]
+
+certifications_section_titles = [
+    "Certifications",
+    "Licenses and Certifications",
+    "Professional Certifications",
+    "Credentials",
+    "Licenses",
+    "Certification",
+    "Achievements and Certifications",
+    "Qualifications"
+]
+
+education_section_titles = [
+    "Education",
+    "Academic Background",
+    "Academic Qualifications",
+    "Educational Background",
+    "Educational Qualifications",
+    "Academic History",
+    "Training and Education",
+    "Education and Training",
+    "Degrees",
+    "Formal Education"
+]
+
+other_boundary_section_titles = [
+    "Projects",
+    "Personal Projects",
+    "Volunteer Experience",
+    "Volunteer Work",
+    "Publications",
+    "Awards",
+    "Achievements",
+    "Honors",
+    "Interests",
+    "Languages",
+    "Professional Development",
+    "Training",
+    "Courses",
+    "References",
+    "Additional Information",
+    "Portfolio",
+    "Extracurricular Activities",
+    "Affiliations",
+    "Memberships",
+    "Internships",
+    "Summary of Qualifications",
+    "Professional Affiliations", "Professional Memberships", "Professional Associations", "Professional Involvement",
+    "Professional Involvement", "Professional Engagements", "Professional Networks", "Professional Connections", "Professional Relationships"
+    "Hobbies", "Hobby"
+]
+
+years_of_experience_map = {
+        'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+        'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
+        'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14,
+        'fifteen': 15, 'sixteen': 16, 'seventeen': 17, 'eighteen': 18,
+        'nineteen': 19, 'twenty': 20, 'twenty-one': 21, 'twenty-two': 22,
+        'twenty-three': 23, 'twenty-four': 24, 'twenty-five': 25, "twenty-six": 26,
+        'twenty-seven': 27, 'twenty-eight': 28, 'twenty-nine': 29, 'thirty': 30,
+        'thirty-one': 31, 'thirty-two': 32, 'thirty-three': 33, 'thirty-four': 34,
+        'thirty-five': 35, 'thirty-six': 36, 'thirty-seven': 37, 'thirty-eight': 38,
+        'thirty-nine': 39, 'forty': 40, 'forty-one': 41, 'forty-two': 42,
+        'forty-three': 43, 'forty-four': 44, 'forty-five': 45, 'forty-six': 46,
+        'forty-seven': 47, 'forty-eight': 48, 'forty-nine': 49, 'fifty': 50
+    }
+
+lower_degree_keywords = [
+    "National Diploma", "ND", "N.D.",
+    "Higher National Diploma", "HND", "H.N.D.",
+    "Ordinary National Diploma", "OND", "O.N.D.",
+    "Nigerian Certificate in Education", "NCE", "N.C.E.",
+    "City and Guilds", "City & Guilds",
+
+    # Associate Degrees
+    "Associate of Arts", "AA", "A.A.",
+    "Associate of Science", "AS", "A.S.",
+    "Associate of Applied Science", "AAS", "A.A.S.",
+    "Associate of Fine Arts", "AFA", "A.F.A.",
+    "Associate of Business Administration", "ABA", "A.B.A.",
+    "Associate of Engineering", "AE", "A.E."
+]
+higher_degree_keywords = [
+    # Bachelor Degrees
+    "Bachelor of Arts", "BA", "B.A.",
+    "Bachelor of Science", "BSc", "BS", "B.Sc.", "B.S.",
+    "Bachelor of Fine Arts", "BFA", "B.F.A.",
+    "Bachelor of Business Administration", "BBA", "B.B.A.",
+    "Bachelor of Engineering", "BEng", "BE", "B.Eng.", "B.E.",
+    "Bachelor of Technology", "BTech", "B.Tech.",
+    "Bachelor of Architecture", "BArch", "B.Arch.",
+    "Bachelor of Education", "BEd", "B.Ed.",
+    "Bachelor of Laws", "LLB", "LL.B.",
+    "Bachelor of Commerce", "BCom", "B.Com.",
+    "Bachelor of Computer Science", "BCS", "B.Comp.Sc.", "B.CompSc",
+    "Bachelor of Nursing", "BN", "BSN", "B.N.", "B.S.N.",
+    "Bachelor of Pharmacy", "BPharm", "B.Pharm.",
+    "Bachelor of Social Work", "BSW", "B.S.W.",
+    "Bachelor of Music", "BM", "B.M.",
+    "Bachelor of Medical Science", "BMedSc", "B.Med.Sc.",
+    "Bachelor of Public Administration", "BPA", "B.P.A.",
+
+    # Master Degrees
+    "Master of Arts", "MA", "M.A.",
+    "Master of Science", "MSc", "MS", "M.Sc.", "M.S.",
+    "Master of Fine Arts", "MFA", "M.F.A.",
+    "Master of Business Administration", "MBA", "M.B.A.",
+    "Master of Engineering", "MEng", "ME", "M.Eng.", "M.E.",
+    "Master of Technology", "MTech", "M.Tech.",
+    "Master of Architecture", "MArch", "M.Arch.",
+    "Master of Education", "MEd", "M.Ed.",
+    "Master of Laws", "LLM", "LL.M.",
+    "Master of Commerce", "MCom", "M.Com.",
+    "Master of Computer Science", "MCS", "M.Comp.Sc.", "M.CompSc",
+    "Master of Nursing", "MN", "MSN", "M.N.", "M.S.N.",
+    "Master of Pharmacy", "MPharm", "M.Pharm.",
+    "Master of Social Work", "MSW", "M.S.W.",
+    "Master of Public Health", "MPH", "M.P.H.",
+    "Master of Public Administration", "MPA", "M.P.A.",
+    "Master of Music", "MM", "MMus", "M.M.", "M.Mus.",
+
+    # Doctorate Degrees
+    "Doctor of Philosophy", "PhD", "Ph.D.", "DPhil", "D.Phil.",
+    "Doctor of Medicine", "MD", "M.D.",
+    "Doctor of Education", "EdD", "Ed.D.",
+    "Doctor of Business Administration", "DBA", "D.B.A.",
+    "Doctor of Engineering", "DEng", "EngD", "D.Eng.", "Eng.D.",
+    "Doctor of Pharmacy", "PharmD", "Pharm.D.",
+    "Doctor of Dental Surgery", "DDS", "D.D.S.",
+    "Doctor of Public Health", "DrPH", "Dr.P.H.",
+    "Doctor of Theology", "ThD", "DTh", "Th.D.", "D.Th.",
+    "Doctor of Nursing Practice", "DNP", "D.N.P.",
+    "Juris Doctor", "JD", "J.D."
+]
+
+degree_keywords = lower_degree_keywords + higher_degree_keywords
+
+institution_keywords = [
+    # Universities
+    "University", "Uni", "Federal University", "State University", "Private University",
+    "Open University", "National University", "International University",
+
+    # Colleges
+    "College", "College of Education", "College of Health", "College of Technology",
+    "Teachers College", "Technical College", "Monotechnic", "School of Nursing",
+    "School of Midwifery", "School of Health", "Business College",
+
+    # Institutes
+    "Institute", "Institute of Technology", "Institute of Management", "Research Institute",
+    "Training Institute", "Professional Institute", "National Institute",
+    "Industrial Training Institute", "Development Institute",
+
+    # Polytechnics and Tech Schools
+    "Polytechnic", "Federal Polytechnic", "State Polytechnic", "Polytechnic Institute", "School of Technology",
+
+    # Certifying Bodies / Boards (optional, use contextually)
+    "WAEC", "NECO", "NABTEB", "JAMB", "NTI", "TRCN", "NYSC",
+
+    # Medical & Specialized Institutions
+    "Teaching Hospital", "Nursing School", "Midwifery School", "Health Technology",
+    "College of Medicine", "Medical School", "School of Public Health",
+
+    # Vocational / Technical Centers
+    "Technical School", "Technical Institute", "Vocational School", "Industrial Training Centre",
+    "Trade Centre", "Skills Acquisition Centre", "Craft School", "Apprenticeship Centre",
+
+    # Others
+    "Academy", "Seminary", "Conservatory", "Business School", "Law School", "Graduate School",
+    "Training Centre", "Training Center", "Leadership School", "Continuing Education",
+    "Lifelong Learning Institute", "School of Arts",
+
+    # Nigeria-Specific
+    "Federal College", "State College", "FCE", "COE", "NDA", "NIPSS"
+]
+

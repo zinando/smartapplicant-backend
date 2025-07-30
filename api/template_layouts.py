@@ -4,13 +4,13 @@ tp_layouts['ats_bold_classic_resume'] = {
                                             'template_anchor': '{{education_section}}',
                                             'item_template': [
                                                 {
-                                                    "type": "dated_line",
+                                                    "type": "dated_line", 
                                                     "content": "{{degree}} in {{field_of_study}}",
                                                     "dates": "{{start_date}} - {{end_date}}",
                                                     "content_bold": True,
                                                     "new_paragraph": True
                                                 },
-                                                {"text": "{{institution}}", "italic": True, "new_paragraph": True},
+                                                {"text": "{{institution}}, {{location}}", "italic": True, "new_paragraph": True},
                                                 {"text": "{{description}}", "style": None, "new_paragraph": True}
                                             ],
                                             'separator': "\n"
@@ -175,7 +175,7 @@ tp_layouts['modern'] =             {
                                                     "content_bold": True,
                                                     "new_paragraph": True
                                                 },
-                                                {"text": "{{institution}}", "italic": True, "new_paragraph": True},
+                                                {"text": "{{institution}}, {{location}}", "italic": True, "new_paragraph": True},
                                                 {"text": "{{description}}", "style": None, "new_paragraph": True}
                                             ],
                                             'separator': "\n"

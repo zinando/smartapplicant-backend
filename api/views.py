@@ -53,8 +53,8 @@ class ResumeParseView(APIView):
                 data = {
                         'task_id': None,
                         'status': 'Completed',
-                        'ats_score': ats_score,
-                        'required_sections': parsed_data
+                        'ats_score': parsed_data.get('ats_score', 0),
+                        'required_sections': {k: v for k, v in parsed_data.items() if k in ('name', 'email', 'phone', 'education', 'experience', 'skills', 'certificates', 'errors')}
                 }
             return Response({'status': res_status, 'data': data, 'message':'success'}, status=status.HTTP_200_OK)
             

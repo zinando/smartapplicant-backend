@@ -111,7 +111,7 @@ class ResumeGenerator:
         "certification": {"cert_name": "AWS Certified Solutions Architect", "cert_issuer": "Amazon", "issue_date": "2023-01", "cert_expiry": "2025-03 or Never"},
         "experience": {"company": "Tech Company", "position": "Software Engineer", "experience_duration": "2022-01 to 2023-01", "descriptions": ["Developed web applications using Python and Django.", "Collaborated with cross-functional teams to define, design, and ship new features."], "achievements": ["Increased application performance by 20%.", "Led a team of 5 developers to deliver a project ahead of schedule."]}, 
         "project": {"title": "Automated Machine Monitoring System", "technologies": "python, pylogix, SQLite", "date": "2023", "description": ["Developed a real-time monitoring app to track PLC machine status and log downtimes.", "Improved maintenance response time by 40%."]},
-        "education": {"degree": "B.Sc in Computer Science", "institution": "University of Ibadan", "graduation_date": "2022-11", "description": "Graduated with First Class Honours"},
+        "education": {"degree": "B.Sc in Computer Science", "institution": "University of Ibadan", "location": "Oyo State Nigeria", "graduation_date": "2022-11", "description": "Graduated with First Class Honours"},
     }
 
     matching_user_data = {
@@ -159,6 +159,7 @@ class ResumeGenerator:
             {
                 "degree": "B.Sc", 
                 "institution": "University of Ibadan",
+                "location": "Oyo State Nigeria",
                 "field_of_study": "Computer Science",
                 "start_date": "2018-10",
                 "end_date": "2022-11",
@@ -253,6 +254,8 @@ class ResumeGenerator:
 
         SPECIAL CONSIDERATIONS
 
+        * Ensure the information is presented in a clean, ATS-friendly format, especially the personal information like name, phone number and email.
+
         Work Experience Section:
         * if no end_date is provided, use "Present" as the end date.
         * return a maximum of 4 achievements items.
@@ -315,6 +318,9 @@ class ResumeGenerator:
                 Role-aligned phrasing
         
         SPECIAL CONSIDERATIONS:
+
+        
+        * Ensure the information is presented in a clean, ATS-friendly format, especially the personal information like name, phone number and email.
 
         Work Experience Section:
         * if no descriptions are provided, generate a maximum of 3 based on the role
@@ -766,17 +772,17 @@ class ResumeGenerator:
             ]
         }
 
-        # Process simple placeholders
-        for placeholder in placeholder_groups['simple']:
-            self._remove_simple_placeholder(doc, placeholder)
-
-        # Process labeled placeholders
-        for label, placeholder in placeholder_groups['labeled']:
-            self._remove_labeled_placeholder(doc, label, placeholder)
-
         # Process sectional placeholders
         for placeholder in placeholder_groups['sectional']:
             self._remove_sectional_placeholder(doc, placeholder)
+
+         # Process labeled placeholders
+        for label, placeholder in placeholder_groups['labeled']:
+            self._remove_labeled_placeholder(doc, label, placeholder)
+
+        # Process simple placeholders
+        for placeholder in placeholder_groups['simple']:
+            self._remove_simple_placeholder(doc, placeholder)
 
     def _remove_simple_placeholder(self, doc: Document, placeholder: str) -> None:
         """Remove simple inline placeholders that weren't replaced."""

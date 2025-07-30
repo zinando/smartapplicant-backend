@@ -3,7 +3,7 @@ import PyPDF2
 import io
 import re
 from .resume_parser import ResumeParser
-from .resources import job_fields, technical_keywords
+from .resources import job_fields, technical_keywords, higher_degree_keywords, lower_degree_keywords
 from fuzzywuzzy import process, fuzz
 from api.models import GeneralData
 from .ai import get_improvement_suggestions, get_basic_improvement_suggestion, match_resume_to_jd_with_ai
@@ -264,12 +264,14 @@ def parse_resume(resume_text:str, resume_analysis_results:dict=None):
         "skills": resume_analysis_results['skills'],
         "experience": resume_analysis_results['experience'],
         "education": resume_analysis_results['education'],
-        "certificates": resume_analysis_results['certifications']
+        "certificates": resume_analysis_results['certifications'],
+        "errors": list(set(resume_analysis_results.get('errors', []))),
+        "ats_score": resume_analysis_results.get('ats_score', 0)
     }
 
 def analyze_metadata(analysis_data:dict):
     """Checks relevant metadata from the analysis results."""
-    data = ['name', 'email', 'phone', 'location']
+    data = ['name', 'email', 'phone']
     result_data = []
 
     for key in data:
@@ -495,16 +497,18 @@ def resume_sectional_analysis(parsed_data, known_skills=[]):
     metadata_score = analyze_metadata(parsed_data['metadata']).get('score', 0)
 
     # calculate education score: parsed_data['education'] is list of dicts, check that degree, institution, and duration are not empty
-    # get score as a percentage of expected education data present versus expected: OND/HND AND BSc/MSc/PhD
     education_score = 0
-    degrees = [edu.get('degree', None) for edu in parsed_data['education'] if edu.get('degree', None) != None]
-    if 'B.Sc' in degrees or 'M.Sc' in degrees or 'PhD' in degrees or 'HND' in degrees:
+    # degrees = [edu.get('degree', None).lower() for edu in parsed_data['education'] if edu.get('degree', None) != None]
+    degrees = [edu['degree'].lower() for edu in parsed_data['education'] if 'degree' in edu and edu['degree']]
+    # if 'B.Sc' in degrees or 'M.Sc' in degrees or 'PhD' in degrees or 'HND' in degrees:
+    if [degree for degree in higher_degree_keywords if degree.lower() in degrees]:
         education_score = 100
-    elif 'OND' in degrees or 'Associate' in degrees:
+    # elif 'OND' in degrees or 'Associate' in degrees:
+    elif [degree for degree in lower_degree_keywords if degree.lower() in degrees]:
         education_score = 50
     
     # claculate experience score as a ratio of number of yrs of expriece versus industry std: 3 years
-    resume_experience = re.search(r"(\d+)\+?\s*(years|yrs)", str(parsed_data['experience_duration']))
+    resume_experience = re.search(r"(\d+)\+?\s*(years|yrs)", str(parsed_data['experience_duration']), re.IGNORECASE)
     resume_experience_score = 0
     expected_years = 3
     resume_years = 0
@@ -537,7 +541,7 @@ def resume_sectional_analysis(parsed_data, known_skills=[]):
     return {
         "metadata": metadata_score,
         "education": education_score,
-        "skills": 45, #analyze_skills(parsed_data['skills'], known_skills, basic=True).get('score', 0),
+        "skills": 100 if parsed_data['skills'] else 0, #analyze_skills(parsed_data['skills'], known_skills, basic=True).get('score', 0),
         "experience": resume_experience_score,
         "certifications": resume_cert_score
     }
@@ -553,7 +557,7 @@ def match_job_field(input_title, field_keywords):
     title_strings = [title for title, _ in all_titles]
     
     # Get best match (returns tuple: (matched_title, score, index))
-    best_match = process.extractOne(input_title, title_strings)
+    best_match = process.extractOne(input_title, title_strings, scorer=fuzz.token_set_ratio)
     
     if best_match:
         matched_title = best_match[0]
@@ -607,7 +611,7 @@ def analyze_resume_with_jd(resume_text, job_description, user, job_title=''):
         
         sectional_analysis_data = resume_sectional_analysis(resume_analysis_results, rar.known_skills['all'])
 
-        basic_suggestions = get_basic_improvement_suggestion(sectional_analysis_data)
+        basic_suggestions = list(set(resume_analysis_results.get('errors', []))) # get_basic_improvement_suggestion(sectional_analysis_data)
 
         analyzed_data = {
             'metadata': analyze_metadata(resume_analysis_results['metadata']),
@@ -621,15 +625,11 @@ def analyze_resume_with_jd(resume_text, job_description, user, job_title=''):
                     "Experience Level": analyzed_data['experience'].get('score',0),
                     "Education Requirements": analyzed_data['education'].get('score',0)
                 }
-        kw_data.update(keyword_coverage)
-        ats_score = calculate_ats_score(resume_data)
+        # kw_data.update(keyword_coverage)
+        ats_score = resume_analysis_results.get('ats_score', 0) # calculate_ats_score(resume_data)
         suggestions = get_improvement_suggestions(resume_text, user.id, job_description)
         if suggestions == '':
-            suggestions = [
-                    "Add missing keywords like 'TypeScript' and 'GraphQL' to your skills section",
-                    "Highlight your computer science education if applicable",
-                    "Mention any agile methodology experience you have"
-                ]
+            suggestions = []
         else:
             suggestions = [part.strip() for part in suggestions.split(';') if part.strip()]
             #print(suggestions)
@@ -685,11 +685,12 @@ def match_resume_with_jd(resume_text, job_description, user, job_title=''):
     sectional_analysis_data = resume_sectional_analysis(resume_analysis_results, rar.known_skills['all'])
 
     # Get suggestions based on sectional analysis results
-    basic_suggestions = get_basic_improvement_suggestion(sectional_analysis_data)
+    # basic_suggestions = get_basic_improvement_suggestion(sectional_analysis_data)
+    basic_suggestions = list(set(resume_analysis_results.get('errors', [])))
 
     # 
-    resume_data = parse_resume(resume_text, resume_analysis_results)
-    ats_score = calculate_ats_score(resume_data)
+    # resume_data = parse_resume(resume_text, resume_analysis_results)
+    ats_score = resume_analysis_results.get('ats_score', 0) # calculate_ats_score(resume_data)
     
     # Use AI to analyze the resume against the job description
     response = match_resume_to_jd_with_ai(resume_text, job_description)
@@ -698,7 +699,7 @@ def match_resume_with_jd(resume_text, job_description, user, job_title=''):
     return {
             "basic_analysis": {
                 "ats_score": ats_score,
-                "score_comparison": 11,
+                "score_comparison": compare_ats_score(ats_score),
                 "sectional_analysis": sectional_analysis_data,
                 "suggestions": basic_suggestions
             },
