@@ -543,6 +543,7 @@ class ResumeMatchAndGenerateView(generics.GenericAPIView):
             # Generate the new resume
             filename = f"{user.username}_matched_resume.docx"
             task = async_generate_matching_resume.delay(resume_data, filename, user.id)
+            print(f'task with id: {task.id} has been created for resume matching and generation.')
 
             return Response({
                 'status': 1,
@@ -551,6 +552,7 @@ class ResumeMatchAndGenerateView(generics.GenericAPIView):
                 'task_id': task.id,
             }, status=status.HTTP_200_OK)
         except Exception as e:
+            print(f'server error: {e}')
             return Response(
                 {'status': 0,
                  'user': self.get_serializer(user).data if user.is_authenticated else None, 
@@ -612,8 +614,9 @@ class PremiumServiceOrderView(generics.GenericAPIView):
 
 
     def post(self, request, *args, **kwargs): 
-        self.log_subscription_type()
+        
         try:
+            self.log_subscription_type()
             user = request.user
             data = request.data
             serialized_user = self.get_serializer(user).data

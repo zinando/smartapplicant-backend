@@ -148,7 +148,6 @@ class ResumeDownloadView(APIView):
 
         return response
         
-
 # view for fetching analytics data
 class AnalyticsAPIView(APIView):
     permission_classes = [IsAuthenticated]
