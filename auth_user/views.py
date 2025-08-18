@@ -26,7 +26,7 @@ import random
 import requests
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 
 User = get_user_model()
