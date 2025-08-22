@@ -762,13 +762,13 @@ class ResumeGenerator:
             ],
             'labeled': [
                 ('Git:', '{{git}}'),
-                ('Portfolio:', '{{portfolio}}'),
+                ('Portfolio:', '{{portfolio}}'), 
                 ('LinkedIn:', '{{linkedin}}')
             ],
             'sectional': [
                 '{{certification_section}}', '{{experience_section}}', '{{education_section}}',
                 '{{project_section}}', '{{skils_list}}', '{{skills_section}}', '{{cert_name}}', '{{cert_issuer}}', '{{cert_issue_date}}', '{{cert_expiry}}',
-                '{{publication_section}}', '{{objective}}', '{{subjects_section}}', '{{teaching_section}}', '{{research_section}}'
+                '{{publication_section}}', '{{objective}}', '{{subject_section}}', '{{teaching_section}}', '{{research_section}}'
             ]
         }
 
