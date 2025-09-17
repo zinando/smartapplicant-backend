@@ -1,12 +1,12 @@
 import docx2txt
 import PyPDF2
 import io
-import re
+import re, unicodedata
 from .resume_parser import ResumeParser
 from .resources import job_fields, technical_keywords, higher_degree_keywords, lower_degree_keywords
 from fuzzywuzzy import process, fuzz
 from api.models import GeneralData
-from .ai import get_improvement_suggestions, get_basic_improvement_suggestion, match_resume_to_jd_with_ai
+from .ai import get_improvement_suggestions, match_resume_to_jd_with_ai
 
 
 def get_similarity_score(text1, text2):
@@ -41,6 +41,13 @@ def compare_ats_score(resume_score):
     gen_obj.save()
     return score
 
+def normalize_title(title: str) -> str:
+    """Normalize job title for consistent matching."""
+    t = title.strip().lower() # Lowercase and trim whitespace
+    t = unicodedata.normalize("NFKD", t) # Normalize unicode characters
+    t = re.sub(r"[^a-z0-9\s]+", " ", t) # Remove special characters
+    t = re.sub(r"\s+", " ", t) # Collapse multiple spaces
+    return t
 
 def convert_words_to_numbers(text):
     number_words = {

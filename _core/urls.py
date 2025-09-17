@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.urls import path
-from api.views import ResumeParseView, TaskStatusView, StatsAPIView, ResumeDownloadView, AnalyticsAPIView
+from api.views import ResumeParseView, TaskStatusView, StatsAPIView, ResumeDownloadView, AnalyticsAPIView, InputSuggestionsAPIView
 from auth_user.views import ResumeUploadView, ResumeAnalysisView, ResumeGeneratorView, ResumeMatchAndGenerateView
 from django.urls import include
 from rest_framework_simplejwt.views import (
@@ -24,4 +24,5 @@ urlpatterns = [
     path('api/user/resumes/generate/', ResumeGeneratorView.as_view(), name='resume-generator'),
     path('api/user/resumes/generate_matching/', ResumeMatchAndGenerateView.as_view()),
     path('api/analytics/<duration_days>/', AnalyticsAPIView.as_view(), name='analytics'),
+    path('api/user/resume/input-suggestions/', InputSuggestionsAPIView.as_view()),
 ]

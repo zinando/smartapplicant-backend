@@ -1,6 +1,7 @@
 .env
 virtual/
 virtual-wsl/
+venv/
 node_modules/
 dist/
 coverage/
