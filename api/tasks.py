@@ -2,6 +2,7 @@ from celery import shared_task
 import time
 from .utils import *
 from .file_generator import ResumeGenerator
+from .suggestion_utils import get_title_suggestions_from_gemini, get_skill_suggestion_from_gemini
 
 @shared_task
 def mock_heavy_parsing(file_data, filename):
@@ -42,3 +43,21 @@ def async_generate_matching_resume(resume_data: dict = {}, filename: str = '', u
     generator = ResumeGenerator(resume_data, filename, matching=True, user_id=user_id)
     file_name = generator.populate_matching_template(resume_data['template_id'])
     return file_name
+
+@shared_task
+def async_process_new_jt_suggestion(new_title: str):
+    """Populate job titles in the database"""
+    suggestions, skills = get_title_suggestions_from_gemini(new_title)
+    return {
+        'responsibilities': suggestions,
+        'skills': skills
+    }
+
+@shared_task
+def async_process_new_skill_suggestion(new_skill: str, job_title: str):
+    """Populate skills in the database"""
+    suggestions, skills = get_skill_suggestion_from_gemini(new_skill, job_title)
+    return {
+        'responsibilities': suggestions,
+        'skills': skills
+    }

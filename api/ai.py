@@ -230,3 +230,17 @@ def match_resume_to_jd_with_ai(resume_text:str, job_description:str):
         response = ''
     
     return response
+
+def get_structured_data_from_gemini(prompt: str):
+    """This method will call gemini api directly and return the structured data."""
+    response = ''
+    try:
+        text = call_gemini(prompt)
+        text = text.replace('```json', '')
+        text = text.replace('```', '')
+        response = json.loads(text)
+    except Exception as e:
+        print(f'Error parsing Gemini response: {e}')
+        response = ''
+    
+    return response

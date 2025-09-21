@@ -1,6 +1,8 @@
 from django.db import transaction
 from .models import JobTitle, Skill, Responsibility
-from .utils import normalize_title
+# from .utils import normalize_title
+from .ai import get_structured_data_from_gemini
+from .serializers import JobTitleSerializer
 
 @transaction.atomic
 def add_new_job_title_record(title: str, field_group: str, responsibilities: list, skills: list):
@@ -735,12 +737,12 @@ datas = job_titles = job_titles = [
 
 
 @transaction.atomic
-def add_sample_suggestions():
-    return
+def add_sample_suggestions(datas=datas):
+    # return
     for data in datas:
         jt = data.get("jt", "").strip()
         skills = data.get("skills", [])
-        suggestions = data.get("suggestions", [])  
+        suggestions = data.get("suggestions", []) or data.get("responsibilities", [])
         # return 
 
         if not jt:
@@ -777,3 +779,91 @@ def add_sample_suggestions():
                 text__iexact=resp_text, defaults={"text": resp_text}
             )
             job.responsibilities.add(resp)
+
+def add_sample_skills(skills: list, jt: str):
+    """This function adds sample skills to a job title."""
+    jt = jt.strip()
+    if not jt:
+        print("Job title is required.")
+        return
+
+    # Add job title
+    job, created = JobTitle.objects.get_or_create(
+        title__iexact=jt,
+        defaults={"title": jt, "field_group": "Other"}
+    )
+
+    # Add skills. for each skill, link to job title
+    for skill_name in skills:
+        skill_name = skill_name.strip()
+        if not skill_name:
+            continue
+        skill, _ = Skill.objects.get_or_create(
+            name__iexact=skill_name, defaults={"name": skill_name}
+        )
+        job.skills.add(skill)
+
+def get_suggestions_for_all_job_titles():
+    """ This function returns a dictionary of job titles with their associated responsibilities and skills."""
+    JTs = JobTitle.objects.all()
+    serialized_JTs = JobTitleSerializer(JTs, many=True).data
+    suggestions = {
+        jt['title'].lower()
+        :
+        [resp['text'] for resp in jt['responsibilities']] for jt in serialized_JTs}
+    skills = {
+        jt['title'].lower()
+        :
+        [skill['name'] for skill in jt['skills']] for jt in serialized_JTs
+    }
+    return suggestions, skills
+
+def get_title_suggestions_from_gemini(jt: str):
+    """This function gets job title suggestions from Gemini API."""
+    field_groups = [choice[0] for choice in JobTitle._meta.get_field("field_group").choices]
+
+    prompt = f"""
+                Given a job title input: {jt}
+
+                Tasks:
+                1. Validate the title and correct spelling. If invalid, return {{}}.
+                2. If valid, classify it into one of these field groups: {', '.join(field_groups)}.
+                3. Generate output in JSON format:
+                {{
+                    "jt": "<corrected job title>",
+                    "field_group": "<one of the field groups>",
+                    "skills": ["Skill 1", "Skill 2", ...],
+                    "responsibilities": [
+                        "Conducted patient consultations and physical examinations.",
+                        "Diagnosed and treated a wide range of medical conditions.",
+                         ...
+                    ]
+                }}
+                4. Provide at least 20 relevant skills and 20 relevant responsibilities suggsetions for a resume builder (fewer only if not possible).
+            """
+    response = get_structured_data_from_gemini(prompt)
+    if response:
+        add_sample_suggestions([response])
+    return get_suggestions_for_all_job_titles()
+
+def get_skill_suggestion_from_gemini(skill: str, job_title: str):
+    """This function gets skill suggestions from Gemini API."""
+    prompt = f"""
+                Given a skill input: {skill}, and a job title: {job_title}
+
+                Tasks:
+                1. Validate the skill and correct spelling. If invalid, return {{}}.
+                2. If valid, generate output in JSON format:
+                {{
+                    "skill": "<corrected skill name>",
+                    "related_skills": ["Related Skill 1", "Related Skill 2", ...]
+                }}
+                3. Provide at least 5 relevant related skills for the job title (fewer only if not possible).
+            """
+    response = get_structured_data_from_gemini(prompt)
+    if response:
+        skills = [response.get("skill", "").strip()] if response.get("skill", "").strip() else []
+        skills.extend(response.get("related_skills", []))
+        add_sample_skills(skills, job_title)
+    return get_suggestions_for_all_job_titles()
+    

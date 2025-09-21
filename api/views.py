@@ -2,14 +2,14 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from .models import GeneralData, JobTitle, Skill, Responsibility
+from .models import GeneralData, JobTitle # Skill, Responsibility
 from .serializers import JobTitleSerializer
 from celery.result import AsyncResult
 from auth_user.serializers import UserSerializer
-from auth_user.models import PGRequest, Order, Subscription, SubscriptionType
+# from auth_user.models import PGRequest, Order, Subscription, SubscriptionType
 from .utils import extract_text, calculate_ats_score, parse_resume
-from .suggestion_utils import populate_job_titles, add_sample_suggestions
-from .tasks import async_extract_and_score
+from .suggestion_utils import get_suggestions_for_all_job_titles
+from .tasks import (async_extract_and_score, async_process_new_jt_suggestion, async_process_new_skill_suggestion)
 from .analytics import RevenueAnalytics
 import os
 from django.http import FileResponse, Http404
@@ -184,17 +184,18 @@ class InputSuggestionsAPIView(APIView):
     serializer_class = JobTitleSerializer
     def get(self, request, *args, **kwargs):
         try:
-            JTs = JobTitle.objects.all()
-            serialized_JTs = self.serializer_class(JTs, many=True).data
-            suggestions = {
-                jt['title'].lower()
-                :
-                [resp['text'] for resp in jt['responsibilities']] for jt in serialized_JTs}
-            skills = {
-                jt['title'].lower()
-                :
-                [skill['name'] for skill in jt['skills']] for jt in serialized_JTs
-            }
+            # JTs = JobTitle.objects.all()
+            # serialized_JTs = self.serializer_class(JTs, many=True).data
+            # suggestions = {
+            #     jt['title'].lower()
+            #     :
+            #     [resp['text'] for resp in jt['responsibilities']] for jt in serialized_JTs}
+            # skills = {
+            #     jt['title'].lower()
+            #     :
+            #     [skill['name'] for skill in jt['skills']] for jt in serialized_JTs
+            # }
+            suggestions, skills = get_suggestions_for_all_job_titles()
             return Response({
                 'status': 1, 
                 'resume_input_suggestions': suggestions,
@@ -212,21 +213,18 @@ class InputSuggestionsAPIView(APIView):
             new_skill = request.GET.get('new_skill', '').strip().lower()
 
             if new_job_title:
-                task_id = get_new_title_suggestions.delay(new_job_title)
+                task = async_process_new_jt_suggestion.delay(new_job_title)
             elif new_skill:
-                task_id = get_new_skill_suggestions.delay(new_skill)
+                job_title = request.GET.get('job_title', '').strip().lower()
+                if not job_title:
+                    raise Exception("Job title must be provided when suggesting a new skill")
+                task = async_process_new_skill_suggestion.delay(new_skill, job_title)
             else:
                 raise Exception("No new job title or skill provided")
-            # print(f"Received suggestions update for job title: {new_job_title}")
-            # # Here you can implement logic to update suggestions based on user feedback
-            # job_title_suggestions = {}
-            # skills_suggestions = {}
-            # job_title_suggestions[new_job_title] = ["Sample responsibility 1", "Sample responsibility 2"]
+            
             return Response({
                 'status': 1,
-                'task_id': task_id,
-                # 'jobTitleSuggestions': job_title_suggestions,
-                # 'skillsSuggestions': skills_suggestions, 
+                'task_id': task.id,
                 'message': 'job submitted for suggestions update'}, 
                 status=status.HTTP_200_OK)
         except Exception as e:
