@@ -11,24 +11,6 @@ class GeneralData(models.Model):
     def __str__(self):
         return f"There are currently {self.currently_online} users online."
 
-"""    
-class JobTitle(models.Model):
-    title = models.CharField(max_length=255, unique=True)  # store normalized title
-    normalized = models.CharField(max_length=255, unique=True, db_index=True)
-    skills = models.JSONField(default=list)  
-    responsibilities = models.JSONField(default=list)
-    source = models.CharField(max_length=50, default='curated')  # 'curated'|'ai'|'user'
-    ai_version = models.CharField(max_length=50, blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        indexes = [
-            models.Index(fields=['normalized']),
-        ]
-
-"""
-
 class Responsibility(models.Model):
     text = models.TextField(unique=True)
 
