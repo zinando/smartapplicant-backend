@@ -2,7 +2,7 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.db import models
 # from django.contrib.auth import get_user_model
 from django.utils import timezone
-from datetime import timedelta
+# from datetime import timedelta
 import datetime
 import uuid
 

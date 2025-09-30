@@ -7,34 +7,65 @@ import requests
 load_dotenv()
 
 # context = {}
-
-def call_gemini(prompt: str) -> str:
-    """Call Gemini API directly using requests and return the model's response."""
+def get_available_models() -> list[str]:
+    """Fetch the list of models available to the account using the API key."""
     api_key = os.getenv("GEMENAI_API_KEY")
     if not api_key:
         raise ValueError("GEMENAI_API_KEY not set in environment variables.")
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-    
-    headers = {
-        "Content-Type": "application/json",
-    }
+    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+    try:
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        data = response.json()
 
-    payload = {
-        "contents": [
-            {
-                "parts": [
-                    {
-                        "text": prompt
-                    }
-                ]
-            }
-        ]
-    }
+        # Extract only model IDs (the 'name' field looks like "models/gemini-2.5-flash")
+        models = [m["name"].split("/")[-1] for m in data.get("models", [])]
+        print(f"Available models: {models}")
+        return models
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching models: {e}")
+        return []
+
+def call_gemini(prompt: str) -> str:
+    """Call Gemini API with retry on 4xx errors using available models."""
+    api_key = os.getenv("GEMENAI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMENAI_API_KEY not set in environment variables.")
+
+    # Default model (your old one)
+    model_id = "gemini-flash-lite-latest"
+
+    def _make_request(model: str) -> requests.Response:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        headers = {"Content-Type": "application/json"}
+        payload = {
+            "contents": [
+                {"parts": [{"text": prompt}]}
+            ]
+        }
+        return requests.post(url, headers=headers, json=payload, timeout=60)
 
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=60)
-        response.raise_for_status()  # Raise error for 4xx/5xx responses
+        response = _make_request(model_id)
+
+        # If a 4xx error happens, try a fallback model
+        if 400 <= response.status_code < 500:
+            # print(f"[Warning] {model_id} failed with {response.status_code}, retrying with available models...")
+
+            # models = get_available_models()
+            # if not models:
+            #     print("No available models found to retry.")
+            #     response.raise_for_status()  # re-raise the original error
+
+            # pick one model at random for retry (could be smarter, e.g. prefer flash/pro)
+            # fallback_model = models[0]
+            fallback_model = 'gemini-flash-latest'
+            print(f"Retrying with fallback model: {fallback_model}")
+
+            response = _make_request(fallback_model)
+
+        response.raise_for_status()  # Raise for any remaining 4xx/5xx
         data = response.json()
 
         return data['candidates'][0]['content']['parts'][0]['text']
@@ -43,8 +74,8 @@ def call_gemini(prompt: str) -> str:
         return ""
     except (KeyError, IndexError) as parse_err:
         print(f"Error parsing Gemini response: {parse_err}")
-        print(response.text)
-        return ""
+        print(response.text if 'response' in locals() else "")
+        return ""    
 
 def save_context(text, response, user_id):
     mr ={}

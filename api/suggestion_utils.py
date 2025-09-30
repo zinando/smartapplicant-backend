@@ -828,7 +828,8 @@ def get_title_suggestions_from_gemini(jt: str):
                 Tasks:
                 1. Validate the title and correct spelling. If invalid, return {{}}.
                 2. If valid, classify it into one of these field groups: {', '.join(field_groups)}.
-                3. Generate output in JSON format:
+                3. Do not group skills, list them separately. E.g "Python", "Django", "REST API", not "Python (Django, REST API)" not "web frameworks (Django, Flask, React)".
+                4. Generate output in JSON format:
                 {{
                     "jt": "<corrected job title>",
                     "field_group": "<one of the field groups>",
@@ -839,7 +840,7 @@ def get_title_suggestions_from_gemini(jt: str):
                          ...
                     ]
                 }}
-                4. Provide at least 20 relevant skills and 20 relevant responsibilities suggsetions for a resume builder (fewer only if not possible).
+                5. Provide at least 20 relevant skills and 20 relevant responsibilities suggsetions for a resume builder (fewer only if not possible).
             """
     response = get_structured_data_from_gemini(prompt)
     if response:
@@ -859,6 +860,7 @@ def get_skill_suggestion_from_gemini(skill: str, job_title: str):
                     "related_skills": ["Related Skill 1", "Related Skill 2", ...]
                 }}
                 3. Provide at least 5 relevant related skills for the job title (fewer only if not possible).
+                4. Do not group skills, list them separately. E.g "Python", "Django", "REST API", not "Python (Django, REST API)" not "web frameworks (Django, Flask, React)".
             """
     response = get_structured_data_from_gemini(prompt)
     if response:

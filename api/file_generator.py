@@ -101,17 +101,17 @@ class ResumeGenerator:
         "city": "Ibadan",
         "state": "Oyo",
         "country": "Nigeria",
-        "phone": "+234 123 456 7890",
-        "email": "jondoe@gmail.com",
+        "phone": "+2348023456789",
+        "email": "jondoe@example.com",
         "git": "https://github.com/jondo",
         'linkedin': "https://linkedin.com/in/jon-do",
         "portfolio": "https://jondo.com",
         "objective": "To leverage my skills in software development to contribute to innovative projects.",
         "skills": ["Python", "JavaScript"],
         "certification": {"cert_name": "AWS Certified Solutions Architect", "cert_issuer": "Amazon", "issue_date": "2023-01", "cert_expiry": "2025-03 or Never"},
-        "experience": {"company": "Tech Company", "position": "Software Engineer", "experience_duration": "2022-01 to 2023-01", "descriptions": ["Developed web applications using Python and Django.", "Collaborated with cross-functional teams to define, design, and ship new features."], "achievements": ["Increased application performance by 20%.", "Led a team of 5 developers to deliver a project ahead of schedule."]}, 
+        "experience": {"company": "Tech Company", "position": "Software Engineer", "experience_duration": "2022-01 to 2023-01", "description": ["Developed web applications using Python and Django.", "Collaborated with cross-functional teams to define, design, and ship new features."], "achievements": ["Increased application performance by 20%.", "Led a team of 5 developers to deliver a project ahead of schedule."]}, 
         "project": {"title": "Automated Machine Monitoring System", "technologies": "python, pylogix, SQLite", "date": "2023", "description": ["Developed a real-time monitoring app to track PLC machine status and log downtimes.", "Improved maintenance response time by 40%."]},
-        "education": {"degree": "B.Sc in Computer Science", "institution": "University of Ibadan", "location": "Oyo State Nigeria", "graduation_date": "2022-11", "description": "Graduated with First Class Honours"},
+        "education": {"degree": "BSc in Computer Science", "institution": "University of Ibadan", "location": "Oyo State Nigeria", "graduation_date": "2022-11", "description": "Graduated with First Class Honours"},
     }
 
     matching_user_data = {
@@ -123,8 +123,8 @@ class ResumeGenerator:
         "git": "https://github.com/jondo",
         'linkedin': "https://linkedin.com/in/jon-do",
         "portfolio": "https://jondo.com",
-        "phone": "+234 123 456 7890",
-        "email": "jondoe@gmail.com",
+        "phone": "+2348023456789",
+        "email": "jondoe@example.com",
         "objective": "To leverage my skills in software development to contribute to innovative projects.",
         "skills": ["Python", "JavaScript"],
         "certifications": [
@@ -157,7 +157,7 @@ class ResumeGenerator:
         ], 
         "education": [
             {
-                "degree": "B.Sc", 
+                "degree": "BSc", 
                 "institution": "University of Ibadan",
                 "location": "Oyo State Nigeria",
                 "field_of_study": "Computer Science",
@@ -200,13 +200,20 @@ class ResumeGenerator:
         ]
     }
 
-    def __init__(self, resume_data=None, filename=None, matching=False, user_id=0):
+    def __init__(self, resume_data=None, filename=None, matching=False, premium=True, user_id=0):
         self.filename = filename
         self.resume_data = resume_data
         self.user_object = User.objects.filter(id=user_id).first() if user_id != 0 else None
         if not matching:
-            prompt = self.__generate_prompt()
-            self.user_data = self.__promptGemini(prompt)
+            if premium:
+                self.modify_matching_user_data()
+                prompt = self.__generate_premium_prompt()
+                self.matching_user_data = self.__promptGemini(prompt)
+                self.deduct_resume_credit()
+                self.log_matched_resume_data()
+            else:
+                prompt = self.__generate_prompt()
+                self.user_data = self.__promptGemini(prompt)
         else:
             self.job_description = resume_data['job_description']
             prompt = self.__generate_matching_prompt()
@@ -239,44 +246,61 @@ class ResumeGenerator:
             job_title=self.matching_user_data.get('professional_title', 'Unknown'),
             resume_data=self.matching_user_data
         )
+    
+    def modify_matching_user_data(self):
+        """Modify the matching_user_data to ensure it meets the expected structure."""
+        self.matching_user_data['education'][0]['graduation_date'] = '2023-08'
+        # remove start_date and end_date from education
+        self.matching_user_data['education'][0].pop('start_date', None)
+        self.matching_user_data['education'][0].pop('end_date', None)
      
     def __generate_prompt(self) -> str:
         if self.resume_data is None:
             return "No resume data provided."
         return f"""
-        Use the resume data provided to generate a structured resume data for me. return your response in JSON format structured as indicated below.
-        Craft a profesionally-worthy objective statement that is relevant to the job title and industry with ATS-friendly keywords.
-        Include industry-relevant soft skills in the skills section. Skills section cannot be empty.
-        Of all certifications data provided, return only the most relevant one, well-presented for job applications in the field. Return None if no relevant certification is provided.
-        Return the most relevant work experience data provided, well-presented for job applications in the field. Return None if no relevant work experience is provided.
-        For the experience, generate 4 quantied achievements based on the experience data provided.
-        Return the most relevant education data provided, well-presented for job applications in the field.
-
-        SPECIAL CONSIDERATIONS
-
-        * Ensure the information is presented in a clean, ATS-friendly format, especially the personal information like name, phone number and email.
-
-        Work Experience Section:
-        * if no end_date is provided, use "Present" as the end date.
-        * return a maximum of 4 achievements items.
-        * do not use place holders for quantification. use realistic imaginary quantification numbers like 15%, 20%, 30%, etc.
-
-        Skills Section:
-        * return a maximum of 4 skills items if certification data was provided, otherwise return 6 skills items only.
-        * each item should be a single word or a short phrase not more than 35 characters long.
-
-        Certification Section:
-        * if no expiry date is provide, return N/A
-        * return a maximum of 2 certifications items.
-
-        The numbers in the the expected format represents the maximum number of characters for each item.
-        Please do not include the numbers in your response.
+        Use the provided resume_data to generate ATS-friendly structured JSON.  
+        Rules:  
+        - Objective: craft a professional, keyword-rich statement aligned with the job title.  
+        • If experienced → highlight expertise + value.  
+        • If entry/transitioning → highlight eagerness to learn + contribute.  
+        - Skills: must not be empty; only short items (≤35 chars). Include technical + industry soft skills. 4 skills max.  
+        - Certifications: return only the most relevant one; if none, return null. If no expiry → "N/A".  
+        - Experience: return only the most relevant job.  
+        • Format: company, position, duration, description (list of strings), achievements (list of strings).  
+        • At least 4 quantified achievements (use realistic values, e.g., 15%, 20%).  
+        • If no end_date → "Present".  
+        - Education: return only the most relevant education.  
+        - All personal info (name, phone, email) must be clean + ATS-friendly.
 
         Resume_data:
         {self.resume_data}
 
         Expected JSON format:
         {self.user_data}           
+        """
+    def __generate_premium_prompt(self) -> str:
+        if self.resume_data is None:
+            return "No resume data provided."
+        return f"""
+        Use the provided resume_data to generate ATS-friendly structured JSON.  
+        Rules:  
+        - Objective: craft a professional, keyword-rich statement aligned with the job title.  
+        • If experienced → highlight expertise + value.  
+        • If entry/transitioning → highlight eagerness to learn + contribute.  
+        - Skills: must not be empty; only short items (≤35 chars). Include technical + industry soft skills. 6 skills max.  
+        - Certifications: return the most relevant ones; if none, return null. If no expiry → "N/A".  
+        - Experience: return the most relevant jobs.  
+        • Format: company, position, duration, description (list of strings), achievements (list of strings).  
+        • At least 4 quantified achievements per job (use realistic values, e.g., 15%, 20%).  
+        • If no end_date → "Present".  
+        - Education: return the most relevant education entries.  
+        - All personal info (name, phone, email) must be clean + ATS-friendly.
+
+        Resume_data:
+        {self.resume_data}
+
+        Expected JSON format:
+        {self.matching_user_data}           
         """
     
     def __generate_matching_prompt(self) -> str:
@@ -375,8 +399,10 @@ class ResumeGenerator:
     
     def __promptGemini(self, prompt: str) -> dict:
         # Placeholder for the actual Gemini API call
+        # print("Prompting Gemini with:", prompt)
         try:
             text = call_gemini(prompt)
+            # print(f'Raw Gemini response: {text}')
             text = text.replace('```json', '')
             text = text.replace('```', '')
             # print(f'Gemini response: {text}')
@@ -387,7 +413,7 @@ class ResumeGenerator:
         
         return response
 
-    def _insert_bullets(self, doc, anchor_text, items):
+    def _insert_bullets(self, doc, anchor_text, items, bullet=True):
         for i, para in enumerate(doc.paragraphs):
             if anchor_text in para.text:
                 para.text = para.text.replace(anchor_text, "")
@@ -399,8 +425,9 @@ class ResumeGenerator:
                         insert_paragraph_after(para, mr, style='List Bullet')
                 elif isinstance(items, list):
                     for item in items:
-                        # Insert bullet paragraph after the anchor
-                        insert_paragraph_after(para, item, style='List Bullet')
+                        # Insert bullet paragraph starting from the anchor
+                        insert_paragraph_after(para, item, style='List Bullet' if bullet else None)
+                        
                 break
     
     def __select_template(self, template_id:str=''):
@@ -414,8 +441,6 @@ class ResumeGenerator:
         if not os.path.exists(self.template_path):
             raise FileNotFoundError(f"{self.template_path} not found")
         
-        #return self.template_path
-    
     def populate_template(self):
         """Populate a Word template with user data and save the result."""
         # Early exit checks
@@ -485,6 +510,54 @@ class ResumeGenerator:
                                 if placeholder in para_text:
                                     para_text = para_text.replace(placeholder, sub_value)
                                     modified = True
+                    elif isinstance(value, list):
+                        # 1. Determine the list length
+                        # 2. Get one of the list items
+                        # 3. Make a list of placeholders based on the keys of the item
+                        # 4. Check and isolate all the paragraphs that contain any of the placeholders in order
+                        # 5. For each item in the list, duplicate the isolated paragraphs and replace the placeholders with the item values
+                        # 6. Insert the duplicated paragraphs after the last isolated paragraph
+                        
+                        # Handle list of dicts (e.g., certifications, experience)
+                        if all(isinstance(item, dict) for item in value):
+                            # Get placeholders from the first item
+                            first_item = value[0]
+                            placeholders = [f"{{{{{k}}}}}" for k in first_item.keys()]
+                            
+                            # Find paragraphs containing any of the placeholders
+                            target_paragraphs = []
+                            for p in doc.paragraphs:
+                                if any(ph in p.text for ph in placeholders):
+                                    target_paragraphs.append(p)
+                            
+                            if target_paragraphs:
+                                last_para = target_paragraphs[-1]
+                                parent = last_para._element.getparent()
+                                index = parent.index(last_para._element)
+                                
+                                # Remove original paragraphs
+                                for p in target_paragraphs:
+                                    parent.remove(p._element)
+                                
+                                # Insert new paragraphs for each item
+                                for item in value:
+                                    for template_para in target_paragraphs:
+                                        new_para = insert_paragraph_after(last_para, style=template_para.style.name)
+                                        new_para.text = template_para.text
+                                        for k, v in item.items():
+                                            if isinstance(v, str):
+                                                ph = f"{{{{{k}}}}}"
+                                                new_para.text = new_para.text.replace(ph, v)
+                                        last_para = new_para
+                                modified = True
+                        # if all(isinstance(item, dict) for item in value):
+                        #     for item in value:
+                        #         for sub_key, sub_value in item.items():
+                        #             if isinstance(sub_value, str):
+                        #                 placeholder = f"{{{{{sub_key}}}}}"
+                        #                 if placeholder in para_text:
+                        #                     para_text = para_text.replace(placeholder, sub_value)
+                        #                     modified = True
                 
                 # Update paragraph if modified
                 if modified:
@@ -500,22 +573,21 @@ class ResumeGenerator:
             list_fields = {
                 "{{skills_list}}": self.user_data.get("skills", []),
                 "{{certifications_list}}": self.user_data.get("certifications", []),
+                "{{description}}": self.user_data.get("experience", {}).get("description", []),
                 "{{achievements}}": self.user_data.get("experience", {}).get("achievements", []),
             }
 
             for anchor, items in list_fields.items():
+                print(f"Processing list for anchor {anchor} with items: {items}")
                 if items:  # Only process if there are items
-                    self._insert_bullets(doc, anchor, items)
+                    if anchor == "{{description}}":
+                        self._insert_bullets(doc, anchor, items, bullet=False)
+                    else:
+                        self._insert_bullets(doc, anchor, items)
             
             # Remove unused placeholders
             self._clean_unused_placeholders(doc)
 
-            # # Create directory if it doesn't exist
-            # os.makedirs('generated_docs', exist_ok=True)
-            
-            # # Save directly to file instead of using BytesIO
-            # save_path = os.path.join('generated_docs', self.filename)
-            # doc.save(save_path)
             self.__save_document(doc)
             
             return self.filename
@@ -524,9 +596,58 @@ class ResumeGenerator:
             print(f"Error populating template: {str(e)}")
             return ''
         
+    def populate_premium_template(self):
+        """Uses the ATS Bold Classic template style for premium users."""
+        result = ''
+        if self.resume_data.get('template_id', '') == 'professional':
+            # change template id to premium template
+            self.resume_data['template_id'] = 'professional_premium'
+
+            # select premium template
+            self.__select_template('professional_premium')
+            result = self.populate_ats_bold_classic_resume()
+        elif self.resume_data.get('template_id', '') == 'modern':
+            # change template id to premium template
+            self.resume_data['template_id'] = 'modern_premium'
+            try:
+                self.__select_template(self.resume_data.get('template_id', ''))
+                template_layout = tp_layouts.get(self.resume_data.get('template_id', ''))
+                user_data = self.matching_user_data.copy()
+
+                # if experience has more than one item, create a new key 'experience_continuation' with the rest of the items
+                if 'experience' in user_data and isinstance(user_data['experience'], list) and len(user_data['experience']) > 1:
+                    user_data['experience_continuation'] = user_data['experience'][1:]
+                    user_data['experience'] = user_data['experience'][0]
+
+                # Use ColumnAwareTemplatePopulator for modern templates
+                populator = ColumnAwareTemplatePopulator(self.template_path, template_layout)
+                this_doc = populator.populate_template(user_data)
+                if not this_doc:
+                    raise Exception("Failed to populate modern template.")
+                
+                # Clean unused placeholders
+                self._clean_unused_placeholders(this_doc)
+
+                # Apply font style to the entire document
+                enforce_font(this_doc, font_name="Arial")
+
+                # save document to file
+                self.__save_document(this_doc)
+                result = self.filename
+            except Exception as e:
+                print({str(e)})
+                result = ''
+
+
+        if result == '':
+            raise Exception('Failed to populate premium resume template')
+        return result
+        
     def populate_matching_template(self, template_id:str):
         """Populate a Word template with user data and save the result."""
         result = ''
+        # Select template
+        self.__select_template(template_id)
 
         if template_id == 'ats_bold_classic_resume' or 'ats_bold_classic_resume' in template_id:
             result = self.populate_ats_bold_classic_resume()
@@ -630,10 +751,10 @@ class ResumeGenerator:
                             p.add_run(dates)
                             continue
                         
-                        # Handle list-type descriptions
-                        if line_config.get('is_list', False) and 'description' in item and isinstance(item['description'], list):
-                            for i, bullet_point in enumerate(item['description']):
-                                if i > 0:
+                        # Handle list-type descriptions/achievements
+                        if line_config.get('is_list', False) and line_config.get('content_key', '') in item and isinstance(item[line_config.get('content_key', '')], list):
+                            for i, bullet_point in enumerate(item[line_config.get('content_key', '')]):
+                                if i > 0 and line_config.get('bullet', True):
                                     p = doc.add_paragraph(style='List Bullet')
                                     p.paragraph_format.left_indent = Inches(line_config.get('indent', 0.5))
                                     p.paragraph_format.first_line_indent = Inches(-0.25)
@@ -655,7 +776,7 @@ class ResumeGenerator:
                                     line_text = line_text.replace(placeholder, value)
                             
                             run = p.add_run(line_text)
-                            if line_config.get('bold', False):
+                            if line_config.get('bold', False) or line_config.get('content_bold', False):
                                 run.bold = True
                             if line_config.get('italic', False):
                                 run.italic = True
@@ -710,9 +831,6 @@ class ResumeGenerator:
         if not self.filename:
             # print("No filename available.")
             return ''
-        # Select template
-        self.__select_template(self.resume_data.get('template_id', ''))
-        print(f"Selected template path: {self.template_path}")
 
         try:
             doc = Document(self.template_path)
@@ -756,9 +874,9 @@ class ResumeGenerator:
         # Define placeholder patterns for each case
         placeholder_groups = {
             'simple': [
-                '{{name}}', '{{email}}', '{{phone}}', 
-                '{{city}}', '{{state}}', '{{country}}',
-                '{{git}}', '{{portfolio}}', '{{linkedin}}'
+                '{{name}}', '{{email}}', '{{phone}}',
+                '{{city}}', '{{state}}', '{{country}}', '{{experience_section_continuation}}',
+                '{{git}}', '{{portfolio}}', '{{linkedin}}', '{{description}}', '{{achievements}}',
             ],
             'labeled': [
                 ('Git:', '{{git}}'),
@@ -886,8 +1004,6 @@ class ColumnAwareTemplatePopulator:
         self.user_data = user_data
         self._process_inline_fields()
         self._process_multi_item_sections()
-        # self._process_list_only_sections()
-        # self._remove_unused_placeholders()
         return self.doc
 
     def _process_inline_fields(self):

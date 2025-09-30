@@ -26,13 +26,22 @@ tp_layouts['ats_bold_classic_resume'] = {
                                                     "new_paragraph": True
                                                 },
                                                 {"text": "{{company}}", "italic": True, "new_paragraph": True},
-                                                {"text": "Key Responsibilities / Achievements:", "style": None, "new_paragraph": True},
                                                 {
                                                     "text": "{{description}}", 
+                                                    "bullet": False, 
+                                                    "indent": 0, 
+                                                    "new_paragraph": True,
+                                                    "is_list": True,
+                                                    "content_key": "description"
+                                                },
+                                                {"text": "Key Achievements:", "style": None, "new_paragraph": True, "content_bold": True},
+                                                {
+                                                    "text": "{{achievements}}", 
                                                     "bullet": True, 
                                                     "indent": 0.5, 
                                                     "new_paragraph": True,
-                                                    "is_list": True
+                                                    "is_list": True,
+                                                    "content_key": "achievements"
                                                 }
                                             ],
                                             'separator': "\n"
@@ -164,6 +173,18 @@ tp_layouts['ats_bold_classic_resume_scinece_and_research'] = {
 }
 
 tp_layouts['professional'] = tp_layouts['ats_bold_classic_resume']
+tp_layouts['professional_premium'] = tp_layouts['ats_bold_classic_resume']
+tp_layouts['professional_premium']['education']['item_template']=[
+                                                {
+                                                    "type": "dated_line", 
+                                                    "content": "{{degree}} in {{field_of_study}}",
+                                                    "dates": "{{graduation_date}}",
+                                                    "content_bold": True,
+                                                    "new_paragraph": True
+                                                },
+                                                {"text": "{{institution}}", "italic": True, "new_paragraph": True},
+                                                {"text": "{{description}}", "style": None, "new_paragraph": True}
+                                            ]
 tp_layouts['modern'] =             {
                                         'education': {
                                             'template_anchor': '{{education_section}}',
@@ -191,9 +212,16 @@ tp_layouts['modern'] =             {
                                                     "new_paragraph": True
                                                 },
                                                 {"text": "{{company}}", "italic": True, "new_paragraph": True},
-                                                {"text": "Key Responsibilities / Achievements:", "style": None, "new_paragraph": True},
                                                 {
-                                                    "text": "{{descriptions}}", 
+                                                    "text": "{{description}}", 
+                                                    "bullet": False, 
+                                                    "indent": 0, 
+                                                    "new_paragraph": True,
+                                                    "is_list": True
+                                                },
+                                                {"text": "Key Achievements:", "style": None, "new_paragraph": True, "content_bold": True},
+                                                {
+                                                    "text": "{{achievements}}", 
                                                     "bullet": True, 
                                                     "indent": 0.5, 
                                                     "new_paragraph": True,
@@ -244,3 +272,48 @@ tp_layouts['modern'] =             {
                                             'separator': ""
                                         }
                                     }
+tp_layouts['modern_premium'] = {
+                                **tp_layouts['modern'],
+                                'certifications': {
+                                            'template_anchor': '{{certification_section}}',
+                                            'item_template': [
+                                                {
+                                                    "text": "{{cert_name}}",
+                                                    "content_bold": True,
+                                                    "new_paragraph": True
+                                                },
+                                                {"text": "{{cert_issuer}}", "italic": False, "new_paragraph": True},
+                                                {"text": "{{issue_date}}", "italic": True, "new_paragraph": True}
+                                            ],
+                                            'separator': ""
+                                        },
+                                'experience_continuation': {
+                                            'template_anchor': '{{experience_section_continuation}}',
+                                            'item_template': [
+                                                {
+                                                    "type": "dated_line",
+                                                    "content": "{{position}}",
+                                                    "dates": "{{experience_duration}}",
+                                                    "content_bold": True,
+                                                    "new_paragraph": True
+                                                },
+                                                {"text": "{{company}}", "italic": True, "new_paragraph": True},
+                                                {
+                                                    "text": "{{description}}", 
+                                                    "bullet": False, 
+                                                    "indent": 0, 
+                                                    "new_paragraph": True,
+                                                    "is_list": True
+                                                },
+                                                {"text": "Key Achievements:", "style": None, "new_paragraph": True, "content_bold": True},
+                                                {
+                                                    "text": "{{achievements}}", 
+                                                    "bullet": True, 
+                                                    "indent": 0.5, 
+                                                    "new_paragraph": True,
+                                                    "is_list": True
+                                                }
+                                            ],
+                                            'separator': "\n"
+                                        },
+}

@@ -494,14 +494,16 @@ class ResumeGeneratorView(generics.GenericAPIView):
         try:
             user = request.user
             resume_data = request.data
-
-            # authenticate the user
-            if not user.is_authenticated:
-                raise ValueError("User is not authenticated")
+            filename = f"{user.username}_resume.docx"
+            serialized_user = self.get_serializer(user).data
 
             # Generate the new resume
-            filename = f"{user.username}_resume.docx"
-            task = async_generate_resume.delay(resume_data, filename, user.id)
+            if len(resume_data.get('experiences', [])) > 1 or len(resume_data.get('education', [])) > 1 or len(resume_data.get('certifications', [])) > 1 or len(resume_data.get('project', [])) > 1:
+                if serialized_user.get('account_type', 'basic') != 'premium' and user.resume_credits <= 0:
+                    raise Exception('You must be a premium user to generate a multi-section resume. Please purchase resume credits or subscribe to our premium service.')
+                task = async_generate_premium_resume.delay(resume_data, filename, user.id)
+            else:
+                task = async_generate_resume.delay(resume_data, filename, user.id)
 
             return Response({
                 'status': 1,
