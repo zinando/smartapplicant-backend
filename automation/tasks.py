@@ -11,6 +11,7 @@ from api.ai import get_structured_data_from_gemini, call_gemini_image_generator
 from .context_manager import save_context
 from .content_automation.facebook import AutomateFacebookPost
 import time
+import re
 
 
 logger = logging.getLogger(__name__)
@@ -24,8 +25,10 @@ def handle_inbound_event(self, payload):
     sender_id = normalized.get("sender_id")
     message = normalized.get("message")
     business_id = normalized.get("biz_id")
+    
+    logger.info(f"Normalized payload: platform={platform}, sender_id={sender_id}, business_id={business_id}, message={message}")
 
-    # Find tenant by business_id (phone_number_id)
+    # Find tenant 3by business_id (phone_number_id)
     tenant = Tenant.objects.filter(waba_phone_number_id=business_id).first()
 
     if tenant:
@@ -55,7 +58,7 @@ def handle_inbound_event(self, payload):
         return f"Event {event.id} processed"
     else:
         logger.warning("No tenant found for business_id: %s", business_id)
-        self.retry(exc=Exception("Tenant not found"), countdown=5)
+        self.retry(exc=Exception("Tenant not found"), countdown=1)
     
 @shared_task(bind=True, max_retries=3)
 def trigger_message_processing(self, event_id):
@@ -67,13 +70,29 @@ def trigger_message_processing(self, event_id):
         admin_contacts_key = f"{event.tenant.waba_phone_number_id}_admin_contacts"
         admin_contacts = get_cache(admin_contacts_key) or []
 
-        logger.info(f"AI/Reply queue triggered for event {event_id}")
+        # logger.info(f"business info {event.tenant.business_details}")
+        # logger.info(f"Admin contacts for tenant {event.tenant.waba_phone_number_id}: {admin_contacts}")
 
         # check for admin messages
         if "##" in event.message and event.sender_id in admin_contacts:
             # process admin command
             logger.info(f"Admin message detected in event {event_id}, skipping auto-reply.")
-            prompt = process_admin_command(event)
+            command_text = re.search(r"##(.*)", event.message).group(1)
+            result = process_admin_command(command_text, event)
+            send_text_reply(event, event.sender_id, result)
+            # command = command_map.get(f'{command_text.lower().strip()}')
+            # if not command:
+            #     logger.warning(f"Unknown admin command in event {event_id}: {command_text}")
+            #     send_text_reply(event, f"Unknown command: {command_text}")
+            #     return
+            # if len(inspect.getfullargspec(command).args) == 0:
+            #     result = process_admin_command(command, event)
+            #     send_text_reply(event, result)
+            #     return
+            # else:
+            #     result = process_admin_command(command, event)
+            #     send_text_reply(event, result)
+            #     return
             return
         
         elif event.sender_id in admin_contacts:
@@ -91,8 +110,8 @@ def trigger_message_processing(self, event_id):
         event.save(update_fields=["processed"])
     except Exception as e:
         logger.error(f"Error processing event {event_id}: {e}")
-        send_text_reply(event, "Sorry, an error occurred while processing your message: {e}")
-        self.retry(exc=e, countdown=3)
+        send_text_reply(event, event.sender_id, f"Sorry, an error occurred while processing your message: {e}")
+        # self.retry(exc=e, countdown=3)
 
 @shared_task(bind=True, max_retries=3)
 def generate_ai_response(self, event: WebhookEvent, prompt: str):

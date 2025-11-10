@@ -9,10 +9,10 @@ class AutomationConfig(AppConfig):
 
     def ready(self):
         # This runs once when Django starts
-        if not cache.get("startup_flag"):
-            logging.info("Setting up initial cache values on startup.")
-            self.save_admin_contacts_to_cache()
-            cache.set("startup_flag", True, timeout=None)
+        # if not cache.get("startup_flag"):
+        logging.info("Setting up initial cache values on startup.")
+        # self.save_admin_contacts_to_cache()
+        cache.set("startup_flag", True, timeout=None)
     
     def save_admin_contacts_to_cache(self):
         from .models import Tenant
@@ -20,11 +20,13 @@ class AutomationConfig(AppConfig):
         for tenant in tenants:
             biz_info = tenant.business_details or {}
             if biz_info:
-                admin_contacts = biz_info.get("admin_contacts", [])
+                admin_contacts = [
+                    value for key, value in
+                    biz_info.get("admin_contacts", {}).items()]
                 if admin_contacts:
                     key = f"{tenant.waba_phone_number_id}_admin_contacts"
             
-                    cache.set(key, admin_contacts, timeout=None)
+                    cache.set(key, list(set(admin_contacts)), timeout=None)
                     logging.info("Admin contacts saved to cache for tenant: %s", tenant.waba_phone_number_id)
 
     

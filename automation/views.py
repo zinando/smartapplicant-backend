@@ -25,10 +25,12 @@ def webhook_entry(request):
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
         payload = {}
-    logger.info("Received webhook: %s", payload)
-    # from .execute import new_client
-
-    # Quickly acknowledge (200) then process in background
-    # print("Received webhook payload:", payload) 
-    # handle_inbound_event.delay(payload)  # celery
+        return HttpResponse("Invalid payload", status=400)
+    # handle only message payloads
+    if "entry" in payload:
+        if "changes" in payload["entry"][0]:
+            if "value" in payload["entry"][0]["changes"][0]:
+                if "messages" in payload["entry"][0]["changes"][0]["value"]:
+                    handle_inbound_event.delay(payload)  # celery
+    
     return JsonResponse({"status": "received"})
