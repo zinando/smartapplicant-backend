@@ -11,6 +11,7 @@ from rest_framework_simplejwt.views import (
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path("automation/", include("automation.urls")),
     path('api/parse/', ResumeParseView.as_view(), name='parse-resume'),
     path('api-auth/', include('rest_framework.urls')),
     path('api/task-status/<str:task_id>/', TaskStatusView.as_view()),

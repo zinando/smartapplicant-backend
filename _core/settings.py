@@ -2,6 +2,7 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 from datetime import timedelta
+import json
 
 # Load environment variables from .env file
 load_dotenv(override=True)
@@ -15,6 +16,49 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+META_GRAPH_API_VERSION = 'v24.0'
+META_GRAPH_URL = f'https://graph.facebook.com/{META_GRAPH_API_VERSION}'
+WEBHOOK_VERIFY_TOKEN = os.getenv('WHATSAPP_VERIFY_TOKEN', 'default_verify_token')
+BUSINESS_ACCESS_TOKEN = os.getenv('BUSINESS_ACCESS_TOKEN')
+PAGE_DATA = {
+    '823731924160674': {
+        "name": "Smart & Trendy Blitz",
+        "category": [],
+        "accees_token": "",
+        "tasks": ["MODERATE", "MESSAGING", "ANALYZE", "ADVERTISE", "CREATE_CONTENT", "MANAGE"]
+        },
+    '750798604776594': {
+        "name": "SmartApplicant",
+        "category": [],
+        "accees_token": "",
+        "tasks": ["MODERATE", "MESSAGING", "ANALYZE", "ADVERTISE", "CREATE_CONTENT", "MANAGE"]
+        },
+    '423001724240260': {
+        "name": "Lazy.News.Men",
+        "category": [],
+        "accees_token": "",
+        "tasks": ["MODERATE", "MESSAGING", "ANALYZE", "ADVERTISE", "CREATE_CONTENT", "MANAGE"]
+        },
+    '272287553647171': {
+        "name": "I_am_zinando",
+        "category": [],
+        "accees_token": "",
+        "tasks": ["MODERATE", "MESSAGING", "ANALYZE", "ADVERTISE", "CREATE_CONTENT", "MANAGE"]
+        },
+    '469317173127488': {
+        "name": "Xienando Concepts",
+        "category": [],
+        "accees_token": "",
+        "tasks": ["MODERATE", "MESSAGING", "ANALYZE", "ADVERTISE", "CREATE_CONTENT", "MANAGE"]
+        }
+}
+
+# Add access tokens to page data from environment variables using page IDs
+ACCESS_TOKENS = json.loads(os.getenv("ACCESS_TOKENS", "{}"))
+for page_id, token in ACCESS_TOKENS.items():
+    if page_id in PAGE_DATA:
+        PAGE_DATA[page_id]["accees_token"] = token
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # Disable Django features that eat memory
@@ -38,7 +82,8 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     '146.19.133.88',
     "smartapplicant.net",  # Your actual production domain
-    ".smartapplicant.net"  # Allows all subdomains
+    ".smartapplicant.net",  # Allows all subdomains
+    ".ngrok-free.app",  # For testing with ngrok
 ]
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",  # Dev
@@ -48,12 +93,14 @@ CORS_ALLOWED_ORIGINS = [
     "https://apps.smartapplicant.net",
     "https://www.smartapplicant.net",
     "https://api.smartapplicant.net",
+    "https://c6700eefadfd.ngrok-free.app",  # For testing with ngrok
 ]
 
 CORS_ALLOW_CREDENTIALS = False 
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS.copy()
 
 # Application definition
+APPEND_SLASH = False
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -68,6 +115,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'api',
     'auth_user',
+    'automation',
 ]
 
 MIDDLEWARE = [
@@ -91,6 +139,16 @@ MIDDLEWARE = [
 # Media files (for resume uploads)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",  # adjust DB index if needed
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
 
 # _core/settings.py
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5MB limit

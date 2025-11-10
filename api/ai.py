@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 import os
 import json
 import requests
+import base64
 
 # Load environment variables
 load_dotenv()
@@ -75,7 +76,51 @@ def call_gemini(prompt: str) -> str:
     except (KeyError, IndexError) as parse_err:
         print(f"Error parsing Gemini response: {parse_err}")
         print(response.text if 'response' in locals() else "")
-        return ""    
+        return "" 
+
+def call_gemini_image_generator(prompt: str, aspect_ratio="1:1") -> bytes:
+    """Generate an image from Gemini API."""
+    api_key = os.getenv("GEMENAI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMENAI_API_KEY not set in environment variables.")
+
+    model_id = "gemini-2.5-flash-image"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_id}:generateContent?key={api_key}"
+
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "imageConfig": {
+                "aspectRatio": aspect_ratio  # e.g. "16:9", "1:1", "9:16"
+            }
+        }
+    }
+
+    headers = {"Content-Type": "application/json"}
+
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=90)
+        response.raise_for_status()
+        data = response.json()
+
+        # Extract base64 image data
+        image_b64 = (
+            data["candidates"][0]["content"]["parts"][0]
+            .get("inline_data", {})
+            .get("data")
+        )
+        if not image_b64:
+            raise ValueError("No image data found in Gemini response.")
+
+        return base64.b64decode(image_b64)
+
+    except requests.exceptions.RequestException as e:
+        print(f"Request error: {e}")
+        return b""
+    except Exception as e:
+        print(f"Error parsing Gemini response: {e}")
+        print(response.text if 'response' in locals() else "")
+        return b"" 
 
 def save_context(text, response, user_id):
     mr ={}
