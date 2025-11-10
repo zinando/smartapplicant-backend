@@ -10,7 +10,7 @@ app.autodiscover_tasks()
 app.conf.beat_schedule = {
     'daily-facebook-posts': {
         'task': 'automation.tasks.schedule_facebook_post',
-        'schedule': crontab(hour=7, minute=40),
+        'schedule': crontab(hour=2, minute=0),
     },
 }
 
