@@ -1,6 +1,6 @@
 from celery import shared_task
 import logging
-from .utils import normalize_payload, to_facebook_timestamp, base64_to_bytes
+from .utils import normalize_payload, to_facebook_timestamp, base64_to_bytes, get_random_admin_instant_message
 from .models import WebhookEvent, Tenant, AutomatedClients
 from .helpers import *
 from .admin_commands import process_admin_command
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 @shared_task(bind=True, max_retries=3)
 def handle_inbound_event(self, payload):
-    logger.info("Processing inbound event: %s", payload)
+    # logger.info("Processing inbound event: %s", payload)
     # Normalize
     normalized = normalize_payload(payload)
     platform = normalized.get("platform")
@@ -26,7 +26,7 @@ def handle_inbound_event(self, payload):
     message = normalized.get("message")
     business_id = normalized.get("biz_id")
     
-    logger.info(f"Normalized payload: platform={platform}, sender_id={sender_id}, business_id={business_id}, message={message}")
+    # logger.info(f"Normalized payload: platform={platform}, sender_id={sender_id}, business_id={business_id}, message={message}")
 
     # Find tenant 3by business_id (phone_number_id)
     tenant = Tenant.objects.filter(waba_phone_number_id=business_id).first()
@@ -51,7 +51,7 @@ def handle_inbound_event(self, payload):
             tenant.customers.append(sender_id)
             tenant.save(update_fields=["customers"])
 
-        logger.info(f"[{platform}] Received message from {sender_id}: {message}")
+        # logger.info(f"[{platform}] Received message from {sender_id}: {message}")
 
         # Enqueue next step (AI or auto reply)
         trigger_message_processing.delay(event.id)
@@ -75,24 +75,19 @@ def trigger_message_processing(self, event_id):
 
         # check for admin messages
         if "##" in event.message and event.sender_id in admin_contacts:
+            acknowledge = get_random_admin_instant_message()
+            send_text_reply(event, event.sender_id, acknowledge)
+
             # process admin command
             logger.info(f"Admin message detected in event {event_id}, skipping auto-reply.")
             command_text = re.search(r"##(.*)", event.message).group(1)
             result = process_admin_command(command_text, event)
-            send_text_reply(event, event.sender_id, result)
-            # command = command_map.get(f'{command_text.lower().strip()}')
-            # if not command:
-            #     logger.warning(f"Unknown admin command in event {event_id}: {command_text}")
-            #     send_text_reply(event, f"Unknown command: {command_text}")
-            #     return
-            # if len(inspect.getfullargspec(command).args) == 0:
-            #     result = process_admin_command(command, event)
-            #     send_text_reply(event, result)
-            #     return
-            # else:
-            #     result = process_admin_command(command, event)
-            #     send_text_reply(event, result)
-            #     return
+            if isinstance(result, str):
+                send_text_reply(event, event.sender_id, result)
+            elif isinstance(result, list):
+                for res in result:
+                    time.sleep(2)  # brief pause between messages
+                    send_text_reply(event, event.sender_id, res)
             return
         
         elif event.sender_id in admin_contacts:

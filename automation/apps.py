@@ -10,9 +10,10 @@ class AutomationConfig(AppConfig):
     def ready(self):
         # This runs once when Django starts
         # if not cache.get("startup_flag"):
-        logging.info("Setting up initial cache values on startup.")
+        # logging.info("Setting up initial cache values on startup.")
         # self.save_admin_contacts_to_cache()
-        cache.set("startup_flag", True, timeout=None)
+        # cache.set("startup_flag", True, timeout=None)
+        pass
     
     def save_admin_contacts_to_cache(self):
         from .models import Tenant

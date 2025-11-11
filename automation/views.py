@@ -26,11 +26,13 @@ def webhook_entry(request):
     except Exception:
         payload = {}
         return HttpResponse("Invalid payload", status=400)
+    
     # handle only message payloads
     if "entry" in payload:
         if "changes" in payload["entry"][0]:
             if "value" in payload["entry"][0]["changes"][0]:
                 if "messages" in payload["entry"][0]["changes"][0]["value"]:
+                    from .execute import new_client
                     handle_inbound_event.delay(payload)  # celery
     
     return JsonResponse({"status": "received"})

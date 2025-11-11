@@ -50,6 +50,7 @@ class AutomateFacebookPost:
             "Generate 6 Facebook posts for today: 3 text posts, 2 link posts (with caption), and 1 image post (with caption). "
             "Each post must be unique, engaging, and relevant to the business, with at least two hashtags. "
             "Keep tone friendly, professional, and appealing to Facebook users. "
+            "You must not include personal information of the business owner or employees in the posts. "
         )
 
         if business_details:

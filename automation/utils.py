@@ -1,6 +1,7 @@
 from .webhook_handlers.whatsapp import parse_whatsapp_payload
 from datetime import datetime, timezone
 import base64
+import random
 
 def to_facebook_timestamp(hour, minute=0):
     dt = datetime.now().replace(hour=hour, minute=minute, second=0, microsecond=0)
@@ -59,3 +60,14 @@ def normalize_payload(payload: dict):
 
     return {}
 
+def get_random_admin_instant_message() -> str:
+    messages = [
+        "On it ...",
+        "Right away!",
+        "Consider it done!",
+        "Okay! Just a moment...",
+        "I'll get that for you right away.",
+        "Sure thing! Working on it now.",
+        "Absolutely! Just a moment...",
+    ]
+    return random.choice(messages)
