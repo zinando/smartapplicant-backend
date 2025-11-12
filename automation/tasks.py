@@ -70,9 +70,6 @@ def trigger_message_processing(self, event_id):
         admin_contacts_key = f"{event.tenant.waba_phone_number_id}_admin_contacts"
         admin_contacts = get_cache(admin_contacts_key) or []
 
-        # logger.info(f"business info {event.tenant.business_details}")
-        # logger.info(f"Admin contacts for tenant {event.tenant.waba_phone_number_id}: {admin_contacts}")
-
         # check for admin messages
         if "##" in event.message and event.sender_id in admin_contacts:
             acknowledge = get_random_admin_instant_message()

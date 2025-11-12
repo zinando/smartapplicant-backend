@@ -29,20 +29,13 @@ def get_business_info():
             
             response.append(f"Business Information:\n{info_str}")
             response.append("""
-                            You can update simple business info using the 'update business info' command. Example:
-                            \n'##update business info 
-                            \n*name=New Name 
-                            \n*address=New Address
-                            \n*description=New Description'
-                            """)
-            response.append("""
-                            For more complex business info, use the command 'update <business info>'. Example:
-                            \nE.g '##update admin contacts
-                            \n*order=2348567890
-                            \n*support=234987654321
-                            \n*delivery=234722334455'
-
-                            \nNote: This data will replace existing admin contacts. So ensure you include all information you want to keep.
+                            You can update business info using the 'update business info' command. Example:
+                            \n'##update business info
+                            \n#name
+                            \n*New Name
+                            \nNote:\n- Use double hash (##) to specify the command, single hash (#) to specify the info you want to update, and single asterisks (*) to indicate the new values.
+                            \n- For simple business info (like name, address, description, ceo, use marketing), you can update multiple info with their corresponding new values in one command.
+                            \n- For more complex business info (like admin contacts, faq, working hours, image data, services, products), you can update only one info at a time.
                             """)
             return response
     return "Business info retrieved."
@@ -460,6 +453,7 @@ def command_map() -> dict:
         "get business info": get_business_info,
         "update business info": update_business_info,
         "get customers": fetch_customers,
+        "add new business info": add_new_business_info,
         # "update product info": update_product_info,
         # "add new product": add_new_product,
         # "get product list": get_product_list,
@@ -486,5 +480,5 @@ def process_admin_command(command: str, eventt: WebhookEvent, *args, **kwargs) -
     elif func:
         response = "We are processing your message."
     else:
-        response = "Unknown command"
+        response = ["Unknown command", f"Available commands are:{'; '.join(command_mapp.keys())}"]
     return response
