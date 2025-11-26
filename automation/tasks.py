@@ -276,7 +276,7 @@ def generate_ai_response(self, event_id: int, prompt: str):
                             )
                             
                             # Notify customer
-                            send_text_reply(event, to, f"Sorry i could not carry out this action: {command}. Let me know if there is anything else i could do for you.")
+                            send_text_reply(event, to, f"Sorry i could not carry out this action: {command} due to \n{e}. Let me know if there is anything else i could do for you.")
         
                 return
 
