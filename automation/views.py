@@ -32,7 +32,7 @@ def webhook_entry(request):
         if "changes" in payload["entry"][0]:
             if "value" in payload["entry"][0]["changes"][0]:
                 if "messages" in payload["entry"][0]["changes"][0]["value"]:
-                    # from .execute import new_client
+                    
                     handle_inbound_event.delay(payload)  # celery
     
     return JsonResponse({"status": "received"})

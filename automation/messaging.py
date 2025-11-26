@@ -2,6 +2,7 @@
 import logging
 from .models import WebhookEvent
 import base64
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -10,6 +11,7 @@ def send_text_reply(event: WebhookEvent, recipient: str, reply_text: str):
     Send reply based on event platform.
     """
     platform = event.platform
+    time.sleep(2)
 
     if platform == "whatsapp":
         from .webhook_handlers.whatsapp import send_whatsapp_text_message
@@ -35,6 +37,7 @@ def send_media_reply(event: WebhookEvent, recipient: str, media_content: base64,
     Send media reply based on event platform.
     """
     platform = event.platform
+    time.sleep(2)
 
     if platform == "whatsapp":
         from .webhook_handlers.whatsapp import send_whatsapp_media_message

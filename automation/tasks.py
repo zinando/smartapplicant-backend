@@ -69,6 +69,8 @@ def trigger_message_processing(self, event_id):
         admin_contacts_key = f"{event.tenant.waba_phone_number_id}_admin_contacts"
         admin_contacts = get_cache(admin_contacts_key) or []
 
+        print(f"admin contacts {admin_contacts}")
+
         # check for admin messages
         if event.message.startswith("##") and event.sender_id in admin_contacts:
             acknowledge = get_random_admin_instant_message()
@@ -88,6 +90,7 @@ def trigger_message_processing(self, event_id):
         
         elif event.sender_id in admin_contacts:
             # process admin response to customer enquiry
+            print("processing admin message")
             prompt = process_admin_message(event)
             generate_ai_response.delay(event.id, prompt)
             return
@@ -116,6 +119,7 @@ def generate_ai_response(self, event_id: int, prompt: str):
     try:
         logger.info(f"Generating AI response for event {event.id}")
         ai_response = get_structured_data_from_gemini(prompt)
+        print(f"AI Response: {ai_response}")
 
         context_id = f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
 
@@ -158,8 +162,9 @@ def generate_ai_response(self, event_id: int, prompt: str):
             if "admin" in details and "customers" in details:
                 """This is response addressing constomer enquiries using admin input"""
                 admin_message = details.get("admin", {})
-                customers = details.get("contacts", [])
+                customers = details.get("customers", [])
                 if admin_message:
+                    print("there is a message for admin")
                     admin_contact = admin_message.get("admin_contact")
                     reply_to_admin = admin_message.get("repsonse")
 
@@ -173,6 +178,7 @@ def generate_ai_response(self, event_id: int, prompt: str):
 
                 
                 if customers:
+                    print("There are messages for customers")
                     # address all the customer enquiry
                     for customer in customers:
                         save_context(

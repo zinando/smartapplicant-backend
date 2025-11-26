@@ -63,7 +63,8 @@ def compose_customer_text_reply_prompt(event: WebhookEvent):
                 }}
 
                 * Leave the actions field empty if there is no need for extra actions to be taken. Use the Legend below to know the various actions you can command alongside your response to any message
-
+                * ALL YOUR RESPONSES MUST STRICTLY FOLLOW THE ABOVE STRUCTURE OTHERWISE IT WON'T BE PROCESSED
+                
                 ### Actions Legend
                 {legend}
                 """.strip()
@@ -89,6 +90,9 @@ def compose_prompt_to_check_if_pending_request_is_addressed(event: WebhookEvent,
                 ### New Admin Message
                 "{event.message}"
 
+                ### This admin contact
+                {event.sender_id}
+
                 ### Pending Customer Requests
                 {pending_requests_text}
 
@@ -101,7 +105,7 @@ def compose_prompt_to_check_if_pending_request_is_addressed(event: WebhookEvent,
                 - If the admin message does not address any pending requests, urge the admin to address them and return empty list for customers.
                 - If admin message addreesses all the pending requests, construct responses to all customers accordingly. Return empty dict for admin.
 
-                ### Output Format when returning status: 1 (MUST be JSON)
+                ### Output Format (MUST be JSON)
                 {{
                 "status": 0,
                 "type": "text or media (message format)",
@@ -120,6 +124,8 @@ def compose_prompt_to_check_if_pending_request_is_addressed(event: WebhookEvent,
                     ]
                 }}
                 }}
+                
+                * ALL YOUR RESPONSES MUST STRICTLY FOLLOW THE ABOVE STRUCTURE OTHERWISE IT WON'T BE PROCESSED
 
                 Return only `status: 0`.
     """.strip()
@@ -145,16 +151,39 @@ def compose_prompt_for_normal_admin_message(event: WebhookEvent) -> str | None:
                 ### New Admin Message
                 "{event.message}"
 
+                ### This admin contact
+                {event.sender_id}
+
+
                 ### Instructions
                 - This message is from an admin of this business. They would normally ask you to help they reach out to certain customers or just normal conversations.
-                - 
-                - Suggest any follow-up actions if necessary.
+                - Send message to customer or customers. If you don't know which numbers to send to, reply this admin to clear provide the customer(s) contacts
+                - If you perceive the admin is addressing an issue by a customer, let them know the issue is not logged in the system as one requiring further attention, but you'd be glad to do anything possible in its regard.
+                - Return empty actions field if there is no need to take any action. You must always return a reply field.
+                - DO NOT CREATE ACTION EXCEPT IT IS EXPLICITLY AUTHORIZED BY THE ADMIN TO DO SO
 
                 ### Output Format (MUST be JSON)
                 {{
-                "message": str (a brief summary of the admin message),
-                "follow_up": str (any suggested follow-up actions, or "none" if not applicable)
+                    "reply": {{
+                        "to": "this admin contact",
+                        "message": "Message to the admin"
+                    }},
+                    "actions": [
+                        {{
+                            "command": "send_message_to_customer",
+                            "params": {{
+                                "message": "Summary of the message admin want you to pass across to customer",
+                                "contact": "Customer number from context history: e.g 234701104270",
+                            }}
+                            
+                        }}
+                    ]
                 }}
+
+                * ALL YOUR RESPONSES MUST STRICTLY FOLLOW THE ABOVE STRUCTURE OTHERWISE IT WON'T BE PROCESSED
+
+                ### Actions Legend
+                {legend}
 
     """.strip()
 

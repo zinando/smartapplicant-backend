@@ -11,7 +11,8 @@ class AutomationConfig(AppConfig):
         # This runs once when Django starts
         # if not cache.get("startup_flag"):
         # logging.info("Setting up initial cache values on startup.")
-        # self.save_admin_contacts_to_cache()
+        cache.clear()
+        self.save_admin_contacts_to_cache()
         # cache.set("startup_flag", True, timeout=None)
         pass
     

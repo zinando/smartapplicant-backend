@@ -16,6 +16,7 @@ def process_admin_message(event: WebhookEvent):
     pending_requests = get_pending_requests(request_key)
 
     if not pending_requests:
+        print("no pending requests")
         # No pending requests, process normal admin message
         return compose_prompt_for_normal_admin_message(event)
 
@@ -26,4 +27,5 @@ def process_admin_message(event: WebhookEvent):
     #     "request": req["request"]
     # } for req in pending_requests
     # ]
+    print("there are pending requests")
     return compose_prompt_to_check_if_pending_request_is_addressed(event, pending_requests)
