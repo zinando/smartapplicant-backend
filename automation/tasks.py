@@ -248,7 +248,8 @@ def generate_ai_response(self, event_id: int, prompt: str):
                         params = action.get("params", {})
                         
                         try:
-                            func = customer_command_map.get(command)
+                            map = customer_command_map()
+                            func = map.get(command)
                             func(event, **params)
                             # save context for each action item
                             save_context(
