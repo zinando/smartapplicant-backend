@@ -140,6 +140,10 @@ def generate_ai_response(self, event_id: int, prompt: str):
                     caption=media_info.get("caption", "")
                 )
                 return
+            # elif isinstance(ai_response.get("message"), dict):
+            #     ai_message = ai_response.get("message")
+            #     if "admin" in ai_message and isinstance(ai_message.get("admin"), dict):
+                    
             message = ai_response.get("message", "Thank you for your message.")
             # save context
             save_context(
@@ -151,11 +155,44 @@ def generate_ai_response(self, event_id: int, prompt: str):
         elif ai_response.get("status") == 0:
             # Needs admin attention
             details = ai_response.get("message", {})
-            admin_contact = details.get("admin_contact")
-            request = details.get("request")
-            reply_to_admin = details.get("reply_to_admin", f"Customer needs assistance on this enquiry: {event.message}.")
-            reply_to_customer = details.get("reply_to_customer", "Your request is being forwarded to our team.")
-            to = details.get("to", event.sender_id)
+            if "admin" in details and "customers" in details:
+                """This is response addressing constomer enquiries using admin input"""
+                admin_message = details.get("admin", {})
+                customers = details.get("contacts", [])
+                if admin_message:
+                    admin_contact = admin_message.get("admin_contact")
+                    reply_to_admin = admin_message.get("repsonse")
+
+                    send_text_reply(event, admin_contact, reply_to_admin)
+                    # save context for admin
+                    save_context(
+                        text='(You messaged this admin)',
+                        response=f'YOUR MESSAGE:\n{reply_to_admin}',
+                        context_id=f"{event.tenant.waba_phone_number_id}_{admin_contact}"
+                    )
+
+                
+                if customers:
+                    # address all the customer enquiry
+                    for customer in customers:
+                        save_context(
+                            text=' ',
+                            response=customer.get("response"),
+                            context_id=f"{event.tenant.waba_phone_number_id}_{customer.get('to')}"
+                        )
+                        send_text_reply(event, customer.get('to'), customer.get("response"))
+
+                        # remove item from pending request
+                        request_key = f"{event.tenant.waba_phone_number_id}_{admin_contact}_pending_requests"
+                        remove_pending_request(request_key, customer.get("event_id"))
+                return
+                        
+            else:
+                admin_contact = details.get("admin_contact")
+                request = details.get("request")
+                reply_to_admin = details.get("reply_to_admin", f"Customer needs assistance on this enquiry: {event.message}.")
+                reply_to_customer = details.get("reply_to_customer", "Your request is being forwarded to our team.")
+                to = details.get("to", event.sender_id)
 
             # Send message to admin
             if admin_contact:

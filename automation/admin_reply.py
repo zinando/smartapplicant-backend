@@ -20,9 +20,10 @@ def process_admin_message(event: WebhookEvent):
         return compose_prompt_for_normal_admin_message(event)
 
     # there are pending requests, check if admin is responding to any
-    requests = [{
-        "customer_id": req["customer_id"],
-        "request": req["request"]
-    } for req in pending_requests
-    ]
-    return compose_prompt_to_check_if_pending_request_is_addressed(event, requests)
+    # requests = [{
+    #     ""
+    #     "customer_id": req["customer_id"],
+    #     "request": req["request"]
+    # } for req in pending_requests
+    # ]
+    return compose_prompt_to_check_if_pending_request_is_addressed(event, pending_requests)

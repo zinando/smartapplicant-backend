@@ -77,7 +77,7 @@ def compose_prompt_to_check_if_pending_request_is_addressed(event: WebhookEvent,
     if not biz_info:
         return None
 
-    pending_requests_text = "\n".join([f"- From {req['customer_id']}: {req['request']}" for req in pending_requests])
+    pending_requests_text = "\n".join([f"Event ID: {req['event_id']}\n- From {req['customer_id']}: {req['request']}" for req in pending_requests])
 
     prompt = f"""
                 You are a helpful AI assistant representing **{biz_info.get('name', 'the business')}**.
@@ -95,21 +95,16 @@ def compose_prompt_to_check_if_pending_request_is_addressed(event: WebhookEvent,
                 ### Instructions
                 - Determine if the admin message addresses any of the pending customer requests.
                 - Be objective and base your judgment solely on the content of the messages.
-                - Return `status: 1` if the admin message addresses any pending concern, otherwise return `status: 0`.
+                - Return only `status: 0`.
                 - If the admin message addresses some of the pending requests, construct responses to the respective customers based on the admin message,
                     let admin know there are othere requests that need their attention.
-                - If the admin message does not address any pending requests, urge the admin to address them.
-                - If admin message addreesses all the pending requests, construct responses to all customers accordingly. Thank admin for attending to all concerns.
-
-                ### Output Format when returning status: 0 (MUST be JSON)
-                {{
-                "status": int,
-                "message": str (message to admin urging them to address pending concerns or to use command keywords to get things done, include concern messages in the response)
-                }}
+                - If the admin message does not address any pending requests, urge the admin to address them and return empty list for customers.
+                - If admin message addreesses all the pending requests, construct responses to all customers accordingly. Return empty dict for admin.
 
                 ### Output Format when returning status: 1 (MUST be JSON)
                 {{
-                "status": int,
+                "status": 0,
+                "type": "text or media (message format)",
                 "message": {{
                     "admin": {{
                         "response": str (message to admin summarizing which requests have been addressed and which still need attention),
@@ -117,7 +112,8 @@ def compose_prompt_to_check_if_pending_request_is_addressed(event: WebhookEvent,
                     }},
                     "customers": [
                         {{
-                            "request": str (the customer's original request),
+                            "event_id": str (event id from the pending customer request),
+                            "request": str (the customer's original request unaltered),
                             "response": str (response to send to the customer),
                             "to": str (customer_id)
                         }} # for each addressed request
@@ -125,7 +121,7 @@ def compose_prompt_to_check_if_pending_request_is_addressed(event: WebhookEvent,
                 }}
                 }}
 
-                Return `status: 1` if the admin message addresses any pending concern, otherwise `status: 0`.
+                Return only `status: 0`.
     """.strip()
 
     return prompt
