@@ -1,5 +1,6 @@
 from .context_manager import get_context
 from .models import WebhookEvent
+from .action_legends import legend
 
 def compose_customer_text_reply_prompt(event: WebhookEvent):
     """
@@ -40,30 +41,32 @@ def compose_customer_text_reply_prompt(event: WebhookEvent):
                 - Use past context to understand returning customers and refer back to previous interactions if appropriate.
                 - When the conversation seems to be ending, you may ask if the user’s previous inquiries were well-attended to.
                 - Prefer giving helpful answers based on any available business info or general knowledge.
-                - Only return `status: 0` if there’s truly **insufficient information** to answer.
-                - When returning `status: 0`, include the appropriate admin contact phone number from the business info that is best suited to address the concern.
-
-                ### Output Format when returning status 0 (MUST be JSON)
-                {{
-                "status": int,
-                "message": {{
-                        "admin_contact": str (admin phone number to address the concern),
-                        "request": str (the customer's request that needs admin attention),
-                        "reply_to_admin": str (a message to send to the admin explaining the situation),
-                        "reply_to_customer": str (a polite message to send to the customer explaining that their request needs admin attention),
-                        "to": str (customer_id)
-                    }}
-                }}
+                - When you need to get more info from an admin concerning a customer's enquiry, use the 'actions' to create a message to be routed to the appropriate admin for this business, the admin will reply you and if the response is sufficient you use the admin reply to address the customer's question.
+                - You can command as many actions as possible based on available actions in the actions legend below.
                 
-                ### Output Format when returning status 1 (MUST be JSON)
+                ### Output Format (MUST be JSON)
                 {{
-                "status": int,
-                "type": str (either "text" or "media"),
-                "message": str or {{"media_type": str ('video', 'sticker', 'audio', 'document', 'image'), "caption": str (optional), "media": base64 string}} (the reply message to send to the customer),
-                }}                
+                    "reply": {{
+                        "to": "customer number",
+                        "message": "Message to the customer."
+                    }},
+                    "actions": [
+                        {{
+                            "command": "send_message_to_admin",
+                            "params": {{
+                                "message":"Summary of your conversation with customer, and the question you want the admin to answer",
+                                "contact":"Admin number from business info: e.g 234701104270",
+                            }},
+                            "expect_reply": True (to show if the action requires a response from recipient or not)
+                        }}
+                    ]
+                }}
 
-                Return `status: 1` if you can answer, otherwise `status: 0` when you need to get clarification from any of the business admins.
-    """.strip()
+                * Leave the actions field empty if there is no need for extra actions to be taken. Use the Legend below to know the various actions you can command alongside your response to any message
+
+                ### Actions Legend
+                {legend}
+                """.strip()
 
     return prompt
 
@@ -138,6 +141,7 @@ def compose_prompt_for_normal_admin_message(event: WebhookEvent) -> str | None:
     prompt = f"""
                 You are a helpful AI assistant representing **{biz_info.get('name', 'the business')}**.
                 Your role is to act as a professional and friendly customer support representative, ensuring that all customer needs are well-attended to.
+                This message is from an admin of the business, and you are to respond like a loyal subbordinate AI assistant. Use Sir/Ma'am/Boss whenever possible.
 
                 ### Previous Conversation Context with Admin
                 {context}
@@ -152,7 +156,7 @@ def compose_prompt_for_normal_admin_message(event: WebhookEvent) -> str | None:
 
                 ### Output Format (MUST be JSON)
                 {{
-                "summary": str (a brief summary of the admin message),
+                "message": str (a brief summary of the admin message),
                 "follow_up": str (any suggested follow-up actions, or "none" if not applicable)
                 }}
 

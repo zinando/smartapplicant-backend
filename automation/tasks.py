@@ -12,6 +12,7 @@ from .context_manager import save_context
 from .content_automation.facebook import AutomateFacebookPost
 import time
 import re
+from .ai_commands import command_map as customer_command_map
 
 
 logger = logging.getLogger(__name__)
@@ -25,10 +26,8 @@ def handle_inbound_event(self, payload):
     sender_id = normalized.get("sender_id")
     message = normalized.get("message")
     business_id = normalized.get("biz_id")
-    
-    # logger.info(f"Normalized payload: platform={platform}, sender_id={sender_id}, business_id={business_id}, message={message}")
 
-    # Find tenant 3by business_id (phone_number_id)
+    # Find tenant by business_id (phone_number_id)
     tenant = Tenant.objects.filter(waba_phone_number_id=business_id).first()
 
     if tenant:
@@ -71,7 +70,7 @@ def trigger_message_processing(self, event_id):
         admin_contacts = get_cache(admin_contacts_key) or []
 
         # check for admin messages
-        if "##" in event.message and event.sender_id in admin_contacts:
+        if event.message.startswith("##") and event.sender_id in admin_contacts:
             acknowledge = get_random_admin_instant_message()
             send_text_reply(event, event.sender_id, acknowledge)
 
@@ -89,14 +88,14 @@ def trigger_message_processing(self, event_id):
         
         elif event.sender_id in admin_contacts:
             # process admin response to customer enquiry
-            logger.info(f"Admin contact message detected in event {event_id}, skipping auto-reply.")
             prompt = process_admin_message(event)
+            generate_ai_response.delay(event.id, prompt)
             return
         
         # process normal client message
         prompt = process_customer_message(event)
 
-        generate_ai_response.delay(event, prompt)
+        generate_ai_response.delay(event.id, prompt)
 
         event.processed = True
         event.save(update_fields=["processed"])
@@ -106,18 +105,18 @@ def trigger_message_processing(self, event_id):
         # self.retry(exc=e, countdown=3)
 
 @shared_task(bind=True, max_retries=3)
-def generate_ai_response(self, event: WebhookEvent, prompt: str):
+def generate_ai_response(self, event_id: int, prompt: str):
     """
     Generates AI response unsing the given prompt.
     Sends the AI-generated reply back to the customer.
     Schedules other tasks as needed based on AI response.
     Retries up to 3 times on failure. 
     """
+    event = WebhookEvent.objects.get(id=event_id)
     try:
         logger.info(f"Generating AI response for event {event.id}")
         ai_response = get_structured_data_from_gemini(prompt)
 
-        logger.info(f"AI response for event {event.id}: {ai_response}")
         context_id = f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
 
         # Send reply based on AI response
@@ -154,7 +153,7 @@ def generate_ai_response(self, event: WebhookEvent, prompt: str):
             details = ai_response.get("message", {})
             admin_contact = details.get("admin_contact")
             request = details.get("request")
-            reply_to_admin = details.get("reply_to_admin", "Customer needs assistance.")
+            reply_to_admin = details.get("reply_to_admin", f"Customer needs assistance on this enquiry: {event.message}.")
             reply_to_customer = details.get("reply_to_customer", "Your request is being forwarded to our team.")
             to = details.get("to", event.sender_id)
 
@@ -163,8 +162,8 @@ def generate_ai_response(self, event: WebhookEvent, prompt: str):
                 send_text_reply(event, admin_contact, reply_to_admin)
                 # save context for admin
                 save_context(
-                    text=f'You needed clarification for this customer enquiry: {event.message}',
-                    response=reply_to_admin,
+                    text='(You messaged this admin)',
+                    response=f'YOUR MESSAGE:\n{reply_to_admin}',
                     context_id=f"{event.tenant.waba_phone_number_id}_{admin_contact}"
                 )
 
@@ -186,7 +185,64 @@ def generate_ai_response(self, event: WebhookEvent, prompt: str):
             )
             
             # Notify customer
-            send_text_reply(event, reply_to_customer)
+            send_text_reply(event, to, reply_to_customer)
+            return
+        elif ai_response.get("reply") and "actions" in ai_response:
+            """This is the reply-actions format"""
+            reply = ai_response.get("reply", {})
+            actions = ai_response.get("actions", [])
+            if reply:
+                reply_to_customer = reply.get("message", "We are processing your message.")
+                to = reply.get("to", event.sender_id)
+
+                # Save context for customer
+                save_context(
+                    text=event.message,
+                    response=reply_to_customer,
+                    context_id=context_id
+                )
+                
+                # Notify customer
+                send_text_reply(event, to, reply_to_customer)
+
+                if actions and isinstance(actions, list):
+                    for action in actions:
+                        command = action.get("command")
+                        params = action.get("params", {})
+                        
+                        try:
+                            func = customer_command_map.get(command)
+                            func(event, **params)
+                            # save context for each action item
+                            save_context(
+                                text='(You messaged this contact)',
+                                response=f'YOUR MESSAGE:\n{params.get("message")}',
+                                context_id=f"{event.tenant.waba_phone_number_id}_{params.get('contact')}"
+                            )
+
+                            if action.get("expect_reply"):
+                                # log pending request
+                                request_key = f"{event.tenant.waba_phone_number_id}_{params.get('contact')}_pending_requests"
+                                pending_request = {
+                                    'event_id': event.id,
+                                    'customer_id': to,
+                                    'request': event.message,
+                                    'admin_contact': params.get('contact')
+                                }
+                                log_pending_request(request_key, pending_request)
+                        except Exception as e:
+                            # Save context for customer
+                            save_context(
+                                text=event.message,
+                                response=f"Sorry i could not carry out this action: {command}",
+                                context_id=context_id
+                            )
+                            
+                            # Notify customer
+                            send_text_reply(event, to, f"Sorry i could not carry out this action: {command}. Let me know if there is anything else i could do for you.")
+        
+                return
+
         else:
             logger.warning(f"Unrecognized AI response status for event {event.id}: {ai_response}")
     except Exception as e:

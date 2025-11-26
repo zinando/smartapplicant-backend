@@ -480,5 +480,5 @@ def process_admin_command(command: str, eventt: WebhookEvent, *args, **kwargs) -
     elif func:
         response = "We are processing your message."
     else:
-        response = ["Unknown command", f"Available commands are:{'; '.join(command_mapp.keys())}"]
+        response = ["Unknown command", f"Available commands are:\n{'; '.join(command_mapp.keys())}"]
     return response

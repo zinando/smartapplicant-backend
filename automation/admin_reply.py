@@ -17,7 +17,7 @@ def process_admin_message(event: WebhookEvent):
 
     if not pending_requests:
         # No pending requests, process normal admin message
-        compose_prompt_for_normal_admin_message(event)
+        return compose_prompt_for_normal_admin_message(event)
 
     # there are pending requests, check if admin is responding to any
     requests = [{
