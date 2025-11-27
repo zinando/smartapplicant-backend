@@ -83,7 +83,7 @@ def compose_prompt_to_check_if_pending_request_is_addressed(event: WebhookEvent,
     prompt = f"""
                 You are a helpful AI assistant representing **{biz_info.get('name', 'the business')}**.
                 Your role is to act as a professional and friendly customer support representative, ensuring that all customer needs are well-attended to.
-
+                This message is from an admin of this business.
                 ### Previous Conversation Context with Admin
                 {context}
                 
