@@ -2,7 +2,7 @@ from .models import WebhookEvent
 import inspect
 import re
 import logging
-from .helpers import save_cache, delete_cache
+from .helpers import save_cache, delete_cache, get_pending_requests
 
 logger = logging.getLogger(__name__)
 
@@ -448,13 +448,28 @@ def update_business_info():
                 return f"No existing {biz_info_key} found to update. Use double hash (##) to specify the command, single hash (#) to specify what you want to update, and single akstericks to indicate the new values. E.g '\n##update business info \n#name \n*New Name \n#address \n*New Address' etc"
     return "Failed to update business info."
 
+def fetch_pending_requests():
+    """This fetches all pending requests associated with the admin contact"""
+    if event and event.tenant:
+        request_key = f"{event.tenant.waba_phone_number_id}_{event.sender_id}_pending_requests"
+        pending_requests = get_pending_requests(request_key) or []
+        result = ""
+        if pending_requests:
+            for p in pending_requests:
+                result += f"{p.get('customer_id')} : {p.get('request')}\n"
+        else: 
+            result = "No pending requests at this time. Enjoy!"
+        return result
+    return "Failed to fetch pending requests."
+
+
 def command_map() -> dict:
     return {
         "get business info": get_business_info,
         "update business info": update_business_info,
         "get customers": fetch_customers,
         "add new business info": add_new_business_info,
-        # "update product info": update_product_info,
+        "get pending requests": fetch_pending_requests,
         # "add new product": add_new_product,
         # "get product list": get_product_list,
     }
