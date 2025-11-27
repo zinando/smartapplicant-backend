@@ -166,6 +166,7 @@ def generate_ai_response(self, event_id: int, prompt: str):
                 admin_message = details.get("admin", {})
                 customers = details.get("customers", [])
                 if admin_message:
+                    send_text_reply(event, event.sender_id, "there is message for admin" )
                     print("there is a message for admin")
                     admin_contact = admin_message.get("admin_contact")
                     reply_to_admin = admin_message.get("repsonse")
