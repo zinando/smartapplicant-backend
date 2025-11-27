@@ -158,18 +158,18 @@ def generate_ai_response(self, event_id: int, prompt: str):
             send_text_reply(event,event.sender_id, message)
         elif ai_response.get("status") == 0:
             # Needs admin attention
-            send_text_reply(event, event.sender_id, "status is 0" )
+            # send_text_reply(event, event.sender_id, "status is 0" )
             details = ai_response.get("message", {})
             if "admin" in details and "customers" in details:
                 """This is response addressing constomer enquiries using admin input"""
-                send_text_reply(event, event.sender_id, "message structure is good" )
+                # send_text_reply(event, event.sender_id, "message structure is good" )
                 admin_message = details.get("admin", {})
                 customers = details.get("customers", [])
                 if admin_message:
-                    send_text_reply(event, event.sender_id, "there is message for admin" )
-                    print("there is a message for admin")
+                    # send_text_reply(event, event.sender_id, "there is message for admin" )
+                    # print("there is a message for admin")
                     admin_contact = admin_message.get("admin_contact")
-                    reply_to_admin = admin_message.get("repsonse")
+                    reply_to_admin = admin_message.get("response")
 
                     send_text_reply(event, admin_contact, reply_to_admin)
                     # save context for admin
@@ -179,8 +179,8 @@ def generate_ai_response(self, event_id: int, prompt: str):
                         context_id=f"{event.tenant.waba_phone_number_id}_{admin_contact}"
                     )
 
-                else:
-                    send_text_reply(event, event.sender_id, "no admin message" )
+                # else:
+                #     send_text_reply(event, event.sender_id, "no admin message" )
                 if customers:
                     print("There are messages for customers")
                     # address all the customer enquiry
