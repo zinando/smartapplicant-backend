@@ -124,7 +124,7 @@ def compose_prompt_to_check_if_pending_request_is_addressed(event: WebhookEvent,
                     ]
                 }}
                 }}
-
+                * ALWAYS RETURN THE TWO KEYS: 'admin' and 'customers'. But one of them may have empty value at any time if necessary.
                 * ALWAYS BE SURE OF WHICH PENDING REQUEST THE ADMIN MESSAGE ADDRESSES. IF NOT SURE, RETURN ONLY ADMIN MESSAGE AND ASK THEM FOR CLARIFICATION BEFORE YOU ADDRESS ANY PENDING REQUEST
                 * ALL YOUR RESPONSES MUST STRICTLY FOLLOW THE ABOVE STRUCTURE OTHERWISE IT WON'T BE PROCESSED
 
