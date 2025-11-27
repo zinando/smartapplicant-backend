@@ -101,8 +101,8 @@ def compose_prompt_to_check_if_pending_request_is_addressed(event: WebhookEvent,
                 - Be objective and base your judgment solely on the content of the messages.
                 - Return only `status: 0`.
                 - If the admin message addresses some of the pending requests, construct responses to the respective customers based on the admin message,
-                    let admin know there are othere requests that need their attention.
-                - If the admin message does not address any pending requests, urge the admin to address them and return empty list for customers.
+                    Also, let admin know there are othere requests that need their attention.
+                - If the admin message does not address any pending requests, return only a message to admin urging them to address the pending requests first, then return empty list for customers.
                 - If admin message addreesses all the pending requests, construct responses to all customers accordingly. Return empty dict for admin.
 
                 ### Output Format (MUST be JSON)
@@ -124,7 +124,8 @@ def compose_prompt_to_check_if_pending_request_is_addressed(event: WebhookEvent,
                     ]
                 }}
                 }}
-                
+
+                * ALWAYS BE SURE OF WHICH PENDING REQUEST THE ADMIN MESSAGE ADDRESSES. IF NOT SURE, RETURN ONLY ADMIN MESSAGE AND ASK THEM FOR CLARIFICATION BEFORE YOU ADDRESS ANY PENDING REQUEST
                 * ALL YOUR RESPONSES MUST STRICTLY FOLLOW THE ABOVE STRUCTURE OTHERWISE IT WON'T BE PROCESSED
 
                 Return only `status: 0`.
