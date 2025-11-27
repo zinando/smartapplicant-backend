@@ -57,7 +57,7 @@ def compose_customer_text_reply_prompt(event: WebhookEvent):
                                 "message":"Summary of your conversation with customer, and the question you want the admin to answer",
                                 "contact":"Admin number from business info: e.g 234701104270",
                             }},
-                            "expect_reply": True (to show if the action requires a response from recipient or not)
+                            "fya": True (always True if admin is expected to do something, otherwise false)
                         }}
                     ]
                 }}

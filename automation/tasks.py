@@ -186,7 +186,7 @@ def generate_ai_response(self, event_id: int, prompt: str):
                             response=customer.get("response"),
                             context_id=f"{event.tenant.waba_phone_number_id}_{customer.get('to')}"
                         )
-                        send_text_reply(event, customer.get('to'), customer.get("response"))
+                        send_text_reply(event, customer.get('to'), f'{customer.get("response")}- {customer.get("event_id")}')
 
                         # remove item from pending request
                         request_key = f"{event.tenant.waba_phone_number_id}_{admin_contact}_pending_requests"
@@ -264,7 +264,7 @@ def generate_ai_response(self, event_id: int, prompt: str):
                                 context_id=f"{event.tenant.waba_phone_number_id}_{params.get('contact')}"
                             )
 
-                            if action.get("expect_reply"):
+                            if action.get("fya"):
                                 # log pending request
                                 request_key = f"{event.tenant.waba_phone_number_id}_{params.get('contact')}_pending_requests"
                                 pending_request = {
