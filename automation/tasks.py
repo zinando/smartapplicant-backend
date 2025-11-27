@@ -158,9 +158,11 @@ def generate_ai_response(self, event_id: int, prompt: str):
             send_text_reply(event,event.sender_id, message)
         elif ai_response.get("status") == 0:
             # Needs admin attention
+            send_text_reply(event, event.sender_id, "status is 0" )
             details = ai_response.get("message", {})
             if "admin" in details and "customers" in details:
                 """This is response addressing constomer enquiries using admin input"""
+                send_text_reply(event, event.sender_id, "message structure is good" )
                 admin_message = details.get("admin", {})
                 customers = details.get("customers", [])
                 if admin_message:
@@ -176,7 +178,8 @@ def generate_ai_response(self, event_id: int, prompt: str):
                         context_id=f"{event.tenant.waba_phone_number_id}_{admin_contact}"
                     )
 
-                
+                else:
+                    send_text_reply(event, event.sender_id, "no admin message" )
                 if customers:
                     print("There are messages for customers")
                     # address all the customer enquiry
