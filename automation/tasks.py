@@ -196,6 +196,8 @@ def generate_ai_response(self, event_id: int, prompt: str):
                         # remove item from pending request
                         request_key = f"{event.tenant.waba_phone_number_id}_{admin_contact}_pending_requests"
                         remove_pending_request(request_key, customer.get("event_id"))
+                else:
+                    send_text_reply(event, event.sender_id, f"{ai_response}")
                 return
                         
             else:
