@@ -182,7 +182,8 @@ def generate_ai_response(self, event_id: int, prompt: str):
                 # else:
                 #     send_text_reply(event, event.sender_id, "no admin message" )
                 if customers:
-                    print("There are messages for customers")
+                    # print("There are messages for customers")
+                    send_text_reply(event, event.sender_id, f"{customer}" )
                     # address all the customer enquiry
                     for customer in customers:
                         save_context(
