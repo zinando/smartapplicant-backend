@@ -319,7 +319,7 @@ def schedule_facebook_post(self):
                     logger.error(f"No fallback content available for Facebook page {page}, skipping.")
                     continue
             logger.info(f"Generated {len(contents)} contents for Facebook page {page}")
-            logger.info(f"Contents: {contents}")
+            # logger.info(f"Contents: {contents}")
             image_contents = [x for x in contents if x.get('content_type') == 'image']
             if len(image_contents) > 0:
                 for item in image_contents:
@@ -347,7 +347,8 @@ def make_facebook_posts(self, contents, page_id):
             caption=content['caption'],
             content_type=content.get('content_type'),
             publish_now= False,
+            comments=content.get("comments", []),
             scheduled_time=to_facebook_timestamp(schedule_time)
         )
-        time.sleep(5)  # brief pause between posts for 5 seconds
+        time.sleep(2)  # brief pause between posts for 2 seconds
 
