@@ -179,8 +179,6 @@ def generate_ai_response(self, event_id: int, prompt: str):
                         context_id=f"{event.tenant.waba_phone_number_id}_{admin_contact}"
                     )
 
-                # else:
-                #     send_text_reply(event, event.sender_id, "no admin message" )
                 if customers:
                     # print("There are messages for customers")
                     send_text_reply(event, event.sender_id, f"{customer}" )

@@ -4,6 +4,7 @@ import logging
 import time
 from automation.models import Tenant
 import random
+from api.email_service import EmailService
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,19 @@ class AutomateFacebookPost:
     
     def __get_business_details(self):
         return self.__business_info.business_details or {}
+    
+    def __send_email(self, text, email):
+        email_service = EmailService(
+            subject='Facebook Post Automation Report',
+            to_emails=[email],
+            template_name='emails/notification.html',
+            context={
+                'title': "Facebook Post Automation Notification",
+                'text': text
+            },
+            from_email="Smart Applicant <support@smartapplicant.net>"
+        )
+        email_service.send_email()
     
     def __create_prompt_for_content_generation(self):
         business_details = self.__get_business_details()
@@ -131,9 +145,43 @@ class AutomateFacebookPost:
             return [7, 9, 12, 15, 18, 21]
         return schedule_times.get("facebook", [])
     
-    def post_content(self, content, caption, content_type="text", publish_now=True, scheduled_time=None):
+    def comment_on_post(self, post_id: str, messages: list):
+        """
+        Adds a comment to a Facebook Page post.
+        """
+        GRAPH_URL = self.__post_url.replace("/page_id/", "")
+        url = f"{GRAPH_URL}/{post_id}/comments"
+        if messages:
+            for comment in messages:
+                payload = {
+                    "message": comment,
+                    "access_token": self.__page_access_token
+                }
+                response = requests.post(url, data=payload)
+                if response.status_code > 299:
+                    self.__send_email(f"Facebook Post Comment Action Failed: {response.text}", "zinando2000@gmail.com")
+                time.sleep(1)
+        return
+    
+    def like_post(self, post_id: str):
+        """
+        Adds a 'Like' reaction to a Facebook Page post.
+        Note: Only the basic 'LIKE' works; other reactions aren't supported.
+        """
+        GRAPH_URL = self.__post_url.replace("/page_id/", "")
+        url = f"{GRAPH_URL}/{post_id}/likes"
+        payload = {
+            "access_token": self.__page_access_token
+        }
+
+        response = requests.post(url, data=payload)
+        if response.status_code > 299:
+            self.__send_email(f"Facebook Post Like Action Failed: {response.text}", "zinando2000@gmail.com")
+        return response.json()
+    
+    def post_content(self, content, caption, content_type="text", publish_now=True, comments:list=[], scheduled_time=None):
         if content_type == "text":
-            self.__post_text_content(content, publish_now, scheduled_time)
+            self.__post_text_content(content, publish_now, scheduled_time, comments)
         elif content_type == "image":
             # check if content is bytes or URL
             if isinstance(content, (bytes, bytearray)):
@@ -149,7 +197,7 @@ class AutomateFacebookPost:
         
         return
         
-    def __post_text_content(self, text, publish_now=True, scheduled_time=None):
+    def __post_text_content(self, text, publish_now=True, scheduled_time=None, comments:list=[]):
         if scheduled_time and not publish_now:
             payload = {
                 "message": text,
@@ -168,6 +216,13 @@ class AutomateFacebookPost:
         response = requests.post(f'{self.__post_url}feed', data=payload)
         if response.status_code == 200:
             logger.info(f"Successfully posted text content: {response.json()}")
+            post_id = response.json()['id']
+
+            # like post 
+            self.like_post(post_id)
+
+            # comment on post 
+            self.comment_on_post(post_id, comments)
         else:
             logger.error(f"Failed to post text content: {response.text}")
     
