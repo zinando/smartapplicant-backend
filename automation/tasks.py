@@ -350,5 +350,5 @@ def make_facebook_posts(self, contents, page_id):
             comments=content.get("comments", []),
             scheduled_time=to_facebook_timestamp(schedule_time)
         )
-        time.sleep(2)  # brief pause between posts for 2 seconds
+        time.sleep(2)  # brief pause between posts for 2
 

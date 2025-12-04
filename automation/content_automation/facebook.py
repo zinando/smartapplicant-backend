@@ -5,11 +5,14 @@ import time
 from automation.models import Tenant
 import random
 from api.email_service import EmailService
+from automation.utils import to_facebook_timestamp
 
 logger = logging.getLogger(__name__)
 
 class AutomateFacebookPost:
     __post_url = "https://graph.facebook.com/v24.0/page_id/"
+    __comment_url = "https://graph.facebook.com/v24.0/post_id/comments"
+    __like_url = "https://graph.facebook.com/v24.0/post_id/likes"
     __page_access_token = ""
     __business_info: Tenant = None
 
@@ -37,9 +40,12 @@ class AutomateFacebookPost:
                 'title': "Facebook Post Automation Notification",
                 'text': text
             },
-            from_email="Smart Applicant <support@smartapplicant.net>"
+            from_email="Smart Applicant <contact@smartapplicant.net>"
         )
         email_service.send_email()
+    
+    def send_email(self, text, email):
+        self.__send_email(text, email)
     
     def __create_prompt_for_content_generation(self):
         business_details = self.__get_business_details()
@@ -128,6 +134,62 @@ class AutomateFacebookPost:
             })
         return fallback_posts[:6]
     
+    def make_a_test_post(self):
+        content = """
+        💼 Stop Guessing. Start Winning.
+
+        We’ve all been there — staring at a blank resume, wondering what to write, what matters, and what might just cost us an interview.
+
+        That’s why we built SmartApplicant
+        — your AI-powered career companion that doesn’t just help you create a resume, but helps you sound confident, professional, and ready to impress.
+
+        ✨ Intelligent suggestions
+        ✨ ATS-friendly formatting
+        ✨ AI-guided refinement — free to use when you keep it simple
+
+        Over 1,300 job seekers have already landed interviews using SmartApplicant.
+        Now it’s your turn. 🚀
+
+        👉 Visit smartapplicant.net
+        and start building your job-winning resume today.
+
+        #SmartApplicant #CareerGrowth #ResumeTips #AIinRecruitment #JobSearch #LinkedInAfrica
+        """
+        caption = ""
+
+        comments = [
+            "Many users don’t realize how much a well-structured resume changes their job search. SmartApplicant is designed to remove the guesswork and present your strengths clearly and professionally. If you haven’t tried it yet, now is the best time to start. 🚀",
+            "One of my favorite features is how SmartApplicant instantly rewrites weak bullet points into strong, results-driven statements. Most people struggle with how to phrase their achievements — the AI makes it effortless.",
+            """
+            Quick reminder: Recruiters spend less than 7 seconds scanning a resume.
+            That’s why structure, clarity, and relevance matter.
+            SmartApplicant helps job seekers fix these issues in minutes.""",
+            """What part of resume writing do you struggle with the most —
+            ✔ formatting
+            ✔ writing achievements
+            ✔ choosing the right words
+            ✔ or knowing what to include/remove?
+
+            I’d love to hear your thoughts 👇""",
+            """If you’ve been applying for jobs without getting feedback, your resume may be the missing piece. SmartApplicant gives you fresh perspective, cleaner formatting, and more confidence.
+
+            Try it for free at smartapplicant.net.""",
+            """We built SmartApplicant because every job seeker deserves clarity, not confusion.
+            Whether you’re a graduate, mid-career professional, or switching fields — a strong resume is your biggest advantage.
+
+            Wishing everyone success in their next application! 💼✨"""
+        ]
+
+        self.post_content(
+            content=content,
+            caption=caption,
+            content_type="text",
+            publish_now=False,
+            comments=comments,
+            scheduled_time="1764831600"
+        )
+        return
+    
     def get_fallback_posts(self):
         fallback_posts = self.__create_fallback_posts()
         if len(fallback_posts) < 6:
@@ -150,8 +212,7 @@ class AutomateFacebookPost:
         """
         Adds a comment to a Facebook Page post.
         """
-        GRAPH_URL = self.__post_url.replace("/page_id/", "")
-        url = f"{GRAPH_URL}/{post_id}/comments"
+        url = self.__comment_url.replace("post_id", post_id)
         if messages:
             for comment in messages:
                 payload = {
@@ -159,8 +220,10 @@ class AutomateFacebookPost:
                     "access_token": self.__page_access_token
                 }
                 response = requests.post(url, data=payload)
+                logger.info(f'URL: {url} \nComment ID: {response.json()}')
                 if response.status_code > 299:
                     self.__send_email(f"Facebook Post Comment Action Failed: {response.text}", "zinando2000@gmail.com")
+                    break
                 time.sleep(1)
         return
     
@@ -169,14 +232,14 @@ class AutomateFacebookPost:
         Adds a 'Like' reaction to a Facebook Page post.
         Note: Only the basic 'LIKE' works; other reactions aren't supported.
         """
-        GRAPH_URL = self.__post_url.replace("/page_id/", "")
-        url = f"{GRAPH_URL}/{post_id}/likes"
+        url = self.__like_url.replace("post_id", post_id)
         payload = {
             "access_token": self.__page_access_token
         }
 
         response = requests.post(url, data=payload)
         if response.status_code > 299:
+            logger.error(response.text)
             self.__send_email(f"Facebook Post Like Action Failed: {response.text}", "zinando2000@gmail.com")
         return response.json()
     
@@ -213,11 +276,12 @@ class AutomateFacebookPost:
                 "access_token": self.__page_access_token
             }
         # Here you would typically use requests.post to send the payload
-        logger.info(f"Posting text content: {payload}")
+        # logger.info(f"Posting text content: {payload}")
         response = requests.post(f'{self.__post_url}feed', data=payload)
         if response.status_code == 200:
-            logger.info(f"Successfully posted text content: {response.json()}")
-            post_id = response.json()['id']
+            response_data = response.json()
+            logger.info(f"Successfully posted text content: {response_data}")
+            post_id = response_data['id']
 
             # like post 
             self.like_post(post_id)

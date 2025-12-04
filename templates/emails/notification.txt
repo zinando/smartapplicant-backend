@@ -1,0 +1,20 @@
+
+{{ title }}
+Hello {{ user.first_name }},
+        
+{{ text }}
+        
+Best regards,<br>The Smart Applicant Team
+
+
+---
+Connect with us:
+Facebook: https://facebook.com/smartapplicant
+Twitter: https://twitter.com/smartapplicant
+LinkedIn: https://linkedin.com/company/smartapplicant
+
+Smart Applicant helps job seekers manage their applications efficiently and effectively.
+
+© {% now "Y" %} Smart Applicant. All rights reserved.
+Unsubscribe from these emails: {{ unsubscribe_url }}
+Our address: 28 Alhaji Waheed Adeyemi Street, Elebu, Ibadan, Oyo State, Nigeria.
