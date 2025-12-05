@@ -71,6 +71,7 @@ class AutomateFacebookPost:
             "Each post must be unique, engaging, and relevant to the business, with at least two hashtags. "
             "Keep tone friendly, professional, and appealing to Facebook users. "
             "For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. "
+            "You are commenting as the post creator to encourage engagement and to add value to the post. "
             "You must not include personal information of the business owner or employees in the posts. "
         )
 
@@ -82,9 +83,9 @@ class AutomateFacebookPost:
         prompt += (
             "You are to create content focussing on the resume builder service ONLY for this business. "
             "Return output as a JSON list of dictionaries, with the following structures:\n"
-            'Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments>"}\n'
-            'Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments>"}\n'
-            'Text content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments>"}'
+            'Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n'
+            'Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}\n'
+            'Text content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}'
         )
 
         return prompt
