@@ -65,9 +65,32 @@ class AutomateFacebookPost:
         #     "Return output as a JSON list of dictionaries, each having:\n"
         #     '{"content": "<text or base64 image>", "caption": "<caption or empty>", "content_type": "text|link|image"}'
         # )
+        
+        # prompt = (
+        #     f"You are a skilled social media content creator for {self.__business_info.name}. "
+        #     "Generate 6 Facebook posts for today: 3 text posts, 2 link posts (with caption), and 1 image post (with caption). "
+        #     "Each post must be unique, engaging, and relevant to the business, with at least two hashtags. "
+        #     "Keep tone friendly, professional, and appealing to Facebook users. "
+        #     "For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. "
+        #     "You are commenting as the post creator to encourage engagement and to add value to the post. "
+        #     "You must not include personal information of the business owner or employees in the posts. "
+        # )
+
+        # if business_details:
+        #     prompt += "Business details for context:\n"
+        #     for key, value in business_details.items():
+        #         prompt += f"- {key}: {value}\n"
+
+        # prompt += (
+        #     "You are to create content focussing on the resume builder service ONLY for this business. "
+        #     "Return output as a JSON list of dictionaries, with the following structures:\n"
+        #     'Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n'
+        #     'Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}\n'
+        #     'Text content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}'
+        # )
         prompt = (
             f"You are a skilled social media content creator for {self.__business_info.name}. "
-            "Generate 6 Facebook posts for today: 3 text posts, 2 link posts (with caption), and 1 image post (with caption). "
+            "Generate 6 Facebook posts for today: 4 text posts, 2 link posts (with caption). "
             "Each post must be unique, engaging, and relevant to the business, with at least two hashtags. "
             "Keep tone friendly, professional, and appealing to Facebook users. "
             "For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. "
@@ -84,8 +107,7 @@ class AutomateFacebookPost:
             "You are to create content focussing on the resume builder service ONLY for this business. "
             "Return output as a JSON list of dictionaries, with the following structures:\n"
             'Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n'
-            'Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}\n'
-            'Text content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}'
+            'Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}'
         )
 
         return prompt
