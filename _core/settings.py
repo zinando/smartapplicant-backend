@@ -20,6 +20,16 @@ META_GRAPH_API_VERSION = 'v24.0'
 META_GRAPH_URL = f'https://graph.facebook.com/{META_GRAPH_API_VERSION}'
 WEBHOOK_VERIFY_TOKEN = os.getenv('WHATSAPP_VERIFY_TOKEN', 'default_verify_token')
 BUSINESS_ACCESS_TOKEN = os.getenv('BUSINESS_ACCESS_TOKEN')
+SMARTAPPLICANT = {
+    'APP_NAME': 'WABA Automation',
+    'APP_ID': os.getenv('WABA_APP_ID'),
+    'APP_SECRET': os.getenv('WABA_APP_SECRET'),
+    'REDIRECT_URI': os.getenv('WABA_REDIRECT_URI', 'https://apps.smartapplicant.net/facebook/callback/'),
+    'PHONE_NUMBER_ID': os.getenv('WHATSAPP_PHONE_NUMBER_ID'),
+    'APP_VERSION': os.getenv('WABA_APP_VERSION', 'v24.0'),
+    'PHONE_NUMBER': os.getenv('WABA_PHONE_NUMBER')
+}
+# Facebook Page Data Configuration
 PAGE_DATA = {
     '823731924160674': {
         "name": "Smart & Trendy Blitz",

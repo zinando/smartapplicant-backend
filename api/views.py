@@ -1,19 +1,26 @@
 from rest_framework.views import APIView
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from .models import GeneralData, JobTitle # Skill, Responsibility
+from .models import GeneralData
 from .serializers import JobTitleSerializer
 from celery.result import AsyncResult
 from auth_user.serializers import UserSerializer
-# from auth_user.models import PGRequest, Order, Subscription, SubscriptionType
 from .utils import extract_text, calculate_ats_score, parse_resume
 from .suggestion_utils import get_suggestions_for_all_job_titles
 from .tasks import (async_extract_and_score, async_process_new_jt_suggestion, async_process_new_skill_suggestion)
 from .analytics import RevenueAnalytics
 import os
 from django.http import FileResponse, Http404
+from django.conf import settings
+from django.shortcuts import render, redirect
+import requests
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+from automation.helpers import save_cache, get_cache
 
+ENV_FILE = os.path.join(settings.BASE_DIR, ".env")
 
 class ResumeParseView(APIView):
     def post(self, request):
@@ -230,3 +237,130 @@ class InputSuggestionsAPIView(APIView):
         except Exception as e:
             print(f"Input suggestions update error: {e}")
             return Response({'status': 0, 'message': str(e)}, status=status.HTTP_200_OK)
+
+@api_view(["GET"])
+@csrf_exempt
+def facebook_login_view(request):
+    auth_url = (
+        "https://www.facebook.com/v19.0/dialog/oauth"
+        f"?client_id={settings.SMARTAPPLICANT['APP_ID']}"
+        f"&redirect_uri={settings.SMARTAPPLICANT['REDIRECT_URI']}"
+        "&scope=pages_manage_posts,pages_read_engagement,pages_show_list,pages_manage_metadata,pages_read_user_content,pages_manage_engagement"
+        "&response_type=code"
+    )
+
+    return Response(
+        {"auth_url": auth_url,
+         "app_id": settings.SMARTAPPLICANT['APP_ID'],
+         "app_version": settings.SMARTAPPLICANT['APP_VERSION']
+        },
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(["POST", "GET"])
+@csrf_exempt
+def facebook_callback(request):
+    """Handles redirect from Facebook OAuth; retrieves the user's pages."""
+    code = request.GET.get("code")
+    if not code:
+        return redirect("https://smartapplicant.net/fb_page_selector?error=missing_code")
+    
+    # return Response("Successfully authenticated with Facebook.", status=200)
+
+    # 1. Exchange code for short-lived user access token
+    token_url = (
+        f"{settings.META_GRAPH_URL}/oauth/access_token"
+        f"?client_id={settings.SMARTAPPLICANT['APP_ID']}"
+        f"&redirect_uri={settings.SMARTAPPLICANT['REDIRECT_URI']}"
+        f"&client_secret={settings.SMARTAPPLICANT['APP_SECRET']}"
+        f"&code={code}"
+    )
+    token_res = requests.get(token_url).json()
+    access_token = token_res.get("access_token")
+
+    if not access_token:
+        return redirect("https://smartapplicant.net/fb_page_selector?error=token_exchange_failed")
+
+    # 2. Fetch pages the user manages
+    pages_url = f"https://graph.facebook.com/me/accounts?access_token={access_token}"
+    pages_res = requests.get(pages_url).json()
+
+    if "data" not in pages_res or len(pages_res["data"]) == 0:
+        return redirect("https://smartapplicant.net/fb_page_selector?error=no_pages_found")
+
+    # Store access_token temporarily (session)
+    cache_data = {
+        "fb_user_token": access_token,
+        "fb_pages": pages_res["data"],
+    }
+    save_cache(f"fb_data_{code}", cache_data, 60*60)  # 1 hour 
+
+    # Show page selection UI
+    return redirect(f"https://smartapplicant.net/fb_page_selector?code={code}")
+
+@api_view(["POST", "GET"])
+@csrf_exempt
+def facebook_select_page(request):
+    """User selects which page to connect → save PAT + page_id → redirect to WhatsApp"""
+    if request.method != "GET":
+        code = request.GET.get("code")
+        cache_data = get_cache(f"fb_data_{code}")
+        pages_data = cache_data.get("fb_pages") if cache_data else None
+        if not pages_data:
+            return Response("Invalid code or Session expired, restart login.", status=400)
+        return Response(pages_data, status=200)
+    
+    request_data = request.data
+    page_id = request_data.get("page_id")
+    code = request_data.get("code")
+    cache_data = get_cache(f"fb_data_{code}")
+    if not cache_data:
+        return Response("Session expired, restart login.", status=400)
+    user_token = cache_data.get("fb_user_token")
+
+    if not page_id or not user_token:
+        return Response("Missing data, restart login.", status=400)
+
+    # 1. Fetch the page access token for the selected page
+    page_token_url = (
+        f"https://graph.facebook.com/{page_id}"
+        f"?fields=access_token&access_token={user_token}"
+    )
+
+    page_data = requests.get(page_token_url).json()
+    page_access_token = page_data.get("access_token")
+    page_name = page_data.get("name", "Unknown Page")
+
+    if not page_access_token:
+        return Response("Failed to retrieve Page Access Token.", status=400)
+
+    # 2. Save to .env
+    update_env(f'{page_name}_{page_id}', page_access_token)
+
+    # 3. Redirect to WhatsApp
+    wa_url = f"https://wa.me/{settings.SMARTAPPLICANT['PHONE_NUMBER']}?text=I've%20connected%20my%20Facebook%20page."
+    return Response(
+        {"message": "Page connected successfully.", "redirect_url": wa_url},
+        status=200
+    )
+
+
+def update_env(key, value):
+    """Safely rewrites or adds key=value in the .env file."""
+    lines = []
+    updated = False
+
+    with open(ENV_FILE, "r") as f:
+        lines = f.readlines()
+
+    with open(ENV_FILE, "w") as f:
+        for line in lines:
+            if line.startswith(key + "="):
+                f.write(f"{key}={value}\n")
+                updated = True
+            else:
+                f.write(line)
+
+        if not updated:
+            f.write(f"{key}={value}\n")
