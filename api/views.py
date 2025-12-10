@@ -264,7 +264,7 @@ def facebook_callback(request):
     """Handles redirect from Facebook OAuth; retrieves the user's pages."""
     code = request.GET.get("code")
     if not code:
-        return redirect("https://smartapplicant.net/fb_page_selector?error=missing_code")
+        return redirect("https://smartapplicant.net/fb_page_selector/?error=missing_code")
     
     # return Response("Successfully authenticated with Facebook.", status=200)
 
@@ -280,14 +280,14 @@ def facebook_callback(request):
     access_token = token_res.get("access_token")
 
     if not access_token:
-        return redirect("https://smartapplicant.net/fb_page_selector?error=token_exchange_failed")
+        return redirect("https://smartapplicant.net/fb_page_selector/?error=token_exchange_failed")
 
     # 2. Fetch pages the user manages
     pages_url = f"https://graph.facebook.com/me/accounts?access_token={access_token}"
     pages_res = requests.get(pages_url).json()
 
     if "data" not in pages_res or len(pages_res["data"]) == 0:
-        return redirect("https://smartapplicant.net/fb_page_selector?error=no_pages_found")
+        return redirect("https://smartapplicant.net/fb_page_selector/?error=no_pages_found")
 
     # Store access_token temporarily (session)
     cache_data = {
@@ -297,7 +297,7 @@ def facebook_callback(request):
     save_cache(f"fb_data_{code}", cache_data, 60*60)  # 1 hour 
 
     # Show page selection UI
-    return redirect(f"https://smartapplicant.net/fb_page_selector?code={code}")
+    return redirect(f"https://smartapplicant.net/fb_page_selector/?code={code}")
 
 @api_view(["POST", "GET"])
 @csrf_exempt
@@ -339,7 +339,7 @@ def facebook_select_page(request):
     update_env(f'{page_name}_{page_id}', page_access_token)
 
     # 3. Redirect to WhatsApp
-    wa_url = f"https://wa.me/{settings.SMARTAPPLICANT['PHONE_NUMBER']}?text=I've%20connected%20my%20Facebook%20page."
+    wa_url = f"https://wa.me/{settings.SMARTAPPLICANT['PHONE_NUMBER']}?text=I've%20connected%20my%20Facebook%20page%20with%20page_id:%20{page_id}."
     return Response(
         {"message": "Page connected successfully.", "redirect_url": wa_url},
         status=200
