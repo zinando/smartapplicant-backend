@@ -303,13 +303,21 @@ def facebook_callback(request):
 @csrf_exempt
 def facebook_select_page(request):
     """User selects which page to connect → save PAT + page_id → redirect to WhatsApp"""
-    if request.method != "GET":
-        code = request.GET.get("code")
-        cache_data = get_cache(f"fb_data_{code}")
-        pages_data = cache_data.get("fb_pages") if cache_data else None
-        if not pages_data:
-            return Response("Invalid code or Session expired, restart login.", status=400)
-        return Response(pages_data, status=200)
+    if request.method == "GET":
+        try:
+            code = request.GET.get("code")
+            if not code:
+                raise Exception(f"Missing code parameter. Returned code: {code}")
+            cache_data = get_cache(f"fb_data_{code}")
+            if not cache_data:
+                raise Exception("Session expired or invalid code.")
+            # print(f"cache_data: {cache_data}")
+            pages_data = cache_data.get("fb_pages") if cache_data else None
+            if not pages_data:
+                raise Exception(f"No pages data found. Pages returned: {page_data}")
+            return Response(pages_data, status=200)
+        except Exception as e:
+            return Response(f"Error: {e}", status=400)
     
     request_data = request.data
     page_id = request_data.get("page_id")
