@@ -2,6 +2,7 @@ from celery import shared_task
 import logging
 from .utils import normalize_payload, to_facebook_timestamp, base64_to_bytes, get_random_admin_instant_message
 from .models import WebhookEvent, Tenant, AutomatedClients
+from .mydata import business_info
 from .helpers import *
 from .admin_commands import process_admin_command
 from .admin_reply import process_admin_message
@@ -11,6 +12,7 @@ from api.ai import get_structured_data_from_gemini, call_gemini_image_generator
 from .context_manager import save_context
 from .content_automation.facebook import AutomateFacebookPost
 import time
+from django.utils import timezone
 import re
 from .ai_commands import command_map as customer_command_map
 
@@ -51,6 +53,21 @@ def handle_inbound_event(self, payload):
             tenant.save(update_fields=["customers"])
 
         # logger.info(f"[{platform}] Received message from {sender_id}: {message}")
+        client = AutomatedClients.objects.filter(tenant=tenant, subscribed=False).first()
+        if client:
+            # update the subscription to one year from today
+            client.business_details = business_info
+            client.subscribed = True
+            client.subscription_expires_at = timezone.now() + timezone.timedelta(days=365) # 1 year subscription
+            client.subscription_ref = f"sub_{client.client_id}_{int(time.time())}"
+            client.save(update_fields=["subscribed", "subscription_expires_at", "subscription_ref"])
+            logger.info(f"Re-subscribed client {client.client_id} for tenant {tenant.waba_phone_number_id} with ref {client.subscription_ref}.")
+        else:
+            client = AutomatedClients.objects.filter(tenant=tenant, subscribed=True).first()
+            client.evergreen_content = tenant.evergreen_content
+            client.content_schedule_times = tenant.content_schedule_times
+            client.save(update_fields=["evergreen_content", "content_schedule_times"])
+            logger.warning(f"Client {client.client_id} already subscribed for tenant {tenant.waba_phone_number_id}.")
 
         # Enqueue next step (AI or auto reply)
         trigger_message_processing.delay(event.id)

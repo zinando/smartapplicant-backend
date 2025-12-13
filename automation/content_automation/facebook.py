@@ -2,7 +2,7 @@ from django.conf import settings
 import requests
 import logging
 import time
-from automation.models import Tenant
+from automation.models import Tenant, AutomatedClients
 import random
 from api.email_service import EmailService
 from automation.utils import to_facebook_timestamp
@@ -14,13 +14,14 @@ class AutomateFacebookPost:
     __comment_url = "https://graph.facebook.com/v24.0/post_id/comments"
     __like_url = "https://graph.facebook.com/v24.0/post_id/likes"
     __page_access_token = ""
-    __business_info: Tenant = None
+    __business_info: AutomatedClients = None
 
     def __init__(self, page_id):
         self.page_id = page_id
         self.__page_access_token = settings.PAGE_DATA.get(page_id, {}).get("accees_token", "")
         self.__post_url = self.__post_url.replace("page_id", str(page_id))
-        self.__business_info = Tenant.objects.filter(fb_page_id=page_id).first()
+        # self.__business_info = Tenant.objects.filter(fb_page_id=page_id).first()
+        self.__business_info = AutomatedClients.objects.filter(platform="facebook", client_id=page_id).first()
         if not self.__business_info:
             logger.warning(f"No business info found for page_id: {page_id}")
             raise ValueError("Invalid page_id or business info not found. Ensure the business that owns this page is registered with us.")
@@ -89,7 +90,7 @@ class AutomateFacebookPost:
         #     'Text content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}'
         # )
         prompt = (
-            f"You are a skilled social media content creator for {self.__business_info.name}. "
+            f"You are a skilled social media content creator for {business_details.get('name', 'the business')}. "
             "Generate 6 Facebook posts for today: 4 text posts, 2 link posts (with caption). "
             "Each post must be unique, engaging, and relevant to the business, with at least two hashtags. "
             "Keep tone friendly, professional, and appealing to Facebook users. "
@@ -104,7 +105,6 @@ class AutomateFacebookPost:
                 prompt += f"- {key}: {value}\n"
 
         prompt += (
-            "You are to create content focussing on the resume builder service ONLY for this business. "
             "Return output as a JSON list of dictionaries, with the following structures:\n"
             'Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n'
             'Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}'
@@ -129,9 +129,7 @@ class AutomateFacebookPost:
         })
         # keep only last 50 entries
         media_history = media_history[-50:]
-        all_media_history = self.__business_info.media_history or {}
-        all_media_history['facebook'] = media_history
-        self.__business_info.media_history = all_media_history
+        self.__business_info.media_history = media_history
         self.__business_info.save(update_fields=["media_history"])
     
     def __create_fallback_posts(self):
@@ -221,8 +219,7 @@ class AutomateFacebookPost:
         return fallback_posts
     
     def get_content_prompt(self):
-        custom_prompt = self.__business_info.custom_prompts or {}
-        return custom_prompt.get("facebook") or self.__create_prompt_for_content_generation()
+        return self.__business_info.custom_prompt or self.__create_prompt_for_content_generation()
 
     def get_schedule_times(self):
         schedule_times = self.__business_info.content_schedule_times or {}

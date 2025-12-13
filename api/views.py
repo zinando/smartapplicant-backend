@@ -338,13 +338,13 @@ def facebook_select_page(request):
 
     page_data = requests.get(page_token_url).json()
     page_access_token = page_data.get("access_token")
-    page_name = page_data.get("name", "Unknown Page")
+    page_name = f'page_{page_id}' # page_data.get("name", "Unknown Page")
 
     if not page_access_token:
         return Response("Failed to retrieve Page Access Token.", status=400)
 
     # 2. Save to .env
-    update_env(f'{page_name}_{page_id}', page_access_token)
+    update_env(page_name, page_access_token)
 
     # 3. Redirect to WhatsApp
     wa_url = f"https://wa.me/{settings.SMARTAPPLICANT['PHONE_NUMBER']}?text=I've%20connected%20my%20Facebook%20page%20with%20page_id:%20{page_id}."

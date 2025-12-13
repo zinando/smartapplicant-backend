@@ -41,6 +41,11 @@ class AutomatedClients(models.Model):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
     platform = models.CharField(max_length=50)  # e.g., "facebook", "instagram"
     client_id = models.CharField(max_length=100)  # e.g., Facebook Page ID or Instagram Business Account ID
+    business_details = models.JSONField(null=True, blank=True)  # store additional business info
+    media_history = models.JSONField(default=list, blank=True)  # list of previously used media IDs [{"id": "media_id", "caption": "caption text"}]
+    evergreen_content = models.JSONField(default=list, blank=True)  # list of evergreen text content items, can be used on any platform ["text content 1", "text content 2"]
+    custom_prompt = models.TextField(null=True, blank=True)  # custom prompt for content generation
+    content_schedule_times = models.JSONField(null=True, blank=True)  # preferred times to post content [7, 9, 12, 15, 18, 21]
     access_token = models.TextField()  # Store access token securely
     token_expires_at = models.DateTimeField(null=True, blank=True)  # Token expiration time
     subscribed = models.BooleanField(default=False)  # Whether the webhook subscription is active
@@ -52,7 +57,7 @@ class AutomatedClients(models.Model):
     objects = AutomatedClientManager()
 
     def __str__(self):
-        return f"{self.tenant.name} - {self.platform}"
+        return f"{self.platform} - {self.client_id}"
     def run_subscription_expiry_check(self):
         """checks if subscription is expired and updates the status"""
         if self.subscription_expires_at and timezone.now() >= self.subscription_expires_at:

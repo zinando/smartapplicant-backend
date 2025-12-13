@@ -1,28 +1,52 @@
+notes = """
+            1. The information provided here is for educating AI models to better understand the business for the purposes of generating social media post content and to provide accurate responses to customer inquiries in comments.
+            2. Secret questions and answers are included for authentication purposes. They should never be revealed to anyone including the business owner.
+            2. Personal information must not be included in public posts. They should only be used to answer customer's enquiry in comments. E.g when customer inquires about business contact, address etc.
+"""
 business_info = {
         'name': "Smart Applicant",
-        'description': "Smart Applicant is a leading provider of AI-powered chatbot development, automation, and AI solutions for businesses looking to enhance customer engagement and streamline operations. We also provide resume building and optimization solutions through our SmartApplicant platform.",
-        'admin_contacts': {
-            "owner": "2347031104270",
-            "support": "2347031104270",
-            "order": "2347031104270",
-            "delivery": "2347031104270"
-        },
-        'ceo': "Ndubumma Samuel Nnadozie",
+        'type': "service provider",
+        'description': "Smart Applicant is an AI-powered resume building and optimization platform designed to help job seekers create professional, ATS-compatible resumes quickly and easily. Our platform leverages advanced AI technology to provide intelligent suggestions, smart refinements, and customization options, ensuring that users can craft resumes that stand out to recruiters and hiring managers. With Smart Applicant, users can build their dream resumes in minutes, access premium features for enhanced customization, and improve their chances of landing their desired jobs.",
+        'how_to_use': "1. You can scan your current cv/resume to get ATS-compatibility score on the home page at https://smartapplicant.net/#analyze. This feature is FOC and does not require you to login/signup.\n2. Sign up for a free account or log in to get access to other features such as: Generating a new cv/resume from scratch using our enhanced resume builder with intelligent suggestions (users can download their resumes if they only have one entry per section of the resume. for multiple intems per section, a subscription/resume credit has to be purchased and used), analyzing resume agaisnt job descriptions using AI (this is also FOC), Automatic tailoring your existing resume to match job escription (this completely requires either a subsceiption or a resume credit).",
+        'features': "1. ATS-compatibility scoring\n2. Detailed suggestions on how to improve ATS-compatibility\n2. New resume generation from scratch\n4. Intelligent suggestions with the resume builder\n5. Job-matching analysis\n6. Automatic resume tailoring",
+        'website': "https://smartapplicant.net",
         'address': "28 Alhaji Waheed Adeyemi street, Elebu, Ibadan, Nigeria",
-        'services': ["AI-powered WhatsApp Customer Care Solution", "AI-powered Faccebook Customer Care Solution", "AI-powered Instagram Customer Care Solution", "AI-powered Telegram Customer Care Solution", "Facebook Page Content Creation Automation", "Instagram Business Content Creation Automation", "Resume Building and Optimization"],
-        'pricing': {
-            "Customer Care Solutions": "Initial Setup - starting at N100,000.00, depending on complexity and features. Monthly Subscription/Maintenance - N25,000.00 per month/platform.",
-            "Resume Building": "Free to use with basic features. Premium features available: resume credit - N1500/unit (use all premium features to get 1 resume); monthly subscriptions: 1 month - N17,500.00, 3 months - N45,000.00, 6 months - N80,000.00, 12 months - N150,000.00. (unlimited resumes within subscription period)."
-        },
-        'image_data': [],
-        'business_links': [
-            'official website: https://smartapplicant.net',
-            'scan resume for ATS compatibility score: https://smartapplicant.net/#analyze'
-        ],
-        'faq': [],
-        'use_marketing': False,
-        'last_updated': "2025-06-10"
+        'business_contacts': "2347031104270 (call or WhatsApp)",
+        'social_links': "1. Facebook: https://www.facebook.com/share/15sb3h5biZ/\n2. Instagram: https://www.instagram.com/smart.applicant.net/\n3. Twitter: https://twitter.com/smartapplicant",
+        'services': "AI-powered Resume Building and Optimization",
+        'products': "",
+        'pricing': "Free to use with basic features. Premium features available: resume credit - N1500/unit (use all premium features to get 1 resume); monthly subscriptions: 1 month - N17,500.00, 3 months - N45,000.00, 6 months - N80,000.00, 12 months - N150,000.00. (unlimited resumes within subscription period).",
+        'image_links': "",
+        'business_links': "1. official website: https://smartapplicant.net\n2. scan resume for ATS compatibility score: https://smartapplicant.net/#analyze\n2. resume builder: https://smartapplicant.net/new_resume\n3. login/signup: https://smartapplicant.net/login\n4. pricing page: https://smartapplicant.net/premium",
+        'secret_questions': "Q: Mother's maiden name? A: Isietu. Q: Best friend's name in Logiss (my secondary school)? A: Ikechukwu Nnadilim. Q: last primary school attended? A: Pioneer Primary School, Edenta, Awo-Idemili, Imo State.",
+        'last_updated': "2025-06-10",
+        'notes': notes
     }
+# business_info = {
+#         'name': "Smart Applicant",
+#         'description': "Smart Applicant is a leading provider of AI-powered chatbot development, automation, and AI solutions for businesses looking to enhance customer engagement and streamline operations. We also provide resume building and optimization solutions through our SmartApplicant platform.",
+#         'admin_contacts': {
+#             "owner": "2347031104270",
+#             "support": "2347031104270",
+#             "order": "2347031104270",
+#             "delivery": "2347031104270"
+#         },
+#         'ceo': "Ndubumma Samuel Nnadozie",
+#         'address': "28 Alhaji Waheed Adeyemi street, Elebu, Ibadan, Nigeria",
+#         'services': ["AI-powered WhatsApp Customer Care Solution", "AI-powered Faccebook Customer Care Solution", "AI-powered Instagram Customer Care Solution", "AI-powered Telegram Customer Care Solution", "Facebook Page Content Creation Automation", "Instagram Business Content Creation Automation", "Resume Building and Optimization"],
+#         'pricing': {
+#             "Customer Care Solutions": "Initial Setup - starting at N100,000.00, depending on complexity and features. Monthly Subscription/Maintenance - N25,000.00 per month/platform.",
+#             "Resume Building": "Free to use with basic features. Premium features available: resume credit - N1500/unit (use all premium features to get 1 resume); monthly subscriptions: 1 month - N17,500.00, 3 months - N45,000.00, 6 months - N80,000.00, 12 months - N150,000.00. (unlimited resumes within subscription period)."
+#         },
+#         'image_data': [],
+#         'business_links': [
+#             'official website: https://smartapplicant.net',
+#             'scan resume for ATS compatibility score: https://smartapplicant.net/#analyze'
+#         ],
+#         'faq': [],
+#         'use_marketing': False,
+#         'last_updated': "2025-06-10"
+#     }
 
 tenant = {
     "name": "Smart Applicant",
