@@ -68,6 +68,14 @@ def handle_inbound_event(self, payload):
         #     client.content_schedule_times = tenant.content_schedule_times
         #     client.save(update_fields=["evergreen_content", "content_schedule_times"])
         #     logger.warning(f"Client {client.client_id} already subscribed for tenant {tenant.waba_phone_number_id}.")
+        client = AutomatedClients.objects.filter(tenant=tenant, subscribed=True).first()
+        if client:
+            page_id = client.client_id
+            automator = AutomateFacebookPost(page_id)
+            prompt = automator.get_content_prompt()
+            send_text_reply(event, sender_id, f"Hello! This business has the following info:\n {client.business_details}.")
+            send_text_reply(event, sender_id, f"Also, here is a sample of the type of content we create for this business:\n {prompt}.")
+            return
 
         # Enqueue next step (AI or auto reply)
         trigger_message_processing.delay(event.id)
