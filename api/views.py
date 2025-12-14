@@ -19,6 +19,9 @@ import requests
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from automation.helpers import save_cache, get_cache
+from automation.models import FacebookAuthLog
+import secrets
+import json
 
 ENV_FILE = os.path.join(settings.BASE_DIR, ".env")
 
@@ -241,11 +244,20 @@ class InputSuggestionsAPIView(APIView):
 @api_view(["GET"])
 @csrf_exempt
 def facebook_login_view(request):
+    state = secrets.token_urlsafe(32)
+    auth_log = FacebookAuthLog.objects.create(
+        state=state,
+        step="code_request",
+        step_status="initiated",
+        ip_address=request.META.get("REMOTE_ADDR"),
+        user_agent=request.META.get("HTTP_USER_AGENT", ""),
+    )
     auth_url = (
         "https://www.facebook.com/v19.0/dialog/oauth"
         f"?client_id={settings.SMARTAPPLICANT['APP_ID']}"
         f"&redirect_uri={settings.SMARTAPPLICANT['REDIRECT_URI']}"
         "&scope=pages_manage_posts,pages_read_engagement,pages_show_list,pages_manage_metadata,pages_read_user_content,pages_manage_engagement"
+        f"&state={state}"
         "&response_type=code"
     )
 
@@ -262,12 +274,20 @@ def facebook_login_view(request):
 @csrf_exempt
 def facebook_callback(request):
     """Handles redirect from Facebook OAuth; retrieves the user's pages."""
+    state = request.GET.get("state")
     code = request.GET.get("code")
+    auth_log = FacebookAuthLog.objects.filter(state=state).first()
+    if not auth_log:
+        return redirect("https://smartapplicant.net/fb_page_selector/?error=Forbidden_invalid_state")
     if not code:
+        auth_log.step_status = "failed"
+        auth_log.message = f"Missing code parameter in callback: {request.GET}"
+        auth_log.save()
         return redirect("https://smartapplicant.net/fb_page_selector/?error=missing_code")
+    auth_log.code = code
+    auth_log.step_status = "success"
+    auth_log.save()
     
-    # return Response("Successfully authenticated with Facebook.", status=200)
-
     # 1. Exchange code for short-lived user access token
     token_url = (
         f"{settings.META_GRAPH_URL}/oauth/access_token"
@@ -276,28 +296,44 @@ def facebook_callback(request):
         f"&client_secret={settings.SMARTAPPLICANT['APP_SECRET']}"
         f"&code={code}"
     )
-    token_res = requests.get(token_url).json()
+    auth_log.step = "short_lived_token"
+    auth_log.step_status = "initiated"
+    auth_log.save()
+
+    response = requests.get(token_url)
+    token_res = response.json()
+    
     access_token = token_res.get("access_token")
 
     if not access_token:
+        auth_log.step_status = "failed"
+        auth_log.message = f"Failed to exchange code for access token: {token_res}"
+        auth_log.save()
         return redirect("https://smartapplicant.net/fb_page_selector/?error=token_exchange_failed")
+    auth_log.step_status = "success"
+    auth_log.short_lived_token_payload = json.dumps(token_res)
+    auth_log.save()
 
     # 2. Fetch pages the user manages
     pages_url = f"https://graph.facebook.com/me/accounts?access_token={access_token}"
+    auth_log.step = "page_token"
+    auth_log.step_status = "initiated"
+    auth_log.save()
+    
     pages_res = requests.get(pages_url).json()
+    pl_data = {}
 
     if "data" not in pages_res or len(pages_res["data"]) == 0:
+        auth_log.step_status = "failed"
+        auth_log.message = f"No pages found for user: {pages_res}"
+        auth_log.save()
         return redirect("https://smartapplicant.net/fb_page_selector/?error=no_pages_found")
-
-    # Store access_token temporarily (session)
-    cache_data = {
-        "fb_user_token": access_token,
-        "fb_pages": pages_res["data"],
-    }
-    save_cache(f"fb_data_{code}", cache_data, 60*60)  # 1 hour 
+    pl_data["fetch_pages_payload"] = pages_res
+    auth_log.page_access_token_payload = json.dumps(pl_data)
+    auth_log.save()
 
     # Show page selection UI
-    return redirect(f"https://smartapplicant.net/fb_page_selector/?code={code}")
+    return redirect(f"https://smartapplicant.net/fb_page_selector/?code={state}")
 
 @api_view(["POST", "GET"])
 @csrf_exempt
@@ -305,30 +341,36 @@ def facebook_select_page(request):
     """User selects which page to connect → save PAT + page_id → redirect to WhatsApp"""
     if request.method == "GET":
         try:
-            code = request.GET.get("code")
-            if not code:
-                raise Exception(f"Missing code parameter. Returned code: {code}")
-            cache_data = get_cache(f"fb_data_{code}")
-            if not cache_data:
-                raise Exception("Session expired or invalid code.")
-            # print(f"cache_data: {cache_data}")
-            pages_data = cache_data.get("fb_pages") if cache_data else None
-            if not pages_data:
-                raise Exception(f"No pages data found. Pages returned: {page_data}")
-            return Response(pages_data, status=200)
+            state = request.GET.get("code")
+            if not state:
+                raise Exception(f"Missing code parameter. Returned code: {state}")
+            auth_log = FacebookAuthLog.objects.filter(state=state).first()
+            if not auth_log:
+                raise Exception("Invalid code parameter.")
+            page_data = {}
+            if auth_log.page_access_token_payload:
+                page_data = json.loads(auth_log.page_access_token_payload).get("fetch_pages_payload", {})
+        
+            if not page_data:
+                raise Exception("No page data found in auth log.")
+            pages = page_data.get("data", [])
+            return Response(pages, status=200)
         except Exception as e:
             return Response(f"Error: {e}", status=400)
     
     request_data = request.data
     page_id = request_data.get("page_id")
-    code = request_data.get("code")
-    cache_data = get_cache(f"fb_data_{code}")
-    if not cache_data:
-        return Response("Session expired, restart login.", status=400)
-    user_token = cache_data.get("fb_user_token")
-
+    state = request_data.get("code")
+    auth_log = FacebookAuthLog.objects.filter(state=state).first()
+    if not auth_log:
+        return Response("Invalid code parameter.", status=400)
+    short_lived_token_payload = {}
+    if auth_log.short_lived_token_payload:
+        short_lived_token_payload = json.loads(auth_log.short_lived_token_payload)
+    user_token = short_lived_token_payload.get("access_token")
+    
     if not page_id or not user_token:
-        return Response("Missing data, restart login.", status=400)
+        return Response("Missing page_id and or user access token, restart login.", status=400)
 
     # 1. Fetch the page access token for the selected page
     page_token_url = (
@@ -336,12 +378,28 @@ def facebook_select_page(request):
         f"?fields=access_token&access_token={user_token}"
     )
 
-    page_data = requests.get(page_token_url).json()
+    response = requests.get(page_token_url)
+    page_data = response.json()
+    if "error" in page_data and "access_token" not in page_data:
+        auth_log.step_status = "failed"
+        auth_log.message = f"Error fetching page access token: {page_data['error']}"
+        auth_log.save()
+        return Response(f"Error fetching page access token: {page_data['error']}", status=400)
+
     page_access_token = page_data.get("access_token")
     page_name = f'page_{page_id}' # page_data.get("name", "Unknown Page")
 
     if not page_access_token:
-        return Response("Failed to retrieve Page Access Token.", status=400)
+        auth_log.step_status = "failed"
+        auth_log.message = "Failed to retrieve Page Access Token. Access token missing in response."
+        auth_log.save()
+        return Response("Failed to retrieve Page Access Token. Access token missing in response.", status=400)
+    
+    auth_log.step_status = "success"
+    pl_data = json.loads(auth_log.page_access_token_payload)
+    pl_data["selected_page_data_payload"] = page_data
+    auth_log.page_access_token_payload = json.dumps(pl_data)
+    auth_log.save()
 
     # 2. Save to .env
     update_env(page_name, page_access_token)

@@ -22,7 +22,7 @@ def base64_to_bytes(base64_string: str) -> bytes | str:
     except Exception:
         # Return the original string if it's not valid base64
         return base64_string
-        
+            
 def normalize_payload(payload: dict):
     """
     Detect platform and extract sender + message.

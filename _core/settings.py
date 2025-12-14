@@ -16,6 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+FERNET_KEYS = [os.getenv("FERNET_KEY")]
 META_GRAPH_API_VERSION = 'v24.0'
 META_GRAPH_URL = f'https://graph.facebook.com/{META_GRAPH_API_VERSION}'
 WEBHOOK_VERIFY_TOKEN = os.getenv('WHATSAPP_VERIFY_TOKEN', 'default_verify_token')

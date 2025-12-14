@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
+from fernet_fields import EncryptedTextField
 
 class Tenant(models.Model): # represents a business with a unique phone number and business details
     name = models.CharField(max_length=255)
@@ -30,6 +31,38 @@ class Tenant(models.Model): # represents a business with a unique phone number a
             self.slug = self.create_slug()
         super().save(*args, **kwargs)
 
+class FacebookAuthLog(models.Model):
+    state = models.CharField(max_length=256) # generated before step one
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(null=True, blank=True)
+    step = models.CharField(
+        max_length=50,
+        choices=[
+            ("code_request", "Code Request"),
+            ("short_lived_token", "Short Lived Token"),
+            ("long_lived_token", "Long Lived Token"),
+            ("page_token", "Page Token")
+        ],
+        default="initiated"
+    )
+    step_status = models.CharField(
+        max_length=20,
+        choices=[
+            ("initiated", "Initiated"),
+            ("success", "Success"),
+            ("failed", "Failed")
+        ],
+        default="initiated"
+    )
+    code = EncryptedTextField(null=True, blank=True)  # returned in step one
+    short_lived_token_payload = EncryptedTextField(null=True, blank=True)  # returned in step two
+    long_lived_token_payload = EncryptedTextField(null=True, blank=True)  # returned in step three. This step is optional
+    page_access_token_payload = EncryptedTextField(null=True, blank=True)  # returned in step four
+    message = models.TextField(null=True, blank=True)  # error or success message
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+
+
 class AutomatedClientManager(models.Manager):
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -38,7 +71,8 @@ class AutomatedClientManager(models.Manager):
         return queryset
 
 class AutomatedClients(models.Model):
-    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='automated_clients')
+    auth_log = models.OneToOneField(FacebookAuthLog, on_delete=models.CASCADE, null=True, blank=True, related_name='automated_client')
     platform = models.CharField(max_length=50)  # e.g., "facebook", "instagram"
     client_id = models.CharField(max_length=100)  # e.g., Facebook Page ID or Instagram Business Account ID
     business_details = models.JSONField(null=True, blank=True)  # store additional business info
