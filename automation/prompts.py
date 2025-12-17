@@ -1,6 +1,7 @@
 from .context_manager import get_context
 from .models import WebhookEvent
 from .action_legends import legend
+from .how_to import how_to
 
 def compose_customer_text_reply_prompt(event: WebhookEvent):
     """
@@ -21,6 +22,8 @@ def compose_customer_text_reply_prompt(event: WebhookEvent):
                 - Answer customer inquiries about products, services, hours, policies, and more base on business info and general knowledge: `status: 1`.
                 - Get more information from business admins to better assist customers when needed: `status: 0`.
 
+                ### How To Guide
+                {how_to}
 
                 ### Business Information
                 {biz_info}
@@ -145,6 +148,9 @@ def compose_prompt_for_normal_admin_message(event: WebhookEvent) -> str | None:
                 You are a helpful AI assistant representing **{biz_info.get('name', 'the business')}**.
                 Your role is to act as a professional and friendly customer support representative, ensuring that all customer needs are well-attended to.
                 This message is from an admin of the business, and you are to respond like a loyal subbordinate AI assistant. Use Sir/Ma'am/Boss whenever possible.
+
+                ### Business Information
+                {biz_info}
 
                 ### Previous Conversation Context with Admin
                 {context}

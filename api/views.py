@@ -405,7 +405,7 @@ def facebook_select_page(request):
     update_env(page_name, page_access_token)
 
     # 3. Redirect to WhatsApp
-    wa_url = f"https://wa.me/{settings.SMARTAPPLICANT['PHONE_NUMBER']}?text=I've%20connected%20my%20Facebook%20page%20with%20page_id:%20{page_id}."
+    wa_url = f"https://wa.me/{settings.SMARTAPPLICANT['PHONE_NUMBER']}?text=I've%20connected%20my%20Facebook%20page%20with%20page_id:%20{page_id}%20and%20session%20ID:%20{state}."
     return Response(
         {"message": "Page connected successfully.", "redirect_url": wa_url},
         status=200

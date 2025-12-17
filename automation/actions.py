@@ -72,7 +72,7 @@ def add_client(tenant, platform, client_id, access_token, token_expires_at=None,
         defaults={
             'tenant': tenant,
             'platform': platform,
-            'access_token': access_token,
+            'page_access_token': access_token,
             'token_expires_at': token_expires_at,
             'subscribed': subscribed,
             'subscription_ref': subscription_ref,

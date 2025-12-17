@@ -22,31 +22,95 @@ business_info = {
         'last_updated': "2025-06-10",
         'notes': notes
     }
-# business_info = {
-#         'name': "Smart Applicant",
-#         'description': "Smart Applicant is a leading provider of AI-powered chatbot development, automation, and AI solutions for businesses looking to enhance customer engagement and streamline operations. We also provide resume building and optimization solutions through our SmartApplicant platform.",
-#         'admin_contacts': {
-#             "owner": "2347031104270",
-#             "support": "2347031104270",
-#             "order": "2347031104270",
-#             "delivery": "2347031104270"
-#         },
-#         'ceo': "Ndubumma Samuel Nnadozie",
-#         'address': "28 Alhaji Waheed Adeyemi street, Elebu, Ibadan, Nigeria",
-#         'services': ["AI-powered WhatsApp Customer Care Solution", "AI-powered Faccebook Customer Care Solution", "AI-powered Instagram Customer Care Solution", "AI-powered Telegram Customer Care Solution", "Facebook Page Content Creation Automation", "Instagram Business Content Creation Automation", "Resume Building and Optimization"],
-#         'pricing': {
-#             "Customer Care Solutions": "Initial Setup - starting at N100,000.00, depending on complexity and features. Monthly Subscription/Maintenance - N25,000.00 per month/platform.",
-#             "Resume Building": "Free to use with basic features. Premium features available: resume credit - N1500/unit (use all premium features to get 1 resume); monthly subscriptions: 1 month - N17,500.00, 3 months - N45,000.00, 6 months - N80,000.00, 12 months - N150,000.00. (unlimited resumes within subscription period)."
-#         },
-#         'image_data': [],
-#         'business_links': [
-#             'official website: https://smartapplicant.net',
-#             'scan resume for ATS compatibility score: https://smartapplicant.net/#analyze'
-#         ],
-#         'faq': [],
-#         'use_marketing': False,
-#         'last_updated': "2025-06-10"
-#     }
+business_info_form_template = """"
+    # name
+    * Your business name here
+
+    # type
+    * Your business type here (service provider or product seller)
+
+    # description
+    * A brief description of your business here
+
+    # how_to_use
+    * Instructions on how customers can use your services/products
+
+    # features
+    * Key features of your services/products
+
+    # website
+    * Your business website address here
+
+    # address
+    * Your business physical address here
+
+    # business_contacts
+    * Your business contact information here (must include whatsapp phone number. Email is optional)
+
+    # social_links
+    * Links to your business social media profiles here (Facebook, Instagram, Twitter, LinkedIn, etc)
+
+    # services
+    * List of services your business offers here (for service providers only)
+
+    # products
+    * List of products your business sells here (for product sellers only)
+
+    # pricing
+    * Pricing details for your services/products here
+
+    # image_links
+    * Links to images representing your business here (logo, products, services, etc). provide descriptions for each image link
+
+    # business_links
+    * Important links related to your business here (official website, product pages, service pages, etc). provide descriptions for each link
+
+    # secret_questions
+    * List of at least two secret questions with answers for authentication when using customer service here (these should not be revealed to anyone)
+
+    # last_updated
+    * Date when this business information was last updated (format: YYYY-MM-DD)
+
+    <<<<<<<<<<<<<<<<<<<<<<<<<< How To Fill The Form >>>>>>>>>>>>>>>>>>>>>>
+        Copy the entire text and paste into your typing area.
+        Replace each section that has "*" mark with your business information.
+        You can use multiple lines for each section if necessary, ensuring each line starts with "*".
+
+        Example:
+
+        # name
+        * Smart Applicant
+
+        # business_links
+        * official website: https://smartapplicant.net
+        * scan resume for ATS compatibility score: https://smartapplicant.net/#analyze
+    <<<<<<<<<<<<<<<<<<<<<<<<<<<<< End Of Form >>>>>>>>>>>>>>>>>>>>>>
+"""
+tenant_info = {
+        'name': "Smart Applicant",
+        'description': "Smart Applicant is a leading provider of AI-powered chatbot development, automation, and AI solutions for businesses looking to enhance customer engagement and streamline operations. We also provide resume building and optimization solutions through our SmartApplicant platform.",
+        'admin_contacts': {
+            "owner": "2347031104270",
+            "support": "2347031104270",
+            "order": "2347031104270",
+            "delivery": "2347031104270"
+        },
+        'ceo': "Ndubumma Samuel Nnadozie",
+        'address': "28 Alhaji Waheed Adeyemi street, Elebu, Ibadan, Nigeria",
+        'services': ["AI-powered WhatsApp Customer Care Solution", "AI-powered Faccebook Customer Care Solution", "AI-powered Instagram Customer Care Solution", "AI-powered Telegram Customer Care Solution", "Facebook Page Content Creation Automation", "Instagram Business Content Creation Automation", "Resume Building and Optimization"],
+        'pricing': {
+            "Customer Care Solutions": "Initial Setup - starting at N100,000.00, depending on complexity and features. Monthly Subscription/Maintenance - N25,000.00 per month/platform.",
+            "Resume Building": "Free to use with basic features. Premium features available: resume credit - N1500/unit (use all premium features to get 1 resume); monthly subscriptions: 1 month - N17,500.00, 3 months - N45,000.00, 6 months - N80,000.00, 12 months - N150,000.00. (unlimited resumes within subscription period)."
+        },
+        'image_data': [],
+        'business_links': [
+            'official website: https://smartapplicant.net',
+            'scan resume for ATS compatibility score: https://smartapplicant.net/#analyze'
+        ],
+        'faq': [],
+        'use_marketing': False,
+        'last_updated': "2025-06-10"
+    }
 
 tenant = {
     "name": "Smart Applicant",
@@ -57,7 +121,7 @@ tenant = {
     "ig_business_account_id": "17841476699966994",
     "tg_bot_username": "SmartApplicantBot",
     "custom_prompts": None,
-    "business_details": business_info,
+    "business_details": tenant_info,
     "content_schedule_times": {
         "facebook": [7, 9, 12, 15, 19, 21],
         "instagram": [8, 10, 13, 16, 20, 22],
@@ -90,5 +154,6 @@ tenant = {
         "🔑 Your CV is your first impression — let SmartApplicant turn it into your strongest career advantage.",
         "🤝 Your CV is the handshake before the meeting — make it unforgettable with SmartApplicant.",
         "💡 Create and download your complete AI-powered resume for free — pay only if you add extra entries. Try SmartApplicant now! 👉 smartapplicant.net"
-    ]
+    ],
+    "customers": []
 }

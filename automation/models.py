@@ -80,7 +80,7 @@ class AutomatedClients(models.Model):
     evergreen_content = models.JSONField(default=list, blank=True)  # list of evergreen text content items, can be used on any platform ["text content 1", "text content 2"]
     custom_prompt = models.TextField(null=True, blank=True)  # custom prompt for content generation
     content_schedule_times = models.JSONField(null=True, blank=True)  # preferred times to post content [7, 9, 12, 15, 18, 21]
-    access_token = models.TextField()  # Store access token securely
+    page_access_token = EncryptedTextField(null=True, blank=True)  # Store access token securely
     token_expires_at = models.DateTimeField(null=True, blank=True)  # Token expiration time
     subscribed = models.BooleanField(default=False)  # Whether the webhook subscription is active
     subscription_ref = models.CharField(max_length=100, null=True, blank=True)  # Subscription reference ID
