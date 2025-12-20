@@ -18,7 +18,7 @@ class AutomateFacebookPost:
 
     def __init__(self, page_id):
         self.page_id = page_id
-        self.__page_access_token = settings.PAGE_DATA.get(page_id, {}).get("accees_token", "")
+        self.__page_access_token = settings.PAGE_DATA.get(page_id, {}).get("access_token", "")
         self.__post_url = self.__post_url.replace("page_id", str(page_id))
         # self.__business_info = Tenant.objects.filter(fb_page_id=page_id).first()
         self.__business_info = AutomatedClients.objects.filter(platform="facebook", client_id=page_id).first()
@@ -228,9 +228,12 @@ class AutomateFacebookPost:
         return self.__business_info.custom_prompt or self.__create_prompt_for_content_generation()
 
     def get_schedule_times(self):
-        schedule_times = self.__business_info.content_schedule_times or {}
+        schedule_times = self.__business_info.content_schedule_times or []
+        
+        if isinstance(schedule_times, dict):
+            schedule_times = schedule_times.get("facebook", [])
         if not schedule_times:
-            return [7, 9, 12, 15, 18, 21]
+            schedule_times = [7, 9, 12, 15, 18, 21]
         return schedule_times
     
     def comment_on_post(self, post_id: str, messages: list):
@@ -270,23 +273,24 @@ class AutomateFacebookPost:
     
     def post_content(self, content, caption, content_type="text", publish_now=True, comments:list=[], scheduled_time=None):
         if content_type == "text":
-            self.__post_text_content(content, publish_now, scheduled_time, comments)
+            return self.__post_text_content(content, publish_now, scheduled_time, comments)
         elif content_type == "image":
             # check if content is bytes or URL
             if isinstance(content, (bytes, bytearray)):
-                self.__post_image_bytes_content(content, caption, publish_now=publish_now, scheduled_time=scheduled_time, comments=comments)
+                return self.__post_image_bytes_content(content, caption, publish_now=publish_now, scheduled_time=scheduled_time, comments=comments)
             else:
                 self.__post_image_url_content(content, caption, publish_now=publish_now, scheduled_time=scheduled_time, comments=comments)
         elif content_type == "link":
-            self.__post_link_content(content, caption, publish_now=publish_now, scheduled_time=scheduled_time, comments=comments)
+            return self.__post_link_content(content, caption, publish_now=publish_now, scheduled_time=scheduled_time, comments=comments)
         elif content_type == "content_id":
-            self.__post_content_id(content, caption, publish_now=publish_now, scheduled_time=scheduled_time, comments=comments)
+            return self.__post_content_id(content, caption, publish_now=publish_now, scheduled_time=scheduled_time, comments=comments)
         else:
             logger.error(f"Unsupported content type: {content_type}")
         
-        return
+        return None
         
     def __post_text_content(self, text, publish_now=True, scheduled_time=None, comments:list=[]):
+        response_data = {}
         if scheduled_time and not publish_now:
             payload = {
                 "message": text,
@@ -314,8 +318,11 @@ class AutomateFacebookPost:
             self.comment_on_post(post_id, comments)
         else:
             logger.error(f"Failed to post text content: {response.text}")
+        return response_data
+        
     
     def __post_image_url_content(self, image_url, caption="", publish_now=True, scheduled_time=None, comments=[]):
+        response_data = {}
         if scheduled_time and not publish_now:
             payload = {
                 "url": image_url,
@@ -334,10 +341,10 @@ class AutomateFacebookPost:
         response = requests.post(f'{self.__post_url}photos', data=payload)
 
         if response.status_code == 200:
-            parsed_json = response.json()
-            self.__add_to_media_history(parsed_json.get("id"), caption)
-            logger.info(f"Successfully posted media content: {parsed_json}")
-            post_id = parsed_json.get("id")
+            response_data = response.json()
+            self.__add_to_media_history(response_data.get("id"), caption)
+            logger.info(f"Successfully posted media content: {response_data}")
+            post_id = response_data.get("id")
 
             # like post
             self.like_post(post_id)
@@ -346,9 +353,10 @@ class AutomateFacebookPost:
             self.comment_on_post(post_id, comments)
         else:
             logger.error(f"Failed to post media content: {response.text}")
+        return response_data
 
     def __post_image_bytes_content(self, image_bytes, caption="", publish_now=True, scheduled_time=None, comments=[]):
-
+        response_data = {}
         filename = f"fb_image_{int(time.time())}.jpg"
         files = {
             'source': (filename, image_bytes, 'image/jpeg')
@@ -370,10 +378,10 @@ class AutomateFacebookPost:
         response = requests.post(f'{self.__post_url}photos', files=files, data=payload)
 
         if response.status_code == 200:
-            parsed_json = response.json() 
-            self.__add_to_media_history(parsed_json.get("id"), caption)
-            logger.info(f"Successfully posted media content: {parsed_json}")
-            post_id = parsed_json.get("id")
+            response_data = response.json()
+            self.__add_to_media_history(response_data.get("id"), caption)
+            logger.info(f"Successfully posted media content: {response_data}")
+            post_id = response_data.get("id")
 
             # like post
             self.like_post(post_id)
@@ -382,8 +390,10 @@ class AutomateFacebookPost:
             self.comment_on_post(post_id, comments)
         else:
             logger.error(f"Failed to post media content: {response.text}")
+        return response_data
 
     def __post_link_content(self, link, caption="", publish_now=True, scheduled_time=None, comments=[]):
+        response_data = {}
         if scheduled_time and not publish_now:
             payload = {
                 "message": caption,
@@ -413,11 +423,13 @@ class AutomateFacebookPost:
             self.comment_on_post(post_id, comments)
         else:
             logger.error(f"Failed to post text content: {response.text}")
+        return response_data
     
     def __post_content_id(self, content_id, caption="", publish_now=True, scheduled_time=None, comments=[]):
+        response_data = {}
         if scheduled_time and not publish_now:
             payload = {
-                "attached_media": [{"media_fbid": content_id}],
+                "object_attachment": f'{self.page_id}_{content_id}',
                 "message": caption,
                 "published": False,
                 "scheduled_publish_time": scheduled_time,
@@ -425,13 +437,13 @@ class AutomateFacebookPost:
             }
         else:
             payload = {
-                "attached_media": [{"media_fbid": content_id}],
+                "object_attachment": f'{self.page_id}_{content_id}',
                 "message": caption,
                 "access_token": self.__page_access_token
             }
         # Here you would typically use requests.post to send the payload
         logger.info(f"Posting content by ID: {payload}")
-        response = requests.post(f'{self.__post_url}feed', data=payload)
+        response = requests.post(f'{self.__post_url}feed', json=payload)
         if response.status_code == 200:
             response_data = response.json()
             post_id = response_data['id']
@@ -443,4 +455,5 @@ class AutomateFacebookPost:
             self.comment_on_post(post_id, comments)
         else:
             logger.error(f"Failed to post content by ID: {response.text}")
+        return response_data
     

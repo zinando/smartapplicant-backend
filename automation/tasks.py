@@ -332,11 +332,34 @@ def schedule_facebook_post(self):
         logger.warning("No subscribed Facebook clients found for scheduling posts.")
         return
     facebook_pages = [client.client_id for client in clients if client.platform == 'facebook']
+    
     if facebook_pages:
         for page in facebook_pages:
+            client = clients.filter(client_id=page).first()
+            tenant = client.tenant
+            if tenant:
+                logger.info("tenant found")
+                if client.content_schedule_times and not isinstance(client.content_schedule_times, list):
+                    logger.info("about to update saved contents")
+                    if tenant.content_schedule_times and isinstance(tenant.content_schedule_times, dict):
+                        logger.info("Updating saved contents")
+                        client.content_schedule_times = tenant.content_schedule_times.get('facebook', [])
+                        client.save(update_fields=['content_schedule_times'])
+                if client.media_history and not isinstance(client.media_history, list):
+                    if tenant.media_history and isinstance(tenant.media_history, dict):
+                        client.media_history = tenant.media_history.get('facebook', [])
+                        client.save(update_fields=['media_history'])
+                if client.evergreen_content and not isinstance(client.evergreen_content, list):
+                    if tenant.evergreen_content and isinstance(tenant.evergreen_content, list):
+                        client.evergreen_content = tenant.evergreen_content
+                        client.save(update_fields=['evergreen_content'])
+                if client.custom_prompt and not isinstance(client.custom_prompt, str):
+                    if tenant.custom_prompts and isinstance(tenant.custom_prompts, dict):
+                        client.custom_prompt = tenant.custom_prompts.get('facebook', '')
+                        client.save(update_fields=['custom_prompt'])
             instance = AutomateFacebookPost(page)
             prompt = instance.get_content_prompt()
-            contents = get_structured_data_from_gemini(prompt)
+            contents = client.saved_content or get_structured_data_from_gemini(prompt)  # get content that failed to post or generate new one
             if not contents or len(contents) == 0:
                 logger.warning(f"No content generated for Facebook page {page}")
                 # get fallback content 
@@ -344,19 +367,21 @@ def schedule_facebook_post(self):
                 if not contents or len(contents) < 6:
                     logger.error(f"No fallback content available for Facebook page {page}, skipping.")
                     continue
-            logger.info(f"Generated {len(contents)} contents for Facebook page {page}")
-            # logger.info(f"Contents: {contents}")
             image_contents = [x for x in contents if x.get('content_type') == 'image']
             if len(image_contents) > 0:
                 for item in image_contents:
-                    image_prompt = item.get('content')
-                    image_data = call_gemini_image_generator(image_prompt)
-                    if image_data and isinstance(image_data, bytes):
-                        item['content'] = image_data
-                        logger.info(f"Image generated: {image_data}")
-                    else:
-                        logger.warning(f"Image generation failed for prompt: {image_prompt}, removing item.")
-                        contents.remove(item)
+                    if not isinstance(item['content'], bytearray) or not isinstance(item['content'], bytes):
+                        image_prompt = item.get('content')
+                        image_data = call_gemini_image_generator(image_prompt)
+                        if image_data and isinstance(image_data, bytes):
+                            item['content'] = image_data
+                            logger.info(f"Image generated: {image_data}")
+                        else:
+                            logger.warning(f"Image generation failed for prompt: {image_prompt}, removing item.")
+                            contents.remove(item)
+            # temporarily save the final content 
+            client.saved_content = contents
+            client.save(update_fields=["saved_content"])
             make_facebook_posts.delay(contents, page)
 
 @shared_task(bind=True, max_retries=3)
@@ -364,11 +389,13 @@ def make_facebook_posts(self, contents, page_id):
     """ Schedules Facebook posts based on provided contents and post times. """
     instance = AutomateFacebookPost(page_id)
     schedule_times = instance.get_schedule_times()
+    errors = []
+    logger.info(f"Scheduling posts for Facebook page {page_id} at times: {schedule_times}")
     for x in range(len(contents)):
         content = contents[x]
         schedule_time = schedule_times[x % len(schedule_times)]
         
-        instance.post_content(
+        result = instance.post_content(
             content= base64_to_bytes(content['content']) if content.get('content_type') == 'image' else content['content'],
             caption=content['caption'],
             content_type=content.get('content_type'),
@@ -376,5 +403,15 @@ def make_facebook_posts(self, contents, page_id):
             comments=content.get("comments", []),
             scheduled_time=to_facebook_timestamp(schedule_time)
         )
-        time.sleep(2)  # brief pause between posts for 2
+        if isinstance(result, dict) and "error" in result:
+            errors.append(result)
+        logger.info(f"Scheduled post result for Facebook page {page_id}: {result}")
+        time.sleep(2)  # brief pause between posts for 2 seconds
+    
+    # delete saved_content from client if not all content returned error
+    if len(errors) != len(contents):
+        client = AutomatedClients.objects.filter(client_id=page_id).first()
+        if client:
+            client.saved_content = []
+            client.save(update_fields=["saved_content"])
 

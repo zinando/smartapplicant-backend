@@ -85,6 +85,7 @@ class AutomatedClients(models.Model):
     subscribed = models.BooleanField(default=False)  # Whether the webhook subscription is active
     subscription_ref = models.CharField(max_length=100, null=True, blank=True)  # Subscription reference ID
     subscription_expires_at = models.DateTimeField(null=True, blank=True)  # Subscription expiration time
+    saved_content = models.JSONField(default=list, blank=True, null=True)  # content saved for posting later [{"content": "text or media", "content_type": "text/image/link", "caption": "caption text", "comments": []}]
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -35,31 +35,31 @@ PAGE_DATA = {
     '823731924160674': {
         "name": "Smart & Trendy Blitz",
         "category": [],
-        "accees_token": "",
+        "access_token": "",
         "tasks": ["MODERATE", "MESSAGING", "ANALYZE", "ADVERTISE", "CREATE_CONTENT", "MANAGE"]
         },
     '750798604776594': {
         "name": "SmartApplicant",
         "category": [],
-        "accees_token": "",
+        "access_token": "",
         "tasks": ["MODERATE", "MESSAGING", "ANALYZE", "ADVERTISE", "CREATE_CONTENT", "MANAGE"]
         },
     '423001724240260': {
         "name": "Lazy.News.Men",
         "category": [],
-        "accees_token": "",
+        "access_token": "",
         "tasks": ["MODERATE", "MESSAGING", "ANALYZE", "ADVERTISE", "CREATE_CONTENT", "MANAGE"]
         },
     '272287553647171': {
         "name": "I_am_zinando",
         "category": [],
-        "accees_token": "",
+        "access_token": "",
         "tasks": ["MODERATE", "MESSAGING", "ANALYZE", "ADVERTISE", "CREATE_CONTENT", "MANAGE"]
         },
     '469317173127488': {
         "name": "Xienando Concepts",
         "category": [],
-        "accees_token": "",
+        "access_token": "",
         "tasks": ["MODERATE", "MESSAGING", "ANALYZE", "ADVERTISE", "CREATE_CONTENT", "MANAGE"]
         }
 }
@@ -68,7 +68,7 @@ PAGE_DATA = {
 ACCESS_TOKENS = json.loads(os.getenv("ACCESS_TOKENS", "{}"))
 for page_id, token in ACCESS_TOKENS.items():
     if page_id in PAGE_DATA:
-        PAGE_DATA[page_id]["accees_token"] = token
+        PAGE_DATA[page_id]["access_token"] = token
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
