@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from datetime import timedelta
 import json
+from celery.schedules import crontab
 
 # Load environment variables from .env file
 load_dotenv(override=True)
@@ -270,6 +271,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CELERY_BROKER_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')  # Replace with Render/Redis Cloud URL
 CELERY_RESULT_BACKEND = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')  # Replace with Render/Redis Cloud URL
 CELERY_TIMEZONE = 'UTC'
+
+CELERY_BEAT_SCHEDULE = {
+    'daily-facebook-posts': {
+        'task': 'automation.tasks.schedule_facebook_post',
+        'schedule': crontab(hour=2, minute=0),
+    },
+}
 
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')  # Default to SMTP backend
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')  # Default to Gmail SMTP
