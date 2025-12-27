@@ -415,3 +415,7 @@ def make_facebook_posts(self, contents, page_id):
             client.saved_content = []
             client.save(update_fields=["saved_content"])
 
+@shared_task(bind=True, max_retries=3)
+def test_beat_task():
+    logger.info(f"✅ Test task executed at {timezone.now()}")
+

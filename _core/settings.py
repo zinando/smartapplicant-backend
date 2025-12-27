@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-from datetime import timedelta
+from datetime import timedelta, datetime
 import json
 from celery.schedules import crontab
 
@@ -10,6 +10,9 @@ load_dotenv(override=True)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+run_minute = (datetime.now() + timedelta(minutes=10)).minute
+run_hour = (datetime.now() + timedelta(minutes=10)).hour
 
 
 # Quick-start development settings - unsuitable for production
@@ -275,8 +278,12 @@ CELERY_TIMEZONE = 'UTC'
 CELERY_BEAT_SCHEDULE = {
     'daily-facebook-posts': {
         'task': 'automation.tasks.schedule_facebook_post',
-        'schedule': crontab(hour=2, minute=0),
+        'schedule': crontab(hour=run_hour, minute=run_minute),
     },
+    'test-schedule': {
+        'task': 'automation.tasks.test_beat_task',
+        'schedule': crontab(hour=run_hour, minute=run_minute),
+    }
 }
 
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')  # Default to SMTP backend
