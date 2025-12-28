@@ -414,6 +414,19 @@ def make_facebook_posts(self, contents, page_id):
         if client:
             client.saved_content = []
             client.save(update_fields=["saved_content"])
+    
+    try:
+        # send email notification concerning the errors 
+        if len(errors) > 0:
+            message = f'The following errors were encountered while scheduling posts on your page ({instance.page_name()}):\n{errors}'
+        else:
+            message = f"Today's post schedule on your page ({instance.page_name()}) was successful."
+        
+        email = instance.page_email()
+        instance.send_email(message, email)
+    except Exception as e:
+        instance.send_email(str(e), 'zinando2000@gmail.com')
+
 
 @shared_task(bind=True, max_retries=3)
 def test_beat_task():

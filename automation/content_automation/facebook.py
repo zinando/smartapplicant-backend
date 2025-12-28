@@ -28,9 +28,16 @@ class AutomateFacebookPost:
         if not self.__page_access_token:
             logger.warning(f"No access token found for page_id: {page_id}")
             raise ValueError("Access token not found for the given page_id.")
+        
     
     def __get_business_details(self):
         return self.__business_info.business_details or {}
+    
+    def page_name(self):
+        return self.__get_business_details().get("name", "Unknown Page")
+    
+    def page_email(self):
+        return self.__get_business_details().get("email", "zinando2000@gmail.com")
     
     def get_business_details(self):
         return self.__get_business_details()
@@ -319,8 +326,7 @@ class AutomateFacebookPost:
         else:
             logger.error(f"Failed to post text content: {response.text}")
         return response_data
-        
-    
+           
     def __post_image_url_content(self, image_url, caption="", publish_now=True, scheduled_time=None, comments=[]):
         response_data = {}
         if scheduled_time and not publish_now:
