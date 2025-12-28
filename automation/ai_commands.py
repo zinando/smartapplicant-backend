@@ -2,17 +2,17 @@ from .models import WebhookEvent, AutomatedClients, Tenant, FacebookAuthLog
 from .messaging import send_text_reply
 from django.conf import settings
 import json
+from django.utils import timezone
+from datetime import timedelta
 from .mydata import business_info_form_template
 from .context_manager import save_context
 
 def message_admin(event:WebhookEvent, message:str, contact:str):
     send_text_reply(event, contact, message)
-def register_new_page_for_content_automation(event:WebhookEvent, page_id:str, platform:str, session_id:str, payment_ref:str=None):
+def register_new_page_for_content_automation(event:WebhookEvent, page_id:str, platform:str, session_id:str):
     """pages will be registered under AutomatedClients table using smartapplicant as the tenant"""
     form = ''
     try:
-        if not payment_ref:
-            raise Exception("payment reference is required to register a new facebook page for content automation")
         phone_number_id=settings.SMARTAPPLICANT.get("PHONE_NUMBER_ID")
         if not phone_number_id:
             raise Exception("no valid waba phone number ID detected")
@@ -36,7 +36,7 @@ def register_new_page_for_content_automation(event:WebhookEvent, page_id:str, pl
             client_id=page_id,
             defaults={
                 "page_access_token": str(page_access_token),
-                "subscription_ref": payment_ref,
+                # "subscription_ref": payment_ref,
             },
         )
         if created:
@@ -80,6 +80,38 @@ def confirm_payment(event:WebhookEvent, payment_ref:str):
     save_context(text, message, context_id)
     send_text_reply(event, event.sender_id, message)
 
+def subscribe_to_post_automation(event: WebhookEvent, subscription_days:int, page_id, payment_ref=''):
+    """Subscribes for a given number of days for the page_id"""
+    allowed_number_of_days = [3, 30]
+    message = ''
+    try:
+        if subscription_days not in allowed_number_of_days:
+            raise Exception(f"{subscription_days} days is not allowed. Only {'days, '.join(allowed_number_of_days)} are allowed.")
+        if not payment_ref and subscription_days > 3:
+            raise Exception("Payment is required for subscriptions above the 3 day trial period.")
+        client = AutomatedClients.objects.filter(client_id=page_id).first()
+        client.run_subscription_expiry_check()
+        if client.subscribed:
+            # client has active subscription. check if it'd expeire in three days time, then top it up with current sub
+            if subscription_days > 3 and (timezone.now() + timedelta(days=3)) >= client.subscription_expires_at: # if sub will expire in days time and new sub is non three day sub
+                client.subscription_expires_at += timedelta(days=subscription_days)
+                client.save(update_fields=["subscription_expires_at"])
+                message = f'Subscription updated for client. New expiry date is now {client.subscription_expires_at.strftime("%d-%m-%Y")}.'
+            else:
+                raise Exception(f"Client still has active subscription that will expire on {client.subscription_expires_at.strftime('%d-%m-%Y')}.") 
+        # sub for client 
+        else:
+            client.subscription_expires_at = timedelta(days=subscription_days)
+            client.save(update_fields=['subscription_expires_at'])
+            message = f'Client Subscription was successful. Subscription expiry date is {client.subscription_expires_at.strftime("%d-%m-%Y")}.'
+    except Exception as e:
+        message = str(e)
+    
+    context_id = f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
+
+    save_context("You ran this command for this user: subscribe_to_post_automation. And here is the result:", message, context_id)
+    send_text_reply(event, event.sender_id, message)
+    
 def command_map() -> dict:
     return {
         "send_message_to_admin": message_admin,

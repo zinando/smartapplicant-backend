@@ -5,6 +5,7 @@ notes = """
 """
 business_info = {
         'name': "Smart Applicant",
+        'email': "zinando2000@gmail.com",
         'type': "service provider",
         'description': "Smart Applicant is an AI-powered resume building and optimization platform designed to help job seekers create professional, ATS-compatible resumes quickly and easily. Our platform leverages advanced AI technology to provide intelligent suggestions, smart refinements, and customization options, ensuring that users can craft resumes that stand out to recruiters and hiring managers. With Smart Applicant, users can build their dream resumes in minutes, access premium features for enhanced customization, and improve their chances of landing their desired jobs.",
         'how_to_use': "1. You can scan your current cv/resume to get ATS-compatibility score on the home page at https://smartapplicant.net/#analyze. This feature is FOC and does not require you to login/signup.\n2. Sign up for a free account or log in to get access to other features such as: Generating a new cv/resume from scratch using our enhanced resume builder with intelligent suggestions (users can download their resumes if they only have one entry per section of the resume. for multiple intems per section, a subscription/resume credit has to be purchased and used), analyzing resume agaisnt job descriptions using AI (this is also FOC), Automatic tailoring your existing resume to match job escription (this completely requires either a subsceiption or a resume credit).",
@@ -25,6 +26,9 @@ business_info = {
 business_info_form_template = """"
     # name
     * Your business name here
+
+    # email
+    * Your business email
 
     # type
     * Your business type here (service provider or product seller)
@@ -88,6 +92,7 @@ business_info_form_template = """"
 """
 tenant_info = {
         'name': "Smart Applicant",
+        'email': "contact@smartapplicant.net",
         'description': "Smart Applicant is a leading provider of AI-powered chatbot development, automation, and AI solutions for businesses looking to enhance customer engagement and streamline operations. We also provide resume building and optimization solutions through our SmartApplicant platform.",
         'admin_contacts': {
             "owner": "2347031104270",

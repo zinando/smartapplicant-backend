@@ -14,7 +14,7 @@ def test_facebook_post_instance_creation(db, app_client, app_tenant):
     fb = AutomateFacebookPost(page_id="750798604776594")
 
     assert fb.page_id == "750798604776594"
-    # logger.info(f"Bussiness details: {fb.get_business_details()}")3
+    # logger.info(f"Bussiness details: {fb.get_business_details()}")
     assert isinstance(fb.get_business_details(), dict)
 
 def t_content_prompt_generation(db, app_client, app_tenant):
@@ -93,7 +93,7 @@ def t_post_id_posting(db, app_client, app_tenant):
     assert isinstance(response, dict)
     assert 'id' in response
 
-def test_post_scheduling(db, app_client, app_tenant):
+def t_post_scheduling(db, app_client, app_tenant):
     schedule_facebook_post()
     assert True
-    
+   

@@ -403,7 +403,7 @@ def make_facebook_posts(self, contents, page_id):
             comments=content.get("comments", []),
             scheduled_time=to_facebook_timestamp(schedule_time)
         )
-        if isinstance(result, dict) and "error" in result:
+        if isinstance(result, dict) and "error" in result.keys():
             errors.append(result)
         logger.info(f"Scheduled post result for Facebook page {page_id}: {result}")
         time.sleep(2)  # brief pause between posts for 2 seconds
