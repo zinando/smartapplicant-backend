@@ -275,16 +275,16 @@ CELERY_BROKER_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')  # R
 CELERY_RESULT_BACKEND = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')  # Replace with Render/Redis Cloud URL
 CELERY_TIMEZONE = 'UTC'
 
-CELERY_BEAT_SCHEDULE = {
-    'daily-facebook-posts': {
-        'task': 'automation.tasks.schedule_facebook_post',
-        'schedule': crontab(hour=run_hour, minute=run_minute),
-    },
-    'test-schedule': {
-        'task': 'automation.tasks.test_beat_task',
-        'schedule': crontab(hour=run_hour, minute=run_minute),
-    }
-}
+# CELERY_BEAT_SCHEDULE = {
+#     'daily-facebook-posts': {
+#         'task': 'automation.tasks.schedule_facebook_post',
+#         'schedule': crontab(hour=run_hour, minute=run_minute),
+#     },
+#     'test-schedule': {
+#         'task': 'automation.tasks.test_beat_task',
+#         'schedule': crontab(hour=run_hour, minute=run_minute),
+#     }
+# }
 
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')  # Default to SMTP backend
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')  # Default to Gmail SMTP
