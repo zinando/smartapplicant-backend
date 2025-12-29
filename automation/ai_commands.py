@@ -4,7 +4,7 @@ from django.conf import settings
 import json
 from django.utils import timezone
 from datetime import timedelta
-from .mydata import business_info_form_template
+from .mydata import business_info_form_template, business_info
 from .context_manager import save_context
 
 def message_admin(event:WebhookEvent, message:str, contact:str):
@@ -111,6 +111,42 @@ def subscribe_to_post_automation(event: WebhookEvent, subscription_days:int, pag
 
     save_context("You ran this command for this user: subscribe_to_post_automation. And here is the result:", message, context_id)
     send_text_reply(event, event.sender_id, message)
+
+def update_client_info(event:WebhookEvent, biz_info:dict, page_id):
+    """Helps automated clients to update their business info"""
+    try:
+        client = AutomatedClients.objects.filter(client_id=page_id).first()
+        client_info = client.business_details
+        info = {}
+        if not client_info:
+            for key in business_info.keys():
+                default = business_info.get(key)
+                if isinstance(default, dict):
+                    default_value = {}
+                elif isinstance(default, list):
+                    default_value = []
+                elif isinstance(default, bool):
+                    default_value = default
+                else:
+                    default_value = ''
+                info[key] = biz_info.get(key, default_value)
+            client.business_details = info
+            client.save(update_fields=["business_details"])
+            message = f"Buiness info was created successfully."
+        else:
+            for key in business_info.keys():
+                info[key] = biz_info.get(key, client_info.get(key))
+            client.business_details = info
+            client.save(update_fields=["business_details"])
+            message = f"Buiness info was updated successfully."
+
+    except Exception as e:
+        message = str(e)
+    
+    context_id = f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
+
+    save_context("You ran this command for this user: update_client_info. And here is the result:", message, context_id)
+    send_text_reply(event, event.sender_id, message)
     
 def command_map() -> dict:
     return {
@@ -118,4 +154,6 @@ def command_map() -> dict:
         "send_message_to_customer": message_admin,
         "register_new_facebook_page_for_content_automation": register_new_page_for_content_automation,
         "confirm_payment": confirm_payment,
+        "subscribe_to_post_automation": subscribe_to_post_automation,
+        "update_client_info": update_client_info,
     }
