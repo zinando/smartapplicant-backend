@@ -18,7 +18,7 @@ business_info = {
         'products': "",
         'pricing': "Free to use with basic features. Premium features available: resume credit - N1500/unit (use all premium features to get 1 resume); monthly subscriptions: 1 month - N17,500.00, 3 months - N45,000.00, 6 months - N80,000.00, 12 months - N150,000.00. (unlimited resumes within subscription period).",
         'image_links': "",
-        'business_links': "1. official website: https://smartapplicant.net\n2. scan resume for ATS compatibility score: https://smartapplicant.net/#analyze\n2. resume builder: https://smartapplicant.net/new_resume\n3. login/signup: https://smartapplicant.net/login\n4. pricing page: https://smartapplicant.net/premium",
+        'business_links': "1. official website: https://smartapplicant.net\n2. scan resume for ATS compatibility score: https://smartapplicant.net/#analyze\n3. resume builder: https://smartapplicant.net/new_resume\n4. login/signup: https://smartapplicant.net/login\n5. pricing page: https://smartapplicant.net/premium\n6. signup for facebook post automation service: https://smartapplicant.net/facebook_login/",
         'secret_questions': "Q: Mother's maiden name? A: Isietu. Q: Best friend's name in Logiss (my secondary school)? A: Ikechukwu Nnadilim. Q: last primary school attended? A: Pioneer Primary School, Edenta, Awo-Idemili, Imo State.",
         'last_updated': "2025-06-10",
         'notes': notes
@@ -110,7 +110,11 @@ tenant_info = {
         'image_data': [],
         'business_links': [
             'official website: https://smartapplicant.net',
-            'scan resume for ATS compatibility score: https://smartapplicant.net/#analyze'
+            'scan resume for ATS compatibility score: https://smartapplicant.net/#analyze',
+            'resume builder: https://smartapplicant.net/new_resume',
+            'login/signup: https://smartapplicant.net/login',
+            'pricing page: https://smartapplicant.net/premium',
+            'signup for facebook post automation service: https://smartapplicant.net/facebook_login/'
         ],
         'faq': [],
         'use_marketing': False,

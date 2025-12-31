@@ -5,7 +5,10 @@ from api.ai import get_structured_data_from_gemini
 from automation.mydata import sample_content
 from django.conf import settings
 import requests
+from django.utils import timezone
 from automation.tasks import schedule_facebook_post
+from automation.mydata import notes
+from automation.ai_commands import subscribe_to_post_automation
 
 logger = logging.getLogger(__name__)
 
@@ -96,4 +99,24 @@ def t_post_id_posting(db, app_client, app_tenant):
 def t_post_scheduling(db, app_client, app_tenant):
     schedule_facebook_post()
     assert True
-   
+def test_subscribe_to_post_automation(db, app_client, app_tenant):
+    new_info = {
+        'name': "Smart & Trendy Blitz",
+        'email': "zinando2000@gmail.com",
+        'type': "product seller",
+        'description': "Smart & Trendy Blitz is a clothing retail store. We deal on high quality first grade second-hand clothes. We have clothes for all categories of buyers: male and female, kids, adults, fat and slim. We get new stocks every Monday of the week.",
+        'how_to_use': "1. Join our whatsapp group via the link: https://chat.whatsapp.com/ER5UAeB7ZfHGN8TC30qDsV?mode=ems_copy_t 2. Lookout for daily updates on our latest stocks 3. Place private chat the admin with the image of your desired item(s) 4. Place order by making payment 5. Get your goods delievred to you.",
+        'features': "1. Sweatshirts 2. Jeans 3. Office wears 4. Gowns 5. Crop tops 6. Boyfriend jeans 7. children party gowns 8. Pyngamas (night wears) 9. Chinos 10. t-shirts 11. Polos 12. Shorts 13. Joggers",
+        'website': "",
+        'address': "Suite 7 Divine Imperial Place, Opposite Makkah Eye Specialist Hospital, by Elebu junction, Akala Express, Ibadan, Oyo State, Nigeria",
+        'business_contacts': "2347031104270 (call or WhatsApp)",
+        'social_links': "1. Facebook: https://www.facebook.com/share/1DD242kn8q/",
+        'services': "",
+        'products': "1. Sweatshirts 2. Jeans 3. Office wears 4. Gowns 5. Crop tops 6. Boyfriend jeans 7. children party gowns 8. Pyngamas (night wears) 9. Chinos 10. t-shirts 11. Polos 12. Shorts 13. Joggers",
+        'pricing': "Children wears - from N1500 upwards, Adult wears - from N3000 upwards",
+        'image_links': "",
+        'business_links': "",
+        'secret_questions': "Q: Mother's maiden name? A: Isietu. Q: Best friend's name in Logiss (my secondary school)? A: Ikechukwu Nnadilim. Q: last primary school attended? A: Pioneer Primary School, Edenta, Awo-Idemili, Imo State.",
+        'last_updated': timezone.now().strftime("%d-%m-%Y"),
+        'notes': notes
+    }
