@@ -25,6 +25,7 @@ META_GRAPH_API_VERSION = 'v24.0'
 META_GRAPH_URL = f'https://graph.facebook.com/{META_GRAPH_API_VERSION}'
 WEBHOOK_VERIFY_TOKEN = os.getenv('WHATSAPP_VERIFY_TOKEN', 'default_verify_token')
 BUSINESS_ACCESS_TOKEN = os.getenv('BUSINESS_ACCESS_TOKEN')
+GROK_API_KEY = os.getenv("GROK_API_KEY")
 SMARTAPPLICANT = {
     'APP_NAME': 'WABA Automation',
     'APP_ID': os.getenv('WABA_APP_ID'),

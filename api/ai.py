@@ -3,9 +3,17 @@ import os
 import json
 import requests
 import base64
+from django.conf import settings
+from xai_sdk import Client
 
 # Load environment variables
 load_dotenv()
+
+client = Client(
+    api_key=settings.GROK_API_KEY,
+    timeout=3600
+)
+
 
 # context = {}
 def get_available_models() -> list[str]:
@@ -320,3 +328,21 @@ def get_structured_data_from_gemini(prompt: str):
         response = ''
     
     return response
+
+def get_image_from_grok(prompt:str):
+    """Prompts grok with text in order to generate image"""
+    result = {}
+    try:
+        response = client.image.sample(
+            model="grok-2-image-1212",
+            prompt=prompt,
+            image_format="base64"
+        )
+        result = {
+            'image': response.image,
+            'description': response.prompt
+        }
+    except Exception as e:
+        print(f'Grok error response: {e}')
+        pass
+    return result

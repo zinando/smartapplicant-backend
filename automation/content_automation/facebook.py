@@ -29,7 +29,6 @@ class AutomateFacebookPost:
             logger.warning(f"No access token found for page_id: {page_id}")
             raise ValueError("Access token not found for the given page_id.")
         
-    
     def __get_business_details(self):
         return self.__business_info.business_details or {}
     

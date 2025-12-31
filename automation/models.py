@@ -99,6 +99,16 @@ class AutomatedClients(models.Model):
         if self.subscription_expires_at and timezone.now() >= self.subscription_expires_at:
             self.subscribed = False
             self.save(update_fields=['subscribed'])
+
+class MediaPostLog(models.Model):
+    """Keeps track of daily image posts per client"""
+    client = models.OneToOneField(AutomatedClients, on_delete=models.CASCADE, related_name='image_post_log')
+    image_count = models.IntegerField()
+    last_image_posted_at = models.DateTimeField()
+    video_count = models.IntegerField()
+    last_video_posted_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
     
 class WebhookEvent(models.Model):
     PLATFORM_CHOICES = [

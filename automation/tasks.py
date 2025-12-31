@@ -8,7 +8,7 @@ from .admin_commands import process_admin_command
 from .admin_reply import process_admin_message
 from .customer_reply import process_customer_message
 from .messaging import send_text_reply, send_media_reply
-from api.ai import get_structured_data_from_gemini, call_gemini_image_generator
+from api.ai import get_structured_data_from_gemini, get_image_from_grok
 from .context_manager import save_context
 from .content_automation.facebook import AutomateFacebookPost
 import time
@@ -370,11 +370,12 @@ def schedule_facebook_post(self):
             image_contents = [x for x in contents if x.get('content_type') == 'image']
             if len(image_contents) > 0:
                 for item in image_contents:
-                    if not isinstance(item['content'], bytearray) or not isinstance(item['content'], bytes):
+                    if not isinstance(item['content'], (bytes, bytearray)):
                         image_prompt = item.get('content')
-                        image_data = call_gemini_image_generator(image_prompt)
-                        if image_data and isinstance(image_data, bytes):
-                            item['content'] = image_data
+                        image_data = get_image_from_grok(image_prompt)
+                        if image_data:
+                            item['content'] = base64_to_bytes(image_data['image'])
+                            item['prompt'] = image_data.get('description', '')
                             logger.info(f"Image generated: {image_data}")
                         else:
                             logger.warning(f"Image generation failed for prompt: {image_prompt}, removing item.")

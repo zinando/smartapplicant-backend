@@ -6,10 +6,11 @@ from django.utils import timezone
 from datetime import timedelta
 from .mydata import business_info_form_template, business_info
 from .context_manager import save_context
+from typing import List, Dict
 
 def message_admin(event:WebhookEvent, message:str, contact:str):
     send_text_reply(event, contact, message)
-def register_new_page_for_content_automation(event:WebhookEvent, page_id:str, platform:str, session_id:str):
+def register_new_page_for_content_automation(event:WebhookEvent, page_id:str, platform:str, session_id:str, secret_questions:List[Dict[str, str]]):
     """pages will be registered under AutomatedClients table using smartapplicant as the tenant"""
     form = ''
     try:
@@ -36,6 +37,7 @@ def register_new_page_for_content_automation(event:WebhookEvent, page_id:str, pl
             client_id=page_id,
             defaults={
                 "page_access_token": str(page_access_token),
+                "secret_questions": secret_questions,
                 # "subscription_ref": payment_ref,
             },
         )

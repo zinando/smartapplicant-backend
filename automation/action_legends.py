@@ -9,7 +9,7 @@ legend = """
 
 - command : register_new_facebook_page_for_content_automation
 * description : register a new facebook page for content automation
-* params : page_id (str), platform (str - facebook or instagram), session_id (str)
+* params : page_id (str), platform (str - facebook or instagram), session_id (str), secret_questions (list - e.g [{'question':'answer'}...])
 
 - command : subscribe_to_post_automation
 * description : subscribe for an automated client for facebook page post automation
