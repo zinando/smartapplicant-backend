@@ -78,7 +78,7 @@ class AutomatedClients(models.Model):
     business_details = models.JSONField(null=True, blank=True)  # store additional business info
     media_history = models.JSONField(default=list, blank=True)  # list of previously used media IDs [{"id": "media_id", "caption": "caption text"}]
     evergreen_content = models.JSONField(default=list, blank=True)  # list of evergreen text content items, can be used on any platform ["text content 1", "text content 2"]
-    custom_prompt = models.TextField(null=True, blank=True)  # custom prompt for content generation
+    custom_prompts = models.JSONField(null=True, blank=True) # custom prompt for content generation e.g {'txt':'prompt 1', 'txt-img': 'prompt 2', 'txt-img-vid':'prompt 3'}
     content_schedule_times = models.JSONField(null=True, blank=True)  # preferred times to post content [7, 9, 12, 15, 18, 21]
     page_access_token = EncryptedTextField(null=True, blank=True)  # Store access token securely
     token_expires_at = models.DateTimeField(null=True, blank=True)  # Token expiration time
@@ -87,6 +87,14 @@ class AutomatedClients(models.Model):
     subscription_expires_at = models.DateTimeField(null=True, blank=True)  # Subscription expiration time
     saved_content = models.JSONField(default=list, blank=True, null=True)  # content saved for posting later [{"content": "text or media", "content_type": "text/image/link", "caption": "caption text", "comments": []}]
     secret_questions = models.JSONField(null=True, blank=True)  # secret questions set by account owner for authentication purpose before any modification on account information [{'question':'answer'}...]
+    subscription_type = models.CharField(max_length=50,
+        choices=[
+            ("txt", "TXT"),
+            ("txt-img", "TXT-IMG"),
+            ("txt-img-vid", "TXT-IMG-VID")
+        ],
+        default="txt"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
