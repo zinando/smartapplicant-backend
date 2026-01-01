@@ -1,7 +1,8 @@
 from celery import shared_task
 import logging
-from .utils import normalize_payload, to_facebook_timestamp, base64_to_bytes, get_random_admin_instant_message
-from .models import WebhookEvent, Tenant, AutomatedClients
+from .utils import (normalize_payload, to_facebook_timestamp, base64_to_bytes, 
+                    get_random_admin_instant_message, is_url)
+from .models import WebhookEvent, Tenant, AutomatedClients, MediaPostLog
 from .mydata import business_info
 from .helpers import *
 from .admin_commands import process_admin_command
@@ -13,7 +14,9 @@ from .context_manager import save_context
 from .content_automation.facebook import AutomateFacebookPost
 import time
 from django.utils import timezone
+from datetime import timedelta
 import re
+from django.db import transaction
 from .ai_commands import command_map as customer_command_map
 
 
@@ -336,6 +339,15 @@ def schedule_facebook_post(self):
     if facebook_pages:
         for page in facebook_pages:
             client = clients.filter(client_id=page).first()
+            media_post_log_obj, media_post_log_created = MediaPostLog.objects.get_or_create(
+                client = client,
+                defaults={
+                    "image_count": 0,
+                    "video_count": 0,
+                    "last_image_posted_at": timezone.now() - timedelta(days=1),
+                    "last_video_posted_at": timezone.now() - timedelta(days=1)
+                }
+            )
             tenant = client.tenant
             if tenant:
                 logger.info("tenant found")
@@ -360,61 +372,78 @@ def schedule_facebook_post(self):
             instance = AutomateFacebookPost(page)
             prompt = instance.get_content_prompt()
             contents = client.saved_content or get_structured_data_from_gemini(prompt)  # get content that failed to post or generate new one
+            # logger.info(f"Gemini contents:\n{contents}")
             if not contents or len(contents) == 0:
                 logger.warning(f"No content generated for Facebook page {page}")
                 # get fallback content 
                 contents = instance.get_fallback_posts()
+                # logger.warning(f"Fallback content {contents}")
                 if not contents or len(contents) < 6:
                     logger.error(f"No fallback content available for Facebook page {page}, skipping.")
                     continue
             image_contents = [x for x in contents if x.get('content_type') == 'image']
+            count = 0
             if len(image_contents) > 0:
                 for item in image_contents:
-                    if not isinstance(item['content'], (bytes, bytearray)):
+                    if not isinstance(item['content'], (bytes, bytearray)) and not is_url(item['content']) and not media_post_log_obj.has_posted_image_today():
                         image_prompt = item.get('content')
                         image_data = get_image_from_grok(image_prompt)
                         if image_data:
-                            item['content'] = base64_to_bytes(image_data['image'])
+                            count += 1
+                            item['content'] = image_data['image']
                             item['prompt'] = image_data.get('description', '')
+                            media_post_log_obj.last_image_posted_at = timezone.now()
                             logger.info(f"Image generated: {image_data}")
                         else:
                             logger.warning(f"Image generation failed for prompt: {image_prompt}, removing item.")
                             contents.remove(item)
+                    else:
+                        logger.warning(f"We got content from saved_contents")
             # temporarily save the final content 
+            media_post_log_obj.image_count = count
+            media_post_log_obj.save()
+            
             client.saved_content = contents
             client.save(update_fields=["saved_content"])
-            make_facebook_posts.delay(contents, page)
+            transaction.on_commit(lambda: make_facebook_posts.delay(page))
 
 @shared_task(bind=True, max_retries=3)
-def make_facebook_posts(self, contents, page_id):
+def make_facebook_posts(self, page_id):
     """ Schedules Facebook posts based on provided contents and post times. """
     instance = AutomateFacebookPost(page_id)
     schedule_times = instance.get_schedule_times()
+    client = AutomatedClients.objects.filter(client_id=page_id).first()
+    contents = client.saved_content
     errors = []
-    logger.info(f"Scheduling posts for Facebook page {page_id} at times: {schedule_times}")
+    # logger.info(f"Scheduling posts for Facebook page {page_id} at times: {schedule_times} with contents:\n{contents}")
+    # return
     for x in range(len(contents)):
         content = contents[x]
         schedule_time = schedule_times[x % len(schedule_times)]
         
         result = instance.post_content(
-            content= base64_to_bytes(content['content']) if content.get('content_type') == 'image' else content['content'],
+            # content= base64_to_bytes(content['content']) if content.get('content_type') == 'image' else content['content'],
+            content= content['content'],
             caption=content['caption'],
             content_type=content.get('content_type'),
             publish_now= False,
             comments=content.get("comments", []),
             scheduled_time=to_facebook_timestamp(schedule_time)
         )
+        # logger.info(f"Post result data: {result}")
         if isinstance(result, dict) and "error" in result.keys():
             errors.append(result)
-        logger.info(f"Scheduled post result for Facebook page {page_id}: {result}")
-        time.sleep(2)  # brief pause between posts for 2 seconds
+        # logger.info(f"Scheduled post result for Facebook page {page_id}: {result}")
+        time.sleep(0.25)  # brief pause between posts for 2 seconds
     
     # delete saved_content from client if not all content returned error
+    # logger.info(f"Errors encountered: {errors}")
     if len(errors) != len(contents):
-        client = AutomatedClients.objects.filter(client_id=page_id).first()
+        
         if client:
             client.saved_content = []
             client.save(update_fields=["saved_content"])
+            logger.info(f"Some contents were posted...")
     
     try:
         # send email notification concerning the errors 

@@ -330,16 +330,16 @@ def get_structured_data_from_gemini(prompt: str):
     return response
 
 def get_image_from_grok(prompt:str):
-    """Prompts grok with text in order to generate image"""
+    """Prompts grok with text in order to generate image. returns the url of the image"""
     result = {}
     try:
         response = client.image.sample(
             model="grok-2-image-1212",
             prompt=prompt,
-            image_format="base64"
+            image_format="url"
         )
         result = {
-            'image': response.image,
+            'image': response.url,
             'description': response.prompt
         }
     except Exception as e:

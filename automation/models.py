@@ -109,6 +109,13 @@ class MediaPostLog(models.Model):
     last_video_posted_at = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def has_posted_image_today(self):
+        today = timezone.now().date()
+        return self.last_image_posted_at.date() == today
+    def has_posted_video_today(self):
+        today = timezone.now().date()
+        return self.last_video_posted_at.date() == today
+
     
 class WebhookEvent(models.Model):
     PLATFORM_CHOICES = [

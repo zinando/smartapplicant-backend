@@ -1,27 +1,32 @@
 from .webhook_handlers.whatsapp import parse_whatsapp_payload
 from datetime import datetime, timezone
 import base64
+import binascii
 import random
+from urllib.parse import urlparse
 
 def to_facebook_timestamp(hour, minute=0):
     dt = datetime.now().replace(hour=hour, minute=minute, second=0, microsecond=0)
     dt_utc = dt.astimezone(timezone.utc)
     return int(dt_utc.timestamp())
+    
+def base64_to_bytes(b64: str) -> bytes:
+    if "," in b64:
+        b64 = b64.split(",", 1)[1]
 
-def base64_to_bytes(base64_string: str) -> bytes | str:
-    """
-    Convert a base64 encoded string to bytes.
-    If decoding fails, return the original string.
-    """
+    b64 = b64.strip().replace("\n", "").replace(" ", "")
+
+    # Fix missing padding
+    padding = len(b64) % 4
+    if padding:
+        b64 += "=" * (4 - padding)
+
     try:
-        # If the string has a data URI scheme, strip it
-        if "," in base64_string:
-            base64_string = base64_string.split(",", 1)[1]
-
-        return base64.b64decode(base64_string)
-    except Exception:
-        # Return the original string if it's not valid base64
-        return base64_string
+        print("decoding base64 obj")
+        return base64.b64decode(b64, validate=False)
+    except binascii.Error as e:
+        print("failed to decode base64 object")
+        raise ValueError("Invalid base64 image") from e
             
 def normalize_payload(payload: dict):
     """
@@ -71,3 +76,10 @@ def get_random_admin_instant_message() -> str:
         "Absolutely! Just a moment...",
     ]
     return random.choice(messages)
+
+def is_url(value: str) -> bool:
+    try:
+        result = urlparse(value)
+        return all([result.scheme, result.netloc])
+    except:
+        return False

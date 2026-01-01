@@ -103,7 +103,7 @@ class AutomateFacebookPost:
         # )
         prompt = (
             f"You are a skilled social media content creator for {business_details.get('name', 'the business')}. "
-            "Generate 6 Facebook posts for today: 4 text posts, 2 link posts (with caption). "
+            "Generate 6 Facebook posts for today: 3 text posts, 2 link posts (with caption) and 1 image prompt (with caption- to be used to generate image from grok). "
             "Each post must be unique, engaging, and relevant to the business, with at least two hashtags. "
             "Keep tone friendly, professional, and appealing to Facebook users. "
             "For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. "
@@ -120,15 +120,14 @@ class AutomateFacebookPost:
             "Return output as a JSON list of dictionaries, with the following structures:\n"
             'Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n'
             'Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}'
+            'Image content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}'
         )
 
         return prompt
     
     def __get_media_history(self):
-        media_history = self.__business_info.media_history or {}
-        if media_history:
-            return media_history.get('facebook', [])
-        return []
+        media_history = self.__business_info.media_history or []
+        return media_history
     def __get_evergreen_content(self):
         evergreen_content = self.__business_info.evergreen_content or []
         return evergreen_content
@@ -148,9 +147,15 @@ class AutomateFacebookPost:
         media_history = self.__get_media_history()
         evergreen_content = self.__get_evergreen_content()
 
+        logger.info(f"media history: {media_history}")
+        logger.info(f"ever green: {evergreen_content}")
         # get two random media_history and 4 random evergreen content
         media_history = random.sample(media_history, min(2, len(media_history)))
-        evergreen_content = random.sample(evergreen_content, min(4, len(evergreen_content)))
+        if media_history:
+            count = 4
+        else:
+            count = 6
+        evergreen_content = random.sample(evergreen_content, min(count, len(evergreen_content)))
 
         fallback_posts = []
         for item in evergreen_content:
@@ -159,12 +164,13 @@ class AutomateFacebookPost:
                 "caption": "",
                 "content_type": "text"
             })
-        for item in media_history:
-            fallback_posts.append({
-                "content": item["id"],
-                "caption": item.get("caption", ""),
-                "content_type": "content_id"
-            })
+        if media_history:
+            for item in media_history:
+                fallback_posts.append({
+                    "content": item["id"],
+                    "caption": item.get("caption", ""),
+                    "content_type": "content_id"
+                })
         return fallback_posts[:6]
     
     def make_a_test_post(self):
@@ -312,8 +318,8 @@ class AutomateFacebookPost:
             }
         
         response = requests.post(f'{self.__post_url}feed', data=payload)
+        response_data = response.json()
         if response.status_code == 200:
-            response_data = response.json()
             logger.info(f"Successfully posted text content: {response_data}")
             post_id = response_data['id']
 
@@ -324,6 +330,7 @@ class AutomateFacebookPost:
             self.comment_on_post(post_id, comments)
         else:
             logger.error(f"Failed to post text content: {response.text}")
+
         return response_data
            
     def __post_image_url_content(self, image_url, caption="", publish_now=True, scheduled_time=None, comments=[]):
@@ -344,9 +351,8 @@ class AutomateFacebookPost:
             }
         # Here you would typically use requests.post to send the payload
         response = requests.post(f'{self.__post_url}photos', data=payload)
-
+        response_data = response.json()
         if response.status_code == 200:
-            response_data = response.json()
             self.__add_to_media_history(response_data.get("id"), caption)
             logger.info(f"Successfully posted media content: {response_data}")
             post_id = response_data.get("id")
@@ -381,9 +387,8 @@ class AutomateFacebookPost:
             }
 
         response = requests.post(f'{self.__post_url}photos', files=files, data=payload)
-
+        response_data = response.json()
         if response.status_code == 200:
-            response_data = response.json()
             self.__add_to_media_history(response_data.get("id"), caption)
             logger.info(f"Successfully posted media content: {response_data}")
             post_id = response_data.get("id")
@@ -416,8 +421,8 @@ class AutomateFacebookPost:
         # Here you would typically use requests.post to send the payload
         logger.info(f"Posting text content: {payload}")
         response = requests.post(f'{self.__post_url}feed', data=payload)
+        response_data = response.json()
         if response.status_code == 200:
-            response_data = response.json()
             post_id = response_data['id']
             logger.info(f"Successfully posted text content: {response.json()}")
 
@@ -449,8 +454,8 @@ class AutomateFacebookPost:
         # Here you would typically use requests.post to send the payload
         logger.info(f"Posting content by ID: {payload}")
         response = requests.post(f'{self.__post_url}feed', json=payload)
+        response_data = response.json()
         if response.status_code == 200:
-            response_data = response.json()
             post_id = response_data['id']
             logger.info(f"Successfully posted content by ID: {response_data}")
 

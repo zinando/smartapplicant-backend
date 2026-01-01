@@ -96,10 +96,10 @@ def t_post_id_posting(db, app_client, app_tenant):
     assert isinstance(response, dict)
     assert 'id' in response
 
-def t_post_scheduling(db, app_client, app_tenant):
+def test_post_scheduling(db, app_client, app_tenant):
     schedule_facebook_post()
     assert True
-def test_subscribe_to_post_automation(db, app_client, app_tenant):
+def t_subscribe_to_post_automation(db, app_client, app_tenant):
     new_info = {
         'name': "Smart & Trendy Blitz",
         'email': "zinando2000@gmail.com",
