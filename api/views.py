@@ -257,6 +257,8 @@ def facebook_login_view(request):
         f"?client_id={settings.SMARTAPPLICANT['APP_ID']}"
         f"&redirect_uri={settings.SMARTAPPLICANT['REDIRECT_URI']}"
         "&scope=pages_manage_posts,pages_read_engagement,pages_show_list,pages_manage_metadata,pages_read_user_content,pages_manage_engagement"
+        "&display=popup"
+        "&auth_type=rerequest"
         f"&state={state}"
         "&response_type=code"
     )
