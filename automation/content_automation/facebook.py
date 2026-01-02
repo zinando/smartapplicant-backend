@@ -236,8 +236,15 @@ class AutomateFacebookPost:
             return []
         return fallback_posts
     
-    def get_content_prompt(self):
-        return self.__business_info.custom_prompt or self.__create_prompt_for_content_generation()
+    def get_content_prompt(self) -> str:
+        custom_prompt = self.__business_info.custom_prompts
+
+        if isinstance(custom_prompt, dict):
+            prompt = custom_prompt.get(self.__business_info.subscription_type)
+            if prompt:
+                return prompt
+
+        return self.__create_prompt_for_content_generation()
 
     def get_schedule_times(self):
         schedule_times = self.__business_info.content_schedule_times or []

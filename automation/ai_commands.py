@@ -8,10 +8,8 @@ from .mydata import business_info_form_template, business_info
 from .context_manager import save_context
 from typing import List, Dict
 
-def message_admin(event:WebhookEvent, message:str, contact:str):
-    send_text_reply(event, contact, message)
-def register_new_page_for_content_automation(event:WebhookEvent, page_id:str, platform:str, session_id:str, secret_questions:List[Dict[str, str]]):
-    """pages will be registered under AutomatedClients table using smartapplicant as the tenant"""
+def add_new_client(page_id:str, platform:str, session_id:str, secret_questions:List[Dict[str, str]]):
+    """Adds new client to database/automatedclients"""
     form = ''
     try:
         phone_number_id=settings.SMARTAPPLICANT.get("PHONE_NUMBER_ID")
@@ -54,7 +52,18 @@ def register_new_page_for_content_automation(event:WebhookEvent, page_id:str, pl
     except Exception as e:
         form = ''
         message = f"An error occurred while registering the Facebook page for content automation: {str(e)}"
-    
+    return message, form
+
+def message_admin(event:WebhookEvent, message:str, contact:str):
+    send_text_reply(event, contact, message)
+def register_new_page_for_content_automation(event:WebhookEvent, page_id:str, platform:str, session_id:str, secret_questions:List[Dict[str, str]]):
+    """pages will be registered under AutomatedClients table using smartapplicant as the tenant"""
+    message, form = add_new_client(
+        page_id=page_id,
+        platform=platform,
+        session_id=session_id,
+        secret_questions=secret_questions
+    )
     # save context 
     context_id = f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
     save_context(f"Register new facebook page for content automation with page id {page_id} and platform {platform}", message, context_id)
@@ -114,8 +123,9 @@ def subscribe_to_post_automation(event: WebhookEvent, subscription_days:int, pag
     save_context("You ran this command for this user: subscribe_to_post_automation. And here is the result:", message, context_id)
     send_text_reply(event, event.sender_id, message)
 
-def update_client_info(event:WebhookEvent, biz_info:dict, page_id):
+def update_info_for_client(biz_info:dict, page_id:str):
     """Helps automated clients to update their business info"""
+    message = ''
     try:
         client = AutomatedClients.objects.filter(client_id=page_id).first()
         client_info = client.business_details
@@ -144,6 +154,14 @@ def update_client_info(event:WebhookEvent, biz_info:dict, page_id):
 
     except Exception as e:
         message = str(e)
+    return message
+
+def update_client_info(event:WebhookEvent, biz_info:dict, page_id:str):
+    """Helps automated clients to update their business info"""
+    message = update_info_for_client(
+        biz_info=biz_info,
+        page_id=page_id
+    )
     
     context_id = f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
 
