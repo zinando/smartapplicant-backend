@@ -174,3 +174,60 @@ sample_content = [
     {'content': 'https://smartapplicant.net/premium', 'caption': 'Unlock the full power of AI customization! Premium features like unlimited tailoring, detailed suggestions, and advanced resume generation are waiting. See our subscription tiers and find the perfect fit for your career goals today!', 'content_type': 'link', 'comments': ['The premium features are worth it when aiming for highly competitive roles. That extra polish makes a difference.', 'Which premium feature are you most excited to try first? We love the Job-Matching Analysis!', 'We regularly update our AI models to reflect the latest hiring trends, ensuring your subscription stays relevant.', 'Thinking about upgrading? The 3-month plan often balances cost and immediate access perfectly.', "If you have any questions about what the premium features offer specifically, drop a question below—we're here to help!"]},
     {'content': 'https://smartapplicant.net/#analyze', 'caption': 'Wondering how your resume stacks up against ATS standards? Use our free ATS Compatibility Scanner to get instant feedback and actionable insights. No sign-up required—just upload your resume and see where you stand!', 'content_type': 'link', 'comments': ['This tool is a lifesaver for job seekers! Knowing your ATS score helps you understand what recruiters see first.', 'We designed the scanner to be user-friendly—just upload and get results in seconds!', "If you're unsure about the results, our blog has tips on interpreting ATS scores effectively.", 'What’s the most surprising insight you’ve gained from using the ATS scanner?', 'For best results, ensure your resume is in a compatible format (like .docx or .pdf) before uploading.']}
 ]
+
+custom_prompts= {
+    'txt': """
+            You are a skilled social media content creator for **business_name.
+            Generate 6 Facebook posts for today: 4 text posts, and 2 link posts (with caption). If business has no sharable link, return all 6 posts as text posts.
+            Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
+            Keep tone friendly, professional, and appealing to Facebook users. 
+            For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. 
+            You are commenting as the post creator to encourage engagement and to add value to the post. 
+            You must not include personal information of the business owner or employees in the posts. 
+
+            Business details for context:
+            \n**business_details
+
+            Return output as a JSON list of dictionaries, with the following structures:\n
+            Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
+            Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
+
+        """.strip(),
+    'txt-img': """
+            You are a skilled social media content creator for **business_name.
+            Generate 6 Facebook posts for today: 3 text posts, 2 link posts (with caption) and 1 image prompt (with caption- to be used to generate image from grok). If business has no sharable link, return 5 text posts and 1 image generation post.
+            Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
+            Keep tone friendly, professional, and appealing to Facebook users. 
+            For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. 
+            You are commenting as the post creator to encourage engagement and to add value to the post. 
+            You must not include personal information of the business owner or employees in the posts. 
+
+            Business details for context:
+            \n**business_details
+
+            Return output as a JSON list of dictionaries, with the following structures:\n
+            Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
+            Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
+            Image content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}
+
+        """.strip(),
+    'txt-img-vid': """
+            You are a skilled social media content creator for **business_name.
+            Generate 6 Facebook posts for today: 3 text posts, 1 link posts (with caption), 1 image prompt (with caption- to be used to generate image from grok) and 1 video generation prompt (with caption- to be used to generate video from veo).
+            If business has no sharable link, return all 4 text posts, 1 image post, and 1 video post.
+            Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
+            Keep tone friendly, professional, and appealing to Facebook users. 
+            For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. 
+            You are commenting as the post creator to encourage engagement and to add value to the post. 
+            You must not include personal information of the business owner or employees in the posts. 
+
+            Business details for context:
+            \n**business_details
+
+            Return output as a JSON list of dictionaries, with the following structures:\n
+            Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
+            Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
+            Image content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}
+            Video content type - {"content": "<video generation prompt>", "caption": "<Text to be posted with the video>", "content_type": "video", "comments": "<List of 4 or more unique text comments to buttress the post>"}
+        """.strip()
+}

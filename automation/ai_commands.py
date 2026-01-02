@@ -8,7 +8,7 @@ from .mydata import business_info_form_template, business_info
 from .context_manager import save_context
 from typing import List, Dict
 
-def add_new_client(page_id:str, platform:str, session_id:str, secret_questions:List[Dict[str, str]]):
+def add_new_client(page_id:str, platform:str, session_id:str, secret_questions:str):
     """Adds new client to database/automatedclients"""
     form = ''
     try:
@@ -56,7 +56,7 @@ def add_new_client(page_id:str, platform:str, session_id:str, secret_questions:L
 
 def message_admin(event:WebhookEvent, message:str, contact:str):
     send_text_reply(event, contact, message)
-def register_new_page_for_content_automation(event:WebhookEvent, page_id:str, platform:str, session_id:str, secret_questions:List[Dict[str, str]]):
+def register_new_page_for_content_automation(event:WebhookEvent, page_id:str, platform:str, session_id:str, secret_questions:str):
     """pages will be registered under AutomatedClients table using smartapplicant as the tenant"""
     message, form = add_new_client(
         page_id=page_id,
@@ -91,10 +91,16 @@ def confirm_payment(event:WebhookEvent, payment_ref:str):
     save_context(text, message, context_id)
     send_text_reply(event, event.sender_id, message)
 
-def subscribe_to_post_automation(event: WebhookEvent, subscription_days:int, page_id, payment_ref=''):
+def get_subscription_type(payment_ref):
+    """"""
+    if payment_ref:
+        return 'txt-img'
+    return 'txt'
+def subscribe(subscription_days:int, page_id, payment_ref=''):
     """Subscribes for a given number of days for the page_id"""
     allowed_number_of_days = [3, 30]
     message = ''
+    subscription_type = get_subscription_type(payment_ref)
     try:
         if subscription_days not in allowed_number_of_days:
             raise Exception(f"{subscription_days} days is not allowed. Only {'days, '.join(allowed_number_of_days)} are allowed.")
@@ -106,18 +112,31 @@ def subscribe_to_post_automation(event: WebhookEvent, subscription_days:int, pag
             # client has active subscription. check if it'd expeire in three days time, then top it up with current sub
             if subscription_days > 3 and (timezone.now() + timedelta(days=3)) >= client.subscription_expires_at: # if sub will expire in days time and new sub is non three day sub
                 client.subscription_expires_at += timedelta(days=subscription_days)
-                client.save(update_fields=["subscription_expires_at"])
+                client.subscription_type = subscription_type
+                client.save(update_fields=["subscription_expires_at", "subscription_type"])
                 message = f'Subscription updated for client. New expiry date is now {client.subscription_expires_at.strftime("%d-%m-%Y")}.'
             else:
                 raise Exception(f"Client still has active subscription that will expire on {client.subscription_expires_at.strftime('%d-%m-%Y')}.") 
         # sub for client 
         else:
+            client.subscribed = True
+            client.subscription_type = subscription_type
             client.subscription_expires_at = timedelta(days=subscription_days)
-            client.save(update_fields=['subscription_expires_at'])
+            client.save(update_fields=['subscription_expires_at', 'subscription_type', 'subscribed'])
             message = f'Client Subscription was successful. Subscription expiry date is {client.subscription_expires_at.strftime("%d-%m-%Y")}.'
     except Exception as e:
         message = str(e)
+
+    return message
     
+
+def subscribe_to_post_automation(event: WebhookEvent, subscription_days:int, page_id, payment_ref=''):
+    """Subscribes for a given number of days for the page_id"""
+    message = subscribe(
+        page_id=page_id,
+        subscription_days=subscription_days,
+        payment_ref=payment_ref
+    )
     context_id = f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
 
     save_context("You ran this command for this user: subscribe_to_post_automation. And here is the result:", message, context_id)

@@ -62,45 +62,6 @@ class AutomateFacebookPost:
         if not business_details:
             logger.warning("No business details found for content generation prompt.")
             return ""
-        # prompt = (
-        #     f"You are a skilled social media content creator for {self.__business_info.name}. "
-        #     "Generate 6 Facebook posts for today: 3 text posts, 2 link posts (with caption), and 1 image post (with caption). "
-        #     "Each post must be unique, engaging, and relevant to the business, with at least two hashtags. "
-        #     "Keep tone friendly, professional, and appealing to Facebook users. "
-        # )
-
-        # if business_details:
-        #     prompt += "Business details for context:\n"
-        #     for key, value in business_details.items():
-        #         prompt += f"- {key}: {value}\n"
-
-        # prompt += (
-        #     "Return output as a JSON list of dictionaries, each having:\n"
-        #     '{"content": "<text or base64 image>", "caption": "<caption or empty>", "content_type": "text|link|image"}'
-        # )
-        
-        # prompt = (
-        #     f"You are a skilled social media content creator for {self.__business_info.name}. "
-        #     "Generate 6 Facebook posts for today: 3 text posts, 2 link posts (with caption), and 1 image post (with caption). "
-        #     "Each post must be unique, engaging, and relevant to the business, with at least two hashtags. "
-        #     "Keep tone friendly, professional, and appealing to Facebook users. "
-        #     "For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. "
-        #     "You are commenting as the post creator to encourage engagement and to add value to the post. "
-        #     "You must not include personal information of the business owner or employees in the posts. "
-        # )
-
-        # if business_details:
-        #     prompt += "Business details for context:\n"
-        #     for key, value in business_details.items():
-        #         prompt += f"- {key}: {value}\n"
-
-        # prompt += (
-        #     "You are to create content focussing on the resume builder service ONLY for this business. "
-        #     "Return output as a JSON list of dictionaries, with the following structures:\n"
-        #     'Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n'
-        #     'Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}\n'
-        #     'Text content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}'
-        # )
         prompt = (
             f"You are a skilled social media content creator for {business_details.get('name', 'the business')}. "
             "Generate 6 Facebook posts for today: 3 text posts, 2 link posts (with caption) and 1 image prompt (with caption- to be used to generate image from grok). "
@@ -238,10 +199,16 @@ class AutomateFacebookPost:
     
     def get_content_prompt(self) -> str:
         custom_prompt = self.__business_info.custom_prompts
-
+        business_name = self.page_name()
+        business_details = ""
+        for key, value in self.__get_business_details.items():
+                business_details += f"- {key}: {value}\n"
+        
         if isinstance(custom_prompt, dict):
-            prompt = custom_prompt.get(self.__business_info.subscription_type)
+            prompt = custom_prompt.get(self.__business_info.subscription_type.lower())
             if prompt:
+                prompt=prompt.replace("**business_details", business_details)
+                prompt=prompt.replace("**business_name", business_name)
                 return prompt
 
         return self.__create_prompt_for_content_generation()
