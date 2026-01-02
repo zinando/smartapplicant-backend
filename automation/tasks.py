@@ -365,10 +365,10 @@ def schedule_facebook_post(self):
                     if tenant.evergreen_content and isinstance(tenant.evergreen_content, list):
                         client.evergreen_content = tenant.evergreen_content
                         client.save(update_fields=['evergreen_content'])
-                if client.custom_prompt and not isinstance(client.custom_prompt, str):
-                    if tenant.custom_prompts and isinstance(tenant.custom_prompts, dict):
-                        client.custom_prompt = tenant.custom_prompts.get('facebook', '')
-                        client.save(update_fields=['custom_prompt'])
+                # if client.custom_prompt and not isinstance(client.custom_prompt, str):
+                #     if tenant.custom_prompts and isinstance(tenant.custom_prompts, dict):
+                #         client.custom_prompt = tenant.custom_prompts.get('facebook', '')
+                #         client.save(update_fields=['custom_prompt'])
             instance = AutomateFacebookPost(page)
             prompt = instance.get_content_prompt()
             contents = client.saved_content or get_structured_data_from_gemini(prompt)  # get content that failed to post or generate new one
