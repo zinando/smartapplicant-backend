@@ -33,7 +33,12 @@ SMARTAPPLICANT = {
     'REDIRECT_URI': os.getenv('WABA_REDIRECT_URI', 'https://apps.smartapplicant.net/facebook/callback/'),
     'PHONE_NUMBER_ID': os.getenv('WHATSAPP_PHONE_NUMBER_ID'),
     'APP_VERSION': os.getenv('WABA_APP_VERSION', 'v24.0'),
-    'PHONE_NUMBER': os.getenv('WABA_PHONE_NUMBER')
+    'PHONE_NUMBER': os.getenv('WABA_PHONE_NUMBER'),
+    'PAGE_AUTOMATION_PRICES': {
+        "txt": int(os.getenv("txt", "10000")),  # default to 10,000 naira
+        "txt-img": int(os.getenv("txt-img", "15000")),  # default to 15,000 naira
+        "txt-img-vid": int(os.getenv("txt-img-vid", "20000")),  # default to 20,000 naira
+    }
 }
 # Facebook Page Data Configuration
 PAGE_DATA = {

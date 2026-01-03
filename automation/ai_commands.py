@@ -6,7 +6,7 @@ from django.utils import timezone
 from datetime import timedelta
 from .mydata import business_info_form_template, business_info
 from .context_manager import save_context
-from typing import List, Dict
+
 
 def add_new_client(page_id:str, platform:str, session_id:str, secret_questions:str):
     """Adds new client to database/automatedclients"""
@@ -20,11 +20,12 @@ def add_new_client(page_id:str, platform:str, session_id:str, secret_questions:s
         if not auth_log:
             raise Exception("no valid facebook page authorization log detected for the given session id")
         payload = json.loads(auth_log.page_access_token_payload)
-        pages = payload['data']
-        target_page = [page for page in pages if str(page['id']) == page_id]
-        if not target_page:
+        if not payload:
+            raise Exception("No page access payload data found.")
+        target_page = payload.get("selected_page_data_payload", {})
+        if not target_page or target_page.get('id') != page_id:
             raise Exception("the given page id was not found in the authorized pages list")
-        page_access_token = target_page[0]['access_token']
+        page_access_token = target_page.get('access_token','')
         if not page_access_token:
             raise Exception("no valid page access token found for the given page id")
         
@@ -56,6 +57,7 @@ def add_new_client(page_id:str, platform:str, session_id:str, secret_questions:s
 
 def message_admin(event:WebhookEvent, message:str, contact:str):
     send_text_reply(event, contact, message)
+
 def register_new_page_for_content_automation(event:WebhookEvent, page_id:str, platform:str, session_id:str, secret_questions:str):
     """pages will be registered under AutomatedClients table using smartapplicant as the tenant"""
     message, form = add_new_client(
@@ -77,34 +79,42 @@ def register_new_page_for_content_automation(event:WebhookEvent, page_id:str, pl
 
 def confirm_payment(event:WebhookEvent, payment_ref:str):
     """Confirms the status of a transaction with a given reference from a customer. Result is shared in the context."""
+    amount = 0
     context_id = f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
     text = f"Confirming payment with reference: {payment_ref}"
     if not payment_ref:
         message = "Payment Amount: -\n"
         message += "Status: No payment reference provided."
     else:
-        message = "Payment Amount: N5000\n"
-        message = "Payment Time: 2025-12-12 04:45:24\n"
+        amount = 10000
+        message = f"Payment Amount: N{amount}\n"
+        message += f"Payment Time: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
         message += "Narration: 1 month subscription for Facebook page content automation\n"
         message += "Status: Successful."
     
     save_context(text, message, context_id)
     send_text_reply(event, event.sender_id, message)
 
-def get_subscription_type(payment_ref):
-    """"""
-    if payment_ref:
-        return 'txt-img'
-    return 'txt'
-def subscribe(subscription_days:int, page_id, payment_ref=''):
+    return amount
+
+def get_subscription_type(amount):
+    """Returns the subscription type based on payment amount"""
+    sub_types = ["txt", "txt-img", "txt-img-vid"]
+    for x in sub_types:
+        price = settings.SMARTAPPLICANT['PAGE_AUTOMATION_PRICES'].get(x)
+        if price and int(amount) == price:
+            return x
+    return 'txt'  # default
+
+def subscribe(subscription_days:int, page_id, amount:int=0):
     """Subscribes for a given number of days for the page_id"""
     allowed_number_of_days = [3, 30]
     message = ''
-    subscription_type = get_subscription_type(payment_ref)
+    subscription_type = get_subscription_type(amount)
     try:
         if subscription_days not in allowed_number_of_days:
             raise Exception(f"{subscription_days} days is not allowed. Only {'days, '.join(allowed_number_of_days)} are allowed.")
-        if not payment_ref and subscription_days > 3:
+        if amount == 0 and subscription_days > 3:
             raise Exception("Payment is required for subscriptions above the 3 day trial period.")
         client = AutomatedClients.objects.filter(client_id=page_id).first()
         client.run_subscription_expiry_check()
@@ -132,10 +142,15 @@ def subscribe(subscription_days:int, page_id, payment_ref=''):
 
 def subscribe_to_post_automation(event: WebhookEvent, subscription_days:int, page_id, payment_ref=''):
     """Subscribes for a given number of days for the page_id"""
+    if payment_ref:
+        amount_paid = confirm_payment(event, payment_ref)
+    else:
+        amount_paid = 0
+
     message = subscribe(
         page_id=page_id,
         subscription_days=subscription_days,
-        payment_ref=payment_ref
+        amount=amount_paid
     )
     context_id = f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
 
@@ -186,6 +201,21 @@ def update_client_info(event:WebhookEvent, biz_info:dict, page_id:str):
 
     save_context("You ran this command for this user: update_client_info. And here is the result:", message, context_id)
     send_text_reply(event, event.sender_id, message)
+
+def get_secret_questions_for_client(event:WebhookEvent, page_id:str):
+    """Retrieves secret questions for a given client page_id"""
+    try:
+        client = AutomatedClients.objects.filter(client_id=page_id).first()
+        if not client:
+            raise Exception(f"Client with ID {page_id} not found.")
+        message = f"Secret Questions for page ID {page_id}:\n{client.secret_questions}"
+    except Exception as e:
+        message = str(e)
+
+    context_id = f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
+
+    save_context("You ran this command for this user: get_secret_questions_for_client. And here is the result:", message, context_id)
+    
     
 def command_map() -> dict:
     return {
@@ -195,4 +225,5 @@ def command_map() -> dict:
         "confirm_payment": confirm_payment,
         "subscribe_to_post_automation": subscribe_to_post_automation,
         "update_client_info": update_client_info,
+        "get_secret_questions_for_client": get_secret_questions_for_client,
     }
