@@ -201,7 +201,7 @@ class AutomateFacebookPost:
         custom_prompt = self.__business_info.custom_prompts
         business_name = self.page_name()
         business_details = ""
-        for key, value in self.__get_business_details.items():
+        for key, value in self.__get_business_details().items():
                 business_details += f"- {key}: {value}\n"
         
         if isinstance(custom_prompt, dict):
