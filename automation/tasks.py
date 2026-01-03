@@ -119,7 +119,7 @@ def trigger_message_processing(self, event_id):
         
         elif event.sender_id in admin_contacts:
             # process admin response to customer enquiry
-            print("processing admin message")
+            # print("processing admin message")
             prompt = process_admin_message(event)
             generate_ai_response.delay(event.id, prompt)
             return
@@ -210,7 +210,7 @@ def generate_ai_response(self, event_id: int, prompt: str):
 
                 if customers:
                     # print("There are messages for customers")
-                    send_text_reply(event, event.sender_id, f"{customer}" )
+                    # send_text_reply(event, event.sender_id, f"{customer}" )
                     # address all the customer enquiry
                     for customer in customers:
                         save_context(
@@ -223,8 +223,8 @@ def generate_ai_response(self, event_id: int, prompt: str):
                         # remove item from pending request
                         request_key = f"{event.tenant.waba_phone_number_id}_{admin_contact}_pending_requests"
                         remove_pending_request(request_key, customer.get("event_id"))
-                else:
-                    send_text_reply(event, event.sender_id, f"{ai_response}")
+                # else:
+                #     send_text_reply(event, event.sender_id, f"{ai_response}")
                 return
                         
             else:

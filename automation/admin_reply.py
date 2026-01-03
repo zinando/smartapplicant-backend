@@ -27,5 +27,5 @@ def process_admin_message(event: WebhookEvent):
     #     "request": req["request"]
     # } for req in pending_requests
     # ]
-    print("there are pending requests")
+    # print("there are pending requests")
     return compose_prompt_to_check_if_pending_request_is_addressed(event, pending_requests)
