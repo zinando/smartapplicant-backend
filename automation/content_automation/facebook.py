@@ -58,31 +58,77 @@ class AutomateFacebookPost:
         self.__send_email(text, email)
     
     def __create_prompt_for_content_generation(self):
+        prompts = {
+                    'txt': """
+                            You are a skilled social media content creator for **business_name.
+                            Generate 6 Facebook posts for today: 4 text posts, and 2 link posts (with caption). If business has no sharable link, return all 6 posts as text posts.
+                            Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
+                            Keep tone friendly, professional, and appealing to Facebook users. 
+                            For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. 
+                            You are commenting as the post creator to encourage engagement and to add value to the post. 
+                            You must not include personal information of the business owner or employees in the posts. 
+
+                            Business details for context:
+                            \n**business_details
+
+                            Return output as a JSON list of dictionaries, with the following structures:\n
+                            Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
+                            Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
+
+                        """.strip(),
+                    'txt-img': """
+                            You are a skilled social media content creator for **business_name.
+                            Generate 6 Facebook posts for today: 3 text posts, 2 link posts (with caption) and 1 image prompt (with caption- to be used to generate image from grok). If business has no sharable link, return 5 text posts and 1 image generation post.
+                            Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
+                            Keep tone friendly, professional, and appealing to Facebook users. 
+                            For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. 
+                            You are commenting as the post creator to encourage engagement and to add value to the post. 
+                            You must not include personal information of the business owner or employees in the posts. 
+
+                            Business details for context:
+                            \n**business_details
+
+                            Return output as a JSON list of dictionaries, with the following structures:\n
+                            Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
+                            Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
+                            Image content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}
+
+                        """.strip(),
+                    'txt-img-vid': """
+                            You are a skilled social media content creator for **business_name.
+                            Generate 6 Facebook posts for today: 3 text posts, 1 link posts (with caption), 1 image prompt (with caption- to be used to generate image from grok) and 1 video generation prompt (with caption- to be used to generate video from veo).
+                            If business has no sharable link, return all 4 text posts, 1 image post, and 1 video post.
+                            Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
+                            Keep tone friendly, professional, and appealing to Facebook users. 
+                            For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. 
+                            You are commenting as the post creator to encourage engagement and to add value to the post. 
+                            You must not include personal information of the business owner or employees in the posts. 
+
+                            Business details for context:
+                            \n**business_details
+
+                            Return output as a JSON list of dictionaries, with the following structures:\n
+                            Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
+                            Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
+                            Image content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}
+                            Video content type - {"content": "<video generation prompt>", "caption": "<Text to be posted with the video>", "content_type": "video", "comments": "<List of 4 or more unique text comments to buttress the post>"}
+                        """.strip()
+                }
         business_details = self.__get_business_details()
         if not business_details:
             logger.warning("No business details found for content generation prompt.")
             return ""
-        prompt = (
-            f"You are a skilled social media content creator for {business_details.get('name', 'the business')}. "
-            "Generate 6 Facebook posts for today: 3 text posts, 2 link posts (with caption) and 1 image prompt (with caption- to be used to generate image from grok). "
-            "Each post must be unique, engaging, and relevant to the business, with at least two hashtags. "
-            "Keep tone friendly, professional, and appealing to Facebook users. "
-            "For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. "
-            "You are commenting as the post creator to encourage engagement and to add value to the post. "
-            "You must not include personal information of the business owner or employees in the posts. "
-        )
+        sub_type = self.__business_info.subscription_type.lower()
+        prompt = prompts.get(sub_type, prompts['txt'])
+        details_str = ""
+        business_name = self.page_name()
 
         if business_details:
-            prompt += "Business details for context:\n"
+            details_str += "Business details for context:\n"
             for key, value in business_details.items():
-                prompt += f"- {key}: {value}\n"
-
-        prompt += (
-            "Return output as a JSON list of dictionaries, with the following structures:\n"
-            'Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n'
-            'Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}'
-            'Image content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}'
-        )
+                details_str += f"- {key}: {value}\n"
+        prompt = prompt.replace("**business_details", details_str)
+        prompt = prompt.replace("**business_name", business_name)
 
         return prompt
     
