@@ -17,7 +17,7 @@ legend = """
 
 - command : update_client_info
 * description : update the business details of automated clients for facebook page post automation
-* params : biz_nfo (dict), page_id (str) 
+* params : biz_info (dict), page_id (str) 
 
 - command : confirm_payment
 * description : confirms the status of any transaction with a payment reference
