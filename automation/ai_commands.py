@@ -139,7 +139,7 @@ def subscribe(subscription_days:int, page_id, amount:int=0):
         else:
             client.subscribed = True
             client.subscription_type = subscription_type
-            client.subscription_expires_at = timedelta(days=subscription_days)
+            client.subscription_expires_at = timezone.now() + timedelta(days=subscription_days)
             client.save(update_fields=['subscription_expires_at', 'subscription_type', 'subscribed'])
             message = f'Client Subscription was successful. Subscription expiry date is {client.subscription_expires_at.strftime("%d-%m-%Y")}.'
     except Exception as e:
