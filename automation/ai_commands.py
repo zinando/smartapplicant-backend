@@ -116,10 +116,18 @@ def subscribe(subscription_days:int, page_id, amount:int=0):
             raise Exception(f"{subscription_days} days is not allowed. Only {'days, '.join(allowed_number_of_days)} are allowed.")
         if amount == 0 and subscription_days > 3:
             raise Exception("Payment is required for subscriptions above the 3 day trial period.")
+        
         client = AutomatedClients.objects.filter(client_id=page_id).first()
+        if not client:
+            raise Exception(f"Client with ID {page_id} not found.")
+        
+        # check if client has business details
+        if not client.business_details:
+            raise Exception("Client must update business information before subscribing to a plan.")
+        
         client.run_subscription_expiry_check()
         if client.subscribed:
-            # client has active subscription. check if it'd expeire in three days time, then top it up with current sub
+            # client has active subscription. check if it'd expire in three days time, then top it up with current sub
             if subscription_days > 3 and (timezone.now() + timedelta(days=3)) >= client.subscription_expires_at: # if sub will expire in days time and new sub is non three day sub
                 client.subscription_expires_at += timedelta(days=subscription_days)
                 client.subscription_type = subscription_type
@@ -177,8 +185,14 @@ def update_info_for_client(biz_info:dict, page_id:str):
                     default_value = ''
                 info[key] = biz_info.get(key, default_value)
             client.business_details = info
+            # subscribe for the page
+            sub_message = subscribe(
+                page_id=page_id,
+                subscription_days=3,
+                amount=0
+            )
             client.save(update_fields=["business_details"])
-            message = f"Buiness info was created successfully."
+            message = f"Buiness info was created successfully.\n{sub_message}"
         else:
             for key in business_info.keys():
                 info[key] = biz_info.get(key, client_info.get(key))
@@ -215,8 +229,57 @@ def get_secret_questions_for_client(event:WebhookEvent, page_id:str):
     context_id = f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
 
     save_context("You ran this command for this user: get_secret_questions_for_client. And here is the result:", message, context_id)
+
+def update_secret_questions(page_id:str, secret_questions:str):
+    """Updates secret questions for a given client page_id"""
+    try:
+        client = AutomatedClients.objects.filter(client_id=page_id).first()
+        if not client:
+            raise Exception(f"Client with ID {page_id} not found.")
+        client.secret_questions = secret_questions
+        client.save(update_fields=["secret_questions"])
+        message = f"Secret Questions for page ID {page_id} have been updated successfully."
+    except Exception as e:
+        message = str(e)
+    return message
+
+def update_secret_questions_for_client(event:WebhookEvent, page_id:str, secret_questions:str):
+    message = update_secret_questions(
+        page_id=page_id,
+        secret_questions=secret_questions
+    )
+    context_id = f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
+
+    save_context("You ran this command for this user: update_secret_questions_for_client. And here is the result:", message, context_id)
+    send_text_reply(event, event.sender_id, message)
     
-    
+def get_subscription_expiry(page_id:str):
+    """Checks and returns subscription expiry status for a given client page_id"""
+    message = ''
+    try:
+        client = AutomatedClients.objects.filter(client_id=page_id).first()
+        if not client:
+            raise Exception(f"Client with ID {page_id} not found.")
+        client.run_subscription_expiry_check()
+        if client.subscribed:
+            message = f"Client with ID {page_id} has an active subscription that will expire on {client.subscription_expires_at.strftime('%d-%m-%Y')}. You can extend your subscription when it is 3 days or less to the expiry date to avoid service interruption."
+        else:
+            if client.subscription_expires_at:
+                message = f"Client with ID {page_id} had a subscription that expired on {client.subscription_expires_at.strftime('%d-%m-%Y')}."
+            else:
+                message = f"Client with ID {page_id} has never been subscribed. You can enjoy a 3-day trial period upon request."
+    except Exception as e:
+        message = str(e)
+    return message
+
+def check_subscription_expiry(event:WebhookEvent, page_id:str):
+    """Checks and returns subscription expiry status for a given client page_id"""
+    message = get_subscription_expiry(page_id=page_id)
+    context_id = f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
+
+    save_context("You ran this command for this user: check_subscription_expiry. And here is the result:", message, context_id)
+    send_text_reply(event, event.sender_id, message)
+
 def command_map() -> dict:
     return {
         "send_message_to_admin": message_admin,
@@ -226,4 +289,6 @@ def command_map() -> dict:
         "subscribe_to_post_automation": subscribe_to_post_automation,
         "update_client_info": update_client_info,
         "get_secret_questions_for_client": get_secret_questions_for_client,
+        "update_secret_questions_for_client": update_secret_questions_for_client,
+        "check_subscription_expiry": check_subscription_expiry,
     }

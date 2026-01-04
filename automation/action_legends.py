@@ -25,6 +25,13 @@ legend = """
 
 - command : get_secret_questions_for_client
 * description : retrieves the secret questions set by the client and put them in context for AI use only. User must not be shown. Run this command before you update anything on the customer's record, then follow it with a message to the customer asking them if they are ready to answer their secret question. Their response will put the questions and answers in context.
-* params : page_id (str)
+* params : page_id (str)3
 
+- command : update_secret_questions_for_client
+* description : update the secret questions for a client after successful authentication. Ask the customer to provide answers to at least two of the questions correctly before you run this command. Also find if they want to update some or all the secret questions.
+* params : page_id (str), secret_questions (str - E.g Q1: What is your mother's maiden name? A1: xxxx. Q2: What is your best friend's name in secondary school? A2: xxxx.)
+
+- command : check_subscription_expiry
+* description : checks if the subscription for a client is expired and updates the status accordingly
+* params : page_id (str)
 """.strip()
