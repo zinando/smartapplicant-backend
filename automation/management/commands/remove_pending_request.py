@@ -1,8 +1,9 @@
 from django.core.management.base import BaseCommand
 from automation.helpers import remove_pending_request, get_pending_requests
+from django.conf import settings
 
-request_key = ''
-request_id = ''
+request_key = f"{settings.SMARTAPPLICANT.get('PHONE_NUMBER_ID')}_{str(2347031104270)}_pending_requests"
+request_id = 92
 
 class Command(BaseCommand):
     help = "Remove a pending request"
@@ -12,7 +13,7 @@ class Command(BaseCommand):
         # check if removal was successful
         requests = get_pending_requests(request_key)
         for req in requests:
-            if req.get('request_id') == request_id:
+            if str(req.get('event_id')) == str(request_id):
                 self.stdout.write(f"Failed to remove pending request with ID: {request_id}")
                 break
         else:

@@ -58,10 +58,13 @@ def get_pending_requests(key):
     return get_cache(key) or []
 
 def remove_pending_request(key, event_id):
-    """Removes pending request from cache"""
-    items = get_pending_requests(key)
-    if items:
-        new_items = [my for my in items if str(my['event_id']) != str(event_id)]
-        save_cache(key, new_items)
-        return f'pending request with event id {event_id} removed from list.'
-    return ''
+    items = get_pending_requests(key) or []
+    
+    original_len = len(items)
+    new_items = [my for my in items if str(my.get("event_id")) != str(event_id)]
+
+    if len(new_items) == original_len:
+        return f"No pending request with event id {event_id} found."
+
+    save_cache(key, new_items)
+    return f"Pending request with event id {event_id} removed from list."
