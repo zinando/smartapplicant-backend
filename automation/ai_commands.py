@@ -6,6 +6,7 @@ from django.utils import timezone
 from datetime import timedelta
 from .mydata import business_info_form_template, business_info
 from .context_manager import save_context
+from .helpers import remove_pending_request
 
 
 def add_new_client(page_id:str, platform:str, session_id:str, secret_questions:str):
@@ -145,8 +146,7 @@ def subscribe(subscription_days:int, page_id, amount:int=0):
     except Exception as e:
         message = str(e)
 
-    return message
-    
+    return message   
 
 def subscribe_to_post_automation(event: WebhookEvent, subscription_days:int, page_id, payment_ref=''):
     """Subscribes for a given number of days for the page_id"""
@@ -280,6 +280,23 @@ def check_subscription_expiry(event:WebhookEvent, page_id:str):
     save_context("You ran this command for this user: check_subscription_expiry. And here is the result:", message, context_id)
     send_text_reply(event, event.sender_id, message)
 
+def close_pending_requests(event:WebhookEvent, request_ids:list):
+    """Closes pending requests that have been fully addressed by the business admin"""
+    message = ''
+    try:
+        if not request_ids:
+            raise Exception("No request IDs provided.")
+        request_key = f"{event.tenant.waba_phone_number_id}_{event.sender_id}_pending_requests"
+        for id in request_ids:
+            result = remove_pending_request(request_key, id)
+            if result:
+                message += f"{result}\n"
+    except Exception as e:
+        message = str(e)
+    context_id = f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
+    save_context("You ran this command for this user: close_pending_requests. And here is the result:", message, context_id)
+    send_text_reply(event, event.sender_id, message)
+    
 def command_map() -> dict:
     return {
         "send_message_to_admin": message_admin,
@@ -291,4 +308,5 @@ def command_map() -> dict:
         "get_secret_questions_for_client": get_secret_questions_for_client,
         "update_secret_questions_for_client": update_secret_questions_for_client,
         "check_subscription_expiry": check_subscription_expiry,
+        "close_pending_requests": close_pending_requests,
     }

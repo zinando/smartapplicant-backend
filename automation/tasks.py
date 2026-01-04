@@ -187,8 +187,8 @@ def generate_ai_response(self, event_id: int, prompt: str):
             send_text_reply(event,event.sender_id, message)
         elif ai_response.get("status") == 0:
             # Needs admin attention
-            # send_text_reply(event, event.sender_id, "status is 0" )
             details = ai_response.get("message", {})
+            actions = ai_response.get("actions", [])
             if "admin" in details and "customers" in details:
                 """This is response addressing constomer enquiries using admin input"""
                 # send_text_reply(event, event.sender_id, "message structure is good" )
@@ -223,10 +223,30 @@ def generate_ai_response(self, event_id: int, prompt: str):
                         # remove item from pending request
                         request_key = f"{event.tenant.waba_phone_number_id}_{admin_contact}_pending_requests"
                         remove_pending_request(request_key, customer.get("event_id"))
-                # else:
-                #     send_text_reply(event, event.sender_id, f"{ai_response}")
-                return
+                
+                if actions and isinstance(actions, list):
+                    for action in actions:
+                        command = action.get("command")
+                        params = action.get("params", {})
                         
+                        try:
+                            map = customer_command_map()
+                            func = map.get(command)
+                            func(event, **params)
+                            
+                        except Exception as e:
+                            # Save context for customer
+                            save_context(
+                                text=event.message,
+                                response=f"Sorry i could not carry out this action: {command}",
+                                context_id=f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
+                            )
+                            
+                            # Notify sender
+                            send_text_reply(event, event.sender_id, f"Sorry i could not carry out this action: {command} due to \n{e}. Let me know if there is anything else i could do for you.")
+        
+                return
+            
             else:
                 admin_contact = details.get("admin_contact")
                 request = details.get("request")

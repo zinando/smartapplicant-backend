@@ -35,3 +35,9 @@ legend = """
 * description : checks if the subscription for a client is expired and updates the status accordingly
 * params : page_id (str)
 """.strip()
+
+admin_legend = """
+- command : close_pending_requests
+* description : use this command to close pending requests that have been fully addressed by the business admin
+* params : request_ids (list of str)
+""".strip()

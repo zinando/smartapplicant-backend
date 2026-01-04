@@ -64,3 +64,4 @@ def remove_pending_request(key, event_id):
         new_items = [my for my in items if my['event_id'] != event_id]
         save_cache(key, new_items)
         return f'pending request with event id {event_id} removed from list.'
+    return ''

@@ -1,6 +1,6 @@
 from .context_manager import get_context
 from .models import WebhookEvent
-from .action_legends import legend
+from .action_legends import legend, admin_legend
 from .how_to import how_to
 
 def compose_customer_text_reply_prompt(event: WebhookEvent):
@@ -110,26 +110,38 @@ def compose_prompt_to_check_if_pending_request_is_addressed(event: WebhookEvent,
 
                 ### Output Format (MUST be JSON)
                 {{
-                "status": 0,
-                "type": "text or media (message format)",
-                "message": {{
-                    "admin": {{
-                        "response": str (message to admin summarizing which requests have been addressed and which still need attention),
-                        "admin_contact": str (admin phone number)
+                    "status": 0,
+                    "type": "text or media (message format)",
+                    "message": {{
+                        "admin": {{
+                            "response": str (message to admin summarizing which requests have been addressed and which still need attention),
+                            "admin_contact": str (admin phone number)
+                        }},
+                        "customers": [
+                            {{
+                                "event_id": str (event id from the pending customer request),
+                                "request": str (the customer's original request unaltered),
+                                "response": str (response to send to the customer),
+                                "to": str (customer_id which is the customer's phone number)
+                            }} # for each addressed request
+                        ]
                     }},
-                    "customers": [
+                    "actions": [
                         {{
-                            "event_id": str (event id from the pending customer request),
-                            "request": str (the customer's original request unaltered),
-                            "response": str (response to send to the customer),
-                            "to": str (customer_id which is the customer's phone number)
-                        }} # for each addressed request
+                            "command": "function title e.g send_message_to_admin",
+                            "params": {{
+                                "message":"Summary of your conversation with customer, and the question you want the admin to answer",
+                                "contact":"Admin number from business info: e.g 234701104270",
+                            }}
+                        }}
                     ]
                 }}
-                }}
-                * ALWAYS RETURN THE TWO KEYS: 'admin' and 'customers'. But one of them may have empty value at any time if necessary.
+                * ALWAYS RETURN THE THREE KEYS: 'admin', 'customers' and 'actions'. But some of them may have empty value at any time if necessary.
                 * ALWAYS BE SURE OF WHICH PENDING REQUEST THE ADMIN MESSAGE ADDRESSES. IF NOT SURE, RETURN ONLY ADMIN MESSAGE AND ASK THEM FOR CLARIFICATION BEFORE YOU ADDRESS ANY PENDING REQUEST
                 * ALL YOUR RESPONSES MUST STRICTLY FOLLOW THE ABOVE STRUCTURE OTHERWISE IT WON'T BE PROCESSED
+                
+                ### Actions Legend
+                {admin_legend}
 
                 Return only `status: 0`.
     """.strip()
