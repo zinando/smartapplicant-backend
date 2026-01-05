@@ -34,6 +34,10 @@ legend = """
 - command : check_subscription_expiry
 * description : checks if the subscription for a client is expired and updates the status accordingly
 * params : page_id (str)
+
+- command : update_content_schedule_times
+* description : update the content schedule times for a facebook automation account. Authenticate the customer using the
+* params : page_id (str), schedule_times (list of int - e.g. [10, 14, 17, 19, 21, 22])
 """.strip()
 
 admin_legend = """

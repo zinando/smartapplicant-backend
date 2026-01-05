@@ -296,7 +296,24 @@ def close_pending_requests(event:WebhookEvent, request_ids:list):
     context_id = f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
     save_context("You ran this command for this user: close_pending_requests. And here is the result:", message, context_id)
     send_text_reply(event, event.sender_id, message)
+
+def update_content_schedule_times(event:WebhookEvent, page_id:str, schedule_times:list[int]):
+    """Updates content schedule times for a given client page_id"""
+    message = ''
+    try:
+        client = AutomatedClients.objects.filter(client_id=page_id).first()
+        if not client:
+            raise Exception(f"Client with ID {page_id} not found.")
+        client.content_schedule_times = schedule_times
+        client.save(update_fields=["content_schedule_times"])
+        message = f"Content schedule times for page ID {page_id} have been updated successfully."
+    except Exception as e:
+        message = str(e)
     
+    context_id = f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
+    save_context("You ran this command for this user: update_content_schedule_times. And here is the result:", message, context_id)
+    send_text_reply(event, event.sender_id, message)    
+
 def command_map() -> dict:
     return {
         "send_message_to_admin": message_admin,
@@ -309,4 +326,5 @@ def command_map() -> dict:
         "update_secret_questions_for_client": update_secret_questions_for_client,
         "check_subscription_expiry": check_subscription_expiry,
         "close_pending_requests": close_pending_requests,
+        "update_content_schedule_times": update_content_schedule_times,
     }
