@@ -107,8 +107,10 @@ def get_subscription_type(amount):
             return x
     return 'txt'  # default
 
-def subscribe(subscription_days:int, page_id, amount:int=0):
+def subscribe(subscription_days:int, page_id, amount:int=0, method:str='auto'):
     """Subscribes for a given number of days for the page_id"""
+    if subscription_days > 3 and method == 'auto':
+        return # monthly subscription is done mannual for now
     allowed_number_of_days = [3, 30]
     message = ''
     subscription_type = get_subscription_type(amount)
