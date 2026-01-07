@@ -20,6 +20,7 @@ business_info = {
         'image_links': "",
         'business_links': "1. official website: https://smartapplicant.net\n2. scan resume for ATS compatibility score: https://smartapplicant.net/#analyze\n3. resume builder: https://smartapplicant.net/new_resume\n4. login/signup: https://smartapplicant.net/login\n5. pricing page: https://smartapplicant.net/premium\n6. signup for facebook post automation service: https://smartapplicant.net/facebook_login/",
         'secret_questions': "Q: Mother's maiden name? A: Isietu. Q: Best friend's name in Logiss (my secondary school)? A: Ikechukwu Nnadilim. Q: last primary school attended? A: Pioneer Primary School, Edenta, Awo-Idemili, Imo State.",
+        'other_info': "",
         'last_updated': "2025-06-10",
         'notes': notes
     }
@@ -72,10 +73,13 @@ business_info_form_template = """"
     # secret_questions
     * List of at least two secret questions with answers for authentication when using customer service here (these should not be revealed to anyone)
 
+    # other_info
+    * Any other relevant information about your business not covered in the sections above
+
     # last_updated
     * Date when this business information was last updated (format: YYYY-MM-DD)
 
-    <<<<<<<<<<<<<<<<<<<<<<<<<< How To Fill The Form >>>>>>>>>>>>>>>>>>>>>>
+    <<<<<<<<<<<<<<<<<<<<<<<<<< How To Fill The Form >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         Copy the entire text and paste into your typing area.
         Replace each section that has "*" mark with your business information.
         You can use multiple lines for each section if necessary, ensuring each line starts with "*".
