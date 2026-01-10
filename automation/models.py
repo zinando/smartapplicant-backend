@@ -95,6 +95,7 @@ class AutomatedClients(models.Model):
         ],
         default="txt"
     )
+    business_assets = models.JSONField(null=True, blank=True)  # store business assets like images and videos E.G ["str1", "str2"]
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -38,6 +38,14 @@ legend = """
 - command : update_content_schedule_times
 * description : update the content schedule times for a facebook automation account. Authenticate the customer using the
 * params : page_id (str), schedule_times (list of int - e.g. [10, 14, 17, 19, 21, 22])
+
+- command : add_assets_for_client
+* description : add new business assets for a facebook automation client. Authenticate the customer using the secret
+* params : page_id (str), assets (list of multiline str showing: asset url, asset description - e.g. ["url: https://example.com/image1.jpg, description: Image of our new product"])
+
+- command : remove_assets_for_client
+* description : remove business assets for a facebook automation client. Authenticate the customer using the secret questions first before running this command.
+* params : page_id (str), assets (list of asset urls to be removed - e.g. ["https://example.com/image1.jpg", "https://example.com/video1.mp4"])
 """.strip()
 
 admin_legend = """

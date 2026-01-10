@@ -75,6 +75,7 @@ class AutomateFacebookPost:
                             Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
                             Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
 
+                            NOTE: ONLY RETURN LINK POSTS IF THE BUSINESS HAS A WEBSITE AND SHARABLE LINKS.
                         """.strip(),
                     'txt-img': """
                             You are a skilled social media content creator for **business_name.
@@ -92,7 +93,8 @@ class AutomateFacebookPost:
                             Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
                             Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
                             Image content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}
-
+                            
+                            NOTE: ONLY RETURN LINK POSTS IF THE BUSINESS HAS A WEBSITE AND SHARABLE LINKS.
                         """.strip(),
                     'txt-img-vid': """
                             You are a skilled social media content creator for **business_name.
@@ -112,6 +114,8 @@ class AutomateFacebookPost:
                             Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
                             Image content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}
                             Video content type - {"content": "<video generation prompt>", "caption": "<Text to be posted with the video>", "content_type": "video", "comments": "<List of 4 or more unique text comments to buttress the post>"}
+
+                            NOTE: ONLY RETURN LINK POSTS IF THE BUSINESS HAS A WEBSITE AND SHARABLE LINKS.
                         """.strip()
                 }
         business_details = self.__get_business_details()

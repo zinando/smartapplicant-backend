@@ -316,6 +316,68 @@ def update_content_schedule_times(event:WebhookEvent, page_id:str, schedule_time
     save_context("You ran this command for this user: update_content_schedule_times. And here is the result:", message, context_id)
     send_text_reply(event, event.sender_id, message)    
 
+def add_asset(page_id:str, asset:list):
+    """Adds business asset(s) to the client business assets list"""
+    message = ''
+    try:
+        client = AutomatedClients.objects.filter(client_id=page_id).first()
+        if not client:
+            raise Exception(f"Client with ID {page_id} not found.")
+        assets = client.business_assets or []
+        for a in asset:
+            if a not in assets:
+                assets.append(a)
+        client.business_assets = assets
+        client.save(update_fields=["business_assets"])
+        message = f"Business asset(s) have been added successfully for page ID {page_id}."
+    except Exception as e:
+        message = str(e)
+    return message
+
+def add_assets_for_client(event:WebhookEvent, page_id:str, assets:list):
+    """Adds business asset(s) to the client business assets list"""
+    message = add_asset(
+        page_id=page_id,
+        asset=assets
+    )
+    context_id = f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
+
+    save_context("You ran this command for this user: add_assets_for_client. And here is the result:", message, context_id)
+    send_text_reply(event, event.sender_id, message)
+
+def remove_assets(page_id:str, asset:list):
+    """Removes business asset(s) from the client business assets list using the asset urls"""
+    message = ''
+    try:
+        client = AutomatedClients.objects.filter(client_id=page_id).first()
+        if not client:
+            raise Exception(f"Client with ID {page_id} not found.")
+        assets = client.business_assets or []
+        for a in asset:
+            target_asset = [x for x in assets if x.contains(a)]
+            if target_asset:
+                assets.remove(target_asset[0])
+                message += f"Asset {a} has been removed successfully for page ID {page_id}.\n"
+                break
+            else:
+                message += f"Asset {a} not found in business assets list for page ID {page_id}.\n"
+        client.business_assets = assets
+        client.save(update_fields=["business_assets"])
+    except Exception as e:
+        message = str(e)
+    return message
+
+def remove_assets_for_client(event:WebhookEvent, page_id:str, assets:list):
+    """Removes business asset(s) from the client business assets list using the asset urls"""
+    message = remove_assets(
+        page_id=page_id,
+        asset=assets
+    )
+    context_id = f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
+
+    save_context("You ran this command for this user: remove_assets_for_client. And here is the result:", message, context_id)
+    send_text_reply(event, event.sender_id, message)
+
 def command_map() -> dict:
     return {
         "send_message_to_admin": message_admin,
@@ -329,4 +391,6 @@ def command_map() -> dict:
         "check_subscription_expiry": check_subscription_expiry,
         "close_pending_requests": close_pending_requests,
         "update_content_schedule_times": update_content_schedule_times,
+        "add_assets_for_client": add_assets_for_client,
+        "remove_assets_for_client": remove_assets_for_client,
     }
