@@ -41,7 +41,7 @@ legend = """
 
 - command : add_assets_for_client
 * description : add new business assets for a facebook automation client. Authenticate the customer using the secret
-* params : page_id (str), assets (list of multiline str showing: asset url, asset description - e.g. ["url: https://example.com/image1.jpg, description: Image of our new product"])
+* params : page_id (str), assets (list of multiline str showing: asset media type, asset url, asset description - e.g. ["media type: image, url: https://example.com/image1.jpg, description: Image of our new product"])
 
 - command : remove_assets_for_client
 * description : remove business assets for a facebook automation client. Authenticate the customer using the secret questions first before running this command.
