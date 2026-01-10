@@ -354,7 +354,7 @@ def remove_assets(page_id:str, asset:list):
             raise Exception(f"Client with ID {page_id} not found.")
         assets = client.business_assets or []
         for a in asset:
-            target_asset = [x for x in assets if x.contains(a)]
+            target_asset = [x for x in assets if a in x]
             if target_asset:
                 assets.remove(target_asset[0])
                 message += f"Asset {a} has been removed successfully for page ID {page_id}.\n"
