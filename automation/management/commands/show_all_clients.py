@@ -29,5 +29,6 @@ class Command(BaseCommand):
                 custom_prompts: \n{client.custom_prompts}
                 saved_content: \n{client.saved_content}
                 secret_questions: \n{client.secret_questions}
+                Business Assets: \n\n{"***\n".join(client.business_assets) if client.business_assets else None}
                 <<<----------------------------END----------------------------------->>>\n\n
             """)

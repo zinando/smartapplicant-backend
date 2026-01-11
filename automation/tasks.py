@@ -9,7 +9,7 @@ from .admin_commands import process_admin_command
 from .admin_reply import process_admin_message
 from .customer_reply import process_customer_message
 from .messaging import send_text_reply, send_media_reply
-from api.ai import get_structured_data_from_gemini, get_image_from_grok
+from api.ai import get_image_from_grok, get_structured_data_from_gemini_smart
 from .context_manager import save_context
 from .content_automation.facebook import AutomateFacebookPost
 import time
@@ -147,7 +147,7 @@ def generate_ai_response(self, event_id: int, prompt: str):
     event = WebhookEvent.objects.get(id=event_id)
     try:
         logger.info(f"Generating AI response for event {event.id}")
-        ai_response = get_structured_data_from_gemini(prompt)
+        ai_response = get_structured_data_from_gemini_smart(prompt)
         print(f"AI Response: {ai_response}")
 
         context_id = f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
@@ -391,7 +391,7 @@ def schedule_facebook_post(self):
                 #         client.save(update_fields=['custom_prompt'])
             instance = AutomateFacebookPost(page)
             prompt = instance.get_content_prompt()
-            contents = client.saved_content or get_structured_data_from_gemini(prompt)  # get content that failed to post or generate new one
+            contents = client.saved_content or get_structured_data_from_gemini_smart(prompt)  # get content that failed to post or generate new one
             # logger.info(f"Gemini contents:\n{contents}")
             if not contents or len(contents) == 0:
                 logger.warning(f"No content generated for Facebook page {page}")

@@ -5,15 +5,157 @@ import requests
 import base64
 from django.conf import settings
 from xai_sdk import Client
+from time import time
 
 # Load environment variables
-load_dotenv()
+load_dotenv(override=True)
+
+COOLDOWN = 60 * 60  # 1 hour cooldown between requests per user
+blocked = {}  # (model, key) → timestamp
 
 client = Client(
     api_key=settings.GROK_API_KEY,
     timeout=3600
 )
 
+GEMMA_MODEL_KEY_POOL = {
+    "gemma-3-1b-it": [
+        os.getenv("GEMENAI_API_KEY_2"),
+        os.getenv("GEMENAI_API_KEY_3"),
+        os.getenv("GEMENAI_API_KEY_4"),
+        os.getenv("GEMENAI_API_KEY_5"),
+        os.getenv("GEMENAI_API_KEY_6"),
+        os.getenv("GEMENAI_API_KEY_7"),
+        os.getenv("GEMENAI_API_KEY_8"),
+        os.getenv("GEMENAI_API_KEY_9"),
+        os.getenv("GEMENAI_API_KEY_10"),
+        os.getenv("GEMENAI_API_KEY_11"),
+        os.getenv("GEMENAI_API_KEY_12"),
+        os.getenv("GEMENAI_API_KEY_13")
+    ],
+    "gemma-3-12b-it": [
+        os.getenv("GEMENAI_API_KEY_2"),
+        os.getenv("GEMENAI_API_KEY_3"),
+        os.getenv("GEMENAI_API_KEY_4"),
+        os.getenv("GEMENAI_API_KEY_5"),
+        os.getenv("GEMENAI_API_KEY_6"),
+        os.getenv("GEMENAI_API_KEY_7"),
+        os.getenv("GEMENAI_API_KEY_8"),
+        os.getenv("GEMENAI_API_KEY_9"),
+        os.getenv("GEMENAI_API_KEY_10"),
+        os.getenv("GEMENAI_API_KEY_11"),
+        os.getenv("GEMENAI_API_KEY_12"),
+        os.getenv("GEMENAI_API_KEY_13")
+    ],
+    "gemma-3-27b-it": [
+        os.getenv("GEMENAI_API_KEY_2"),
+        os.getenv("GEMENAI_API_KEY_3"),
+        os.getenv("GEMENAI_API_KEY_4"),
+        os.getenv("GEMENAI_API_KEY_5"),
+        os.getenv("GEMENAI_API_KEY_6"),
+        os.getenv("GEMENAI_API_KEY_7"),
+        os.getenv("GEMENAI_API_KEY_8"),
+        os.getenv("GEMENAI_API_KEY_9"),
+        os.getenv("GEMENAI_API_KEY_10"),
+        os.getenv("GEMENAI_API_KEY_11"),
+        os.getenv("GEMENAI_API_KEY_12"),
+        os.getenv("GEMENAI_API_KEY_13")
+    ],
+    "gemini-flash-latest": [
+        os.getenv("GEMENAI_API_KEY_2"),
+        os.getenv("GEMENAI_API_KEY_3"),
+        os.getenv("GEMENAI_API_KEY_4"),
+        os.getenv("GEMENAI_API_KEY_5"),
+        os.getenv("GEMENAI_API_KEY_6"),
+        os.getenv("GEMENAI_API_KEY_7"),
+        os.getenv("GEMENAI_API_KEY_8"),
+        os.getenv("GEMENAI_API_KEY_9"),
+        os.getenv("GEMENAI_API_KEY_10"),
+        os.getenv("GEMENAI_API_KEY_11"),
+        os.getenv("GEMENAI_API_KEY_12"),
+        os.getenv("GEMENAI_API_KEY_13")
+    ],
+    "gemini-flash-lite-latest": [
+        os.getenv("GEMENAI_API_KEY_2"),
+        os.getenv("GEMENAI_API_KEY_3"),
+        os.getenv("GEMENAI_API_KEY_4"),
+        os.getenv("GEMENAI_API_KEY_5"),
+        os.getenv("GEMENAI_API_KEY_6"),
+        os.getenv("GEMENAI_API_KEY_7"),
+        os.getenv("GEMENAI_API_KEY_8"),
+        os.getenv("GEMENAI_API_KEY_9"),
+        os.getenv("GEMENAI_API_KEY_10"),
+        os.getenv("GEMENAI_API_KEY_11"),
+        os.getenv("GEMENAI_API_KEY_12"),
+        os.getenv("GEMENAI_API_KEY_13")
+    ]
+}
+
+FLASH_MODEL_KEY_POOL = {
+    "gemini-flash-latest": [
+        os.getenv("GEMENAI_API_KEY"),
+        os.getenv("GEMENAI_API_KEY_2"),
+        os.getenv("GEMENAI_API_KEY_3"),
+        os.getenv("GEMENAI_API_KEY_4"),
+    ],
+    "gemini-flash-lite-latest": [
+        os.getenv("GEMENAI_API_KEY"),
+        os.getenv("GEMENAI_API_KEY_2"),
+        os.getenv("GEMENAI_API_KEY_3"),
+        os.getenv("GEMENAI_API_KEY_4"),
+    ]
+}
+
+def is_blocked(model, key):
+    if (model, key) not in blocked:
+        return False
+    return time() - blocked[(model, key)] < COOLDOWN
+
+def block(model, key):
+    blocked[(model, key)] = time()
+
+def try_call(model, api_key, prompt):
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    headers = {"Content-Type": "application/json"}
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}]
+    }
+    print(f"Calling Gemini model {model} with key {api_key}")
+
+    r = requests.post(url, headers=headers, json=payload, timeout=60)
+
+    if r.status_code == 200:
+        data = r.json()
+        return data["candidates"][0]["content"]["parts"][0]["text"], 200
+    
+    print(f"Gemini call failed with status {r.status_code}: {r.text}")
+
+    return None, r.status_code
+
+def call_gemini_smart(prompt):
+    """Use for text-based content that do not require structured response."""
+    try:
+        for model, keys in GEMMA_MODEL_KEY_POOL.items():
+            for key in keys:
+                if is_blocked(model, key):
+                    continue
+
+                response, status = try_call(model, key, prompt)
+
+                if status == 200:
+                    return response
+
+                if status in (403, 429):
+                    block(model, key)
+                    continue
+
+                # real error
+                raise Exception("Fatal Gemini error")
+
+        raise Exception("All Gemini capacity exhausted")
+    except Exception as e:
+        print(f"Error calling Gemini: {e}")
+        return ""
 
 # context = {}
 def get_available_models() -> list[str]:
@@ -325,7 +467,23 @@ def get_structured_data_from_gemini(prompt: str):
         response = json.loads(text)
     except Exception as e:
         print(f'Error parsing Gemini response: {e}')
-        response = ''
+        message = f'Gemini response: {e}'
+        response = {'error': message}
+    
+    return response
+
+def get_structured_data_from_gemini_smart(prompt: str):
+    """This method will call gemini api directly and return the structured data."""
+    response = ''
+    try:
+        text = call_gemini_smart(prompt)
+        text = text.replace('```json', '')
+        text = text.replace('```', '')
+        response = json.loads(text)
+    except Exception as e:
+        print(f'Error parsing Gemini response: {e}')
+        message = f'Gemini response: {e}'
+        response = {'error': message}
     
     return response
 
