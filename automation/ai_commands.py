@@ -116,7 +116,7 @@ def subscribe(subscription_days:int, page_id, amount:int=0, method:str='auto'):
     subscription_type = get_subscription_type(amount)
     try:
         if subscription_days not in allowed_number_of_days:
-            raise Exception(f"{subscription_days} days is not allowed. Only {'days, '.join(allowed_number_of_days)} are allowed.")
+            raise Exception(f"{subscription_days} days is not allowed. Only {', '.join(map(str, allowed_number_of_days))} day numbers are allowed.")
         if amount == 0 and subscription_days > 3:
             raise Exception("Payment is required for subscriptions above the 3 day trial period.")
         
