@@ -10,6 +10,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         for client in clients:
+            assets_text = "***\n".join(client.business_assets) if client.business_assets else None
             self.stdout.write(f"""
                 tenant: {client.tenant}
                 auth_log: {client.auth_log}
@@ -29,6 +30,6 @@ class Command(BaseCommand):
                 custom_prompts: \n{client.custom_prompts}
                 saved_content: \n{client.saved_content}
                 secret_questions: \n{client.secret_questions}
-                Business Assets: \n\n{"***\n".join(client.business_assets) if client.business_assets else None}
+                Business Assets: \n\n{assets_text}
                 <<<----------------------------END----------------------------------->>>\n\n
             """)
