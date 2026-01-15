@@ -235,3 +235,109 @@ custom_prompts= {
             Video content type - {"content": "<video generation prompt>", "caption": "<Text to be posted with the video>", "content_type": "video", "comments": "<List of 4 or more unique text comments to buttress the post>"}
         """.strip()
 }
+
+video_plan = {
+  "media_type": "video",
+  "page_id": "750798604776594",
+  "caption": "Transform your nails from bitten and dull to beautiful and healthy in minutes 💅✨",
+  "comments": [
+    "Which nail problem do you struggle with the most?",
+    "DM us now to get your nail care kit today!"
+  ],
+  "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk",
+  "video_cover_url": "https://drive.google.com/file/d/1c3WnhAyX-naa7SBPexHv6EG4BlcILxEY/view?usp=drivesdk",
+  "watermark": "Nail Extras",
+  "scenes": [
+    {
+      "media_type": "image",
+      "url": "https://drive.google.com/file/d/1c3WnhAyX-naa7SBPexHv6EG4BlcILxEY/view?usp=drivesdk",
+      "overlay_text": "Biting your nails?",
+      "voice_over": "Do you bite your nails and feel embarrassed to show your hands?",
+      "duration": 5,
+      "transition": "fade",
+      "fade_in": 0.5,
+      "fade_out": 0.5,
+      "animation": "zoom_in",
+      "background_url": None,
+      "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk"
+    },
+    {
+      "media_type": "image",
+      "url": "https://drive.google.com/file/d/1hlFaDtqEN8wqm6-HEKkimpr_d_9g82ZD/view?usp=drivesdk",
+      "overlay_text": "Ugly, damaged nails",
+      "voice_over": "Damaged nails can make you lose confidence.",
+      "duration": 4,
+      "transition": "fade",
+      "fade_in": 0.3,
+      "fade_out": 0.3,
+      "animation": "pan",
+      "background_url": None,
+      "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk"
+    },
+    {
+      "media_type": "image",
+      "url": "https://drive.google.com/file/d/1OJbF59bfS1nvmiBV43ViJj1_DfQajG7J/view?usp=drivesdk",
+      "overlay_text": "Smooth & clean",
+      "voice_over": "With the right tools, your nails can look clean and smooth.",
+      "duration": 5,
+      "transition": "fade",
+      "fade_in": 0.3,
+      "fade_out": 0.3,
+      "animation": "zoom_in",
+      "background_url": None,
+      "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk"
+    },
+    {
+      "media_type": "image",
+      "url": "https://drive.google.com/file/d/1kTxjYUIYEaYAvvVeLl8Mv6uLkBi6pu2I/view?usp=drivesdk",
+      "overlay_text": "Trim & shape",
+      "voice_over": "Trim and shape your nails the right way.",
+      "duration": 4,
+      "transition": "fade",
+      "fade_in": 0.3,
+      "fade_out": 0.3,
+      "animation": "pan",
+      "background_url": None,
+      "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk"
+    },
+    {
+      "media_type": "image",
+      "url": "https://drive.google.com/file/d/1IGZPLIn1g7q72wvPWvN558JHHTfbKxve/view?usp=drivesdk",
+      "overlay_text": "Nourish your cuticles",
+      "voice_over": "Keep your cuticles healthy with nourishing oil.",
+      "duration": 4,
+      "transition": "fade",
+      "fade_in": 0.3,
+      "fade_out": 0.3,
+      "animation": "zoom_in",
+      "background_url": None,
+      "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk"
+    },
+    {
+      "media_type": "image",
+      "url": "https://drive.google.com/file/d/15MY0jk9nQ5ix3BKC5_UF0I5di91pS9k-/view?usp=drivesdk",
+      "overlay_text": "Beautiful, healthy nails",
+      "voice_over": "Enjoy beautiful, healthy looking nails every day.",
+      "duration": 4,
+      "transition": "fade",
+      "fade_in": 0.4,
+      "fade_out": 0.4,
+      "animation": "zoom_in",
+      "background_url": None,
+      "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk"
+    },
+    {
+      "media_type": "image",
+      "url": "https://drive.google.com/file/d/1CGTal8-apfpiC7Qto4ZKMFA8-tMX4z6v/view?usp=drivesdk",
+      "overlay_text": "Get yours today",
+      "voice_over": "Get your complete nail care kit today and feel confident again.",
+      "duration": 4,
+      "transition": "fade",
+      "fade_in": 0.5,
+      "fade_out": 0.5,
+      "animation": "zoom_in",
+      "background_url": None,
+      "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk"
+    }
+  ]
+}

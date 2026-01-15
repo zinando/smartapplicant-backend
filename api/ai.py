@@ -6,6 +6,8 @@ import base64
 from django.conf import settings
 from xai_sdk import Client
 from time import time
+import uuid
+from google.cloud import texttospeech
 
 # Load environment variables
 load_dotenv(override=True)
@@ -13,10 +15,18 @@ load_dotenv(override=True)
 COOLDOWN = 60 * 60  # 1 hour cooldown between requests per user
 blocked = {}  # (model, key) → timestamp
 
+tts_client = texttospeech.TextToSpeechClient()
+print("Google TTS client initialized.")
+
 client = Client(
     api_key=settings.GROK_API_KEY,
     timeout=3600
 )
+
+def _save_base64_audio_to_mp3(base64_audio: str, filename: str):
+    with open(filename, "wb") as f:
+        f.write(base64.b64decode(base64_audio))
+    return filename
 
 GEMMA_MODEL_KEY_POOL = {
     # "gemma-3-1b-it": [
@@ -124,6 +134,24 @@ FLASH_MODEL_KEY_POOL = {
     ]
 }
 
+AUDIO_MODEL_POOL = {
+    "gemini-2.0-flash-preview-tts": [
+        os.getenv("GEMENAI_API_KEY_2"),
+        os.getenv("GEMENAI_API_KEY_3"),
+        os.getenv("GEMENAI_API_KEY_4"),
+        os.getenv("GEMENAI_API_KEY_5"),
+        os.getenv("GEMENAI_API_KEY_6"),
+        os.getenv("GEMENAI_API_KEY_7"),
+        os.getenv("GEMENAI_API_KEY_8"),
+        os.getenv("GEMENAI_API_KEY_9"),
+        os.getenv("GEMENAI_API_KEY_10"),
+        os.getenv("GEMENAI_API_KEY_11"),
+        os.getenv("GEMENAI_API_KEY_12"),
+        os.getenv("GEMENAI_API_KEY_13"),
+        # os.getenv("GEMENAI_API_KEY")
+    ]
+}
+
 def is_blocked(model, key):
     if (model, key) not in blocked:
         return False
@@ -132,6 +160,40 @@ def is_blocked(model, key):
 def block(model, key):
     blocked[(model, key)] = time()
 
+def try_call_tts(prompt, voice="en-US-Neural2-F"):
+    voices = ["en-US-Neural2-F", "en-US-Neural2-M", "en-GB-Neural2-F", "en-GB-Neural2-M", "en-US-Studio-O", "en-US-Neural2-J"]
+    try:
+        client = texttospeech.TextToSpeechClient()
+
+        synthesis_input = texttospeech.SynthesisInput(text=prompt)
+
+        voice_params = texttospeech.VoiceSelectionParams(
+            language_code="en-US",
+            name=voice
+        )
+
+        audio_config = texttospeech.AudioConfig(
+            audio_encoding=texttospeech.AudioEncoding.MP3,
+            speaking_rate=1.0,
+            pitch=0.0
+        )
+
+        response = client.synthesize_speech(
+            input=synthesis_input,
+            voice=voice_params,
+            audio_config=audio_config
+        )
+
+        filename = f"temp_assets/tts_{uuid.uuid4().hex}.mp3"
+        with open(filename, "wb") as out:
+            out.write(response.audio_content)
+
+        return filename, 200
+
+    except Exception as e:
+        print("Google TTS error:", str(e))
+        return None, 500
+    
 def try_call(model, api_key, prompt):
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     headers = {"Content-Type": "application/json"}

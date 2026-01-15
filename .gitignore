@@ -8,3 +8,8 @@ coverage/
 *.log
 # pycache
 __pycache__/
+tts.json
+temp_media/
+temp_assets/
+tts_credentials.json
+temp_files/
