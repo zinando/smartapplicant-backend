@@ -37,7 +37,9 @@ SMARTAPPLICANT = {
     'PAGE_AUTOMATION_PRICES': {
         "txt": int(os.getenv("txt", "10000")),  # default to 10,000 naira
         "txt-img": int(os.getenv("txt-img", "15000")),  # default to 15,000 naira
-        "txt-img-vid": int(os.getenv("txt-img-vid", "20000")),  # default to 20,000 naira
+        "txt-img-vid": int(os.getenv("txt-img-vid", "30000")),  # default to 20,000 naira
+        "txt-vid": int(os.getenv("txt-vid", "20000")),
+        "img-vid": int(os.getenv("img-vid", "25000")),
     }
 }
 # Facebook Page Data Configuration
