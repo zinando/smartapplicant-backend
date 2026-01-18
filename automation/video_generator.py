@@ -1,6 +1,6 @@
 import os
 import requests
-from api.ai import get_structured_data_from_gemini, try_call_tts
+from api.ai import get_structured_data_from_gemini, try_call_tts, get_structured_data_from_gemini_smart
 from django.conf import settings
 from automation.models import AutomatedClients
 import uuid
@@ -8,7 +8,11 @@ from urllib.parse import urlparse, unquote, parse_qs
 from moviepy.video.fx import FadeIn, FadeOut, Resize
 from moviepy.audio.fx import AudioFadeOut, AudioFadeIn, MultiplyVolume
 import cv2
+import re
 import numpy as np
+
+# from automation.tasks import post_video_content_to_facebook
+# from automation.content_automation.post_video import FacebookVideoUploader
 from moviepy import (
     VideoFileClip,
     ImageClip,
@@ -23,6 +27,10 @@ from moviepy import (
 TEMP_DIR = "temp_assets"
 os.makedirs(TEMP_DIR, exist_ok=True)
 
+DRIVE_VIEW_REGEX = re.compile(
+    r"https://drive\.google\.com/(file/d/[^/]+/view|open\?id=[^&]+|uc\?id=[^&]+)"
+)
+
 WIDTH = 1080
 HEIGHT = 1920
 
@@ -30,6 +38,16 @@ is_base_open = False
 is_voice_open = False
 base = None
 voice = None
+
+def is_google_drive_view_link(url: str) -> bool:
+    return bool(DRIVE_VIEW_REGEX.match(url))
+
+def validate_url(url:str) ->bool:
+    try:
+        result = urlparse(url)
+        return all([result.scheme in ("http", "https"), result.netloc])
+    except Exception:
+        return is_google_drive_view_link(url)
 
 def gaussian_blur(clip, sigma=25):
     return clip.image_transform(
@@ -133,17 +151,30 @@ class VideoGenerator:
             raise ValueError("Video plan media_type must be 'video'")
         if not isinstance(self.video_plan["scenes"], list) or len(self.video_plan["scenes"]) == 0:
             raise ValueError("Video plan must contain at least one scene")
+        if isinstance(self.video_plan["watermark"], str):
+            if not validate_url(self.video_plan["watermark"]):
+                raise ValueError("watermark is not a valid url")
+        if isinstance(self.video_plan["watermark"], dict):
+            wmk_keys = {"text", "text_color", "font"}
+            if not all(key in self.video_plan['watermark'] for key in wmk_keys):
+                raise ValueError("Watermark is missing important keys")
         for scene in self.video_plan["scenes"]:
             scene_keys = {"media_type", "url", "overlay_text", "voice_over", "duration", "transition", "fade_in", "fade_out", "animation", "background_url"}
             if not all(key in scene for key in scene_keys):
                 raise ValueError("Each scene is missing required keys")
+            text_overlay = scene.get("overlay_text")
+            if not text_overlay:
+                raise ValueError("overlay_text not present")
+            text_overlay_keys = {"text", "text_color", "font", "font_size"}
+            if not all(key in text_overlay for key in text_overlay_keys):
+                raise ValueError(f"{scene} is missing vital keys in its overlay_text value")
     
     def fetch_video_plan(self, page_id):
         # Get client by page_id
         try:
-            client = AutomatedClients.objects.get(page_id=page_id)
+            client = AutomatedClients.objects.get(client_id=page_id)
         except AutomatedClients.DoesNotExist:
-            raise ValueError("Client with given page_id does not exist")
+            raise ValueError(f"Client with page ID {page_id} does not exist")
         business_info = client.business_details
         if not business_info:
             raise ValueError("Business details are missing for the client")
@@ -151,12 +182,16 @@ class VideoGenerator:
         if client.content_schedule_times:
             self.page_content_schedule_times = client.content_schedule_times
         
-        # check if has at least 10 assets: including audio and images/videos
+        # check if there is existing video plan
+        if client.saved_video_plan:
+            return client.saved_video_plan
+
+        # check if cliet has at least 10 assets: including audio and images/videos
         assets = client.business_assets or []
         if len(assets) < 10:
             raise ValueError("Not enough business assets to create video plan")
         assets = "\n".join(assets)
-        if not ("audio" in assets or "music" in assets) or not any(ext in assets for ext in [".jpg", ".PNG", ".jpeg", ".png", ".mp4", ".mov"]):
+        if not ("audio" in assets or "music" in assets) or not any(key in assets for key in ["image", "video"]): #or not any(ext in assets for ext in [".jpg", ".PNG", ".jpeg", ".png", ".mp4", ".mov"]):
             raise ValueError("Assets must include at least one audio and one image/video file")
         
         # compose prompt for Gemini
@@ -188,10 +223,11 @@ class VideoGenerator:
                 - Ends with a clear call-to-action
 
                 Use multiple scenes.
-                Each scene must be 10 seconds long or less.
+                Each scene must be at least 5 seconds long and at most 10 seconds long.
                 Total duration must be between 28 and 32 seconds.
 
                 Use a mix of images and videos if available.
+                use the asset descriptions to understand the content of each assset, and make a decision on which asset would be the best fit for each scene
 
                 You must output a JSON object in the following format:
 
@@ -201,18 +237,18 @@ class VideoGenerator:
                 "comments": ["str", "str", "4 to 6 comments to post along with the video on social media to set the tone for engagement"],
                 "background_music_url": "string or null - must come from available assets",
                 "video_cover_url": "string or null - must come from available assets",
-                "watermark": "string - logo image URL from assets if there is one, otherwise business name",
+                "watermark": "str | dict - you can return the business logo url as string if available, or you can return a dictionary in the format: {{"text":"business name well-formatted", "text_color":"red | yellow | white | grey | etc", "font":"return a font name from the list below"}}",
                 "scenes": [
                     {{
                     "media_type": "image | video",
                     "url": "string (must come from available assets)",
-                    "overlay_text": "string",
+                    "overlay_text": "dict - should be in the format: {{"text":"text to be overlayed", "text_color":"green | red | black | white | etc", "font":"str - font name from the list of custom font names", "font_size": int - must be 60 or more}}",
                     "voice_over": "string (spoken narration text) that will be converted to audio via TTS",
                     "duration": number (seconds),
-                    "transition": "fade | slide | none",
+                    "transition": "fade | slide | null",
                     "fade_in": number (seconds),
                     "fade_out": number (seconds),
-                    "animation": "zoom_in | pan | none",
+                    "animation": "zoom_in | pan | null",
                     "background_url": "string or null - image from assets"
                     }},
                     ...
@@ -222,15 +258,54 @@ class VideoGenerator:
                 Rules:
                 - Use only URLs from the available assets list.
                 - Overlay text must be short, bold, and readable on mobile.
+                - return font names only from the available custom font names list below:
+                
+                ### FONT NAMES ###
+                - {', '.join(self.get_font().keys())}
+
                 - Voice over should sound natural and persuasive.
-                - Use the same background music across all scenes if available.
                 - Do not leave fields blank.
                 - Do not add extra keys.
                 - Output only valid JSON.
 
         """.strip()
-        return get_structured_data_from_gemini(prompt)
+        # print(f"Prompt:\n{prompt}")
+        video_plan = get_structured_data_from_gemini_smart(prompt)
+        # print(f"Video plan: {video_plan}")
+        # return
+        if not video_plan:
+            raise ValueError("Failed to generate video plan from AI")
+        client.saved_video_plan = video_plan
+        client.save(update_fields=["saved_video_plan"])
+        return video_plan
 
+    def get_font(self, name:str="") -> str | dict:
+        font_map = {
+            "impact": "fonts/impact.ttf",
+            "impact-bold": "fonts/Impacted.ttf",
+            "impact-unicode": "fonts/unicode.impact.ttf",
+            "montserrat-b": "fonts/Montserrat-Black.ttf",
+            "montserrat-bi": "fonts/Montserrat-BlackItalic.ttf",
+            "montserrat-r": "fonts/Montserrat-Regular.ttf",
+            "montserrat-ri": "fonts/Montserrat-Italic.ttf",
+            "montserrat-l": "fonts/Montserrat-Light.ttf",
+            "montserrat-li": "fonts/Montserrat-LightItalic.ttf",
+            "bebas_b": "fonts/BebasNeue Bold.otf",
+            "bebas_r": "fonts/BebasNeue Book.otf",
+            "bebas_l": "fonts/BebasNeue Light.otf",
+            "anton": "fonts/anton.ttf",
+            "oswald-stencil": "fonts/Oswald-Stencil.ttf",
+            "oswald-b": "fonts/Oswald-Bold.ttf",
+            "oswald-r": "fonts/Oswald-Regular.ttf",
+            "oswald-l": "fonts/Oswald-Light.ttf",
+            "oswald-bi": "fonts/Oswald-BoldItalic.ttf",
+            "oswald-ri": "fonts/Oswald-RegularItalic.ttf",
+            "oswald-li": "fonts/Oswald-LightItalic.ttf"
+        }
+        if not name:
+            return font_map
+        return font_map.get(name, None)
+    
     def make_scene(self, scene):
         global is_base_open, is_voice_open, base, voice
 
@@ -238,7 +313,7 @@ class VideoGenerator:
             # Download media
             if scene["media_type"] == "video":
                 media_path = download(scene["url"], media_type="video")
-                base = VideoFileClip(media_path).with_duration(0, scene["duration"])
+                base = VideoFileClip(media_path).with_duration(scene["duration"])
                 is_base_open = True
             else:
                 media_path = download(scene["url"], media_type="image")
@@ -253,15 +328,13 @@ class VideoGenerator:
 
             # Text overlay
             txt = TextClip(
-                text=scene["overlay_text"],
-                font_size=60,
-                bg_color=(0,0,0),
-                color="white",
-                # font="Arial-Bold",
-                size=(900, None),
+                text=scene["overlay_text"].get("text", ""),
+                font_size=scene["overlay_text"].get("font_size", 60),
+                color=scene["overlay_text"].get("text_color", "white"),
+                font= self.get_font(scene["overlay_text"].get("font", "montserrat-r")),
+                size=(900, 450),
                 method="caption"
             ).with_duration(scene["duration"]).with_position(("center", 0.78), relative=True)
-            txt = txt.with_opacity(0.5)
 
             # Voice over
             if scene.get("voice_over"):
@@ -274,6 +347,7 @@ class VideoGenerator:
                     print(f"Failed to generate voice over for scene: {scene['voice_over']}")
 
             final = CompositeVideoClip([base, txt])
+            # final = base
 
             # Fades
             if scene.get("fade_in"):
@@ -300,27 +374,112 @@ class VideoGenerator:
             cover_obj = cover_obj.with_effects([vfx.Resize(width=WIDTH)])
         return cover_obj
     
-    def make_watermark(self, input:str, duration:float=10):
+    def make_watermark(self, input:str|dict, duration:float=10):
         """Creates a watermark clip from text or logo image"""
-        if input.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')) or any(s in input for s in ["https://", "http://", "www.", "drive.google.com"]):
+        # if input.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')) or any(s in input for s in ["https://", "http://", "www.", "drive.google.com"]):
+        if isinstance(input, str):    
             # Treat as image URL
             logo_path = download(input, media_type="image")
             watermark = (ImageClip(logo_path)
                          .with_duration(duration)
                          .with_effects([vfx.Resize(height=100)])
-                         .with_position(("right", "top"))
+                         .with_position((920, 20))
                         #  .with_margin(right=10, top=10)
                          .with_opacity(0.7))
         else:
-            # Treat as text
-            watermark = (TextClip(text=input, font_size=24, color='white', bg_color='black')
+            # Treat as text :1080, 1920
+            # if you dont set bgcolor and transparency, dont set opacity
+            watermark = (TextClip(
+                text=input.get("text", ""), 
+                font_size=42,
+                font=self.get_font(input.get("font", "anton")),
+                size=(None, 60), 
+                color= input.get("text_color", "white") 
+                )
                          .with_duration(duration)
-                         .with_position(("right", "top"))
-                        #  .with_margin(right=10, top=10)
-                         .with_opacity(0.7))
-        watermark = watermark.with_position(("center", 0.78), relative=True)
+                         .with_position((900, 20))
+                        )
         return watermark
 
+    def test_with_a_scene(self):
+        """This is used to test all parts of the code to generate one scene only"""
+        output = f"temp_media/{uuid.uuid4()}_final.mp4"
+        plan = self.video_plan["scenes"][0]
+
+        # create scene 
+        scene = self.make_scene(plan)
+
+        # add watermark if specified
+        if self.video_plan.get("watermark"):
+            watermark = self.make_watermark(self.video_plan["watermark"], duration=scene.duration)
+            scene = CompositeVideoClip([scene, watermark], size=scene.size)
+
+        # Background music
+        music = None
+        if self.video_plan.get("background_music_url"):
+            music_path = download(self.video_plan["background_music_url"], media_type="audio")
+            music = AudioFileClip(music_path)
+
+            music = music.with_effects([MultiplyVolume(0.2)])
+            music = music.subclipped(0, scene.duration)
+
+            if scene.audio:
+                final_audio = CompositeAudioClip([scene.audio, music])
+            else:
+                final_audio = music
+
+            scene = scene.with_audio(final_audio)
+        
+        cover_clip = None
+        # add cover image at start
+        if len(self.video_plan["scenes"]) > 2:
+            cover_clip = self.make_cover(self.video_plan.get("video_cover_url", self.video_plan["scenes"][2]["url"]))
+            scene = concatenate_videoclips([cover_clip, scene], method="compose")
+
+
+        # Render
+        scene.write_videofile(
+            output, 
+            fps=24, 
+            codec="libx264",
+            preset="ultrafast",
+            threads=4, 
+            audio_codec="aac")
+
+        # Cleanup ffmpeg resources
+        if scene.audio:
+            scene.audio.close()
+
+        if music:
+            music.close()
+
+        for clip in self.clips:
+            try:
+                clip.close()
+            except:
+                pass
+        
+        if is_base_open:
+            base.close()
+        if is_voice_open:
+            voice.close()
+
+        scene.close()
+        cover_clip.close()
+        # Delete temp assets
+        for f in os.listdir(TEMP_DIR):
+            os.remove(os.path.join(TEMP_DIR, f))
+        
+
+        # Save video path in video plan
+        # client = AutomatedClients.objects.get(client_id=self.page_id)
+        # video_plan = client.saved_video_plan
+        # video_plan["final_video_path"] = output
+
+        # client.saved_video_plan = video_plan
+        # client.save(update_fields=["saved_video_plan"])
+        return output, "success"
+    
     def render(self):
         output = f"temp_media/{uuid.uuid4()}_final.mp4"
         global is_base_open, is_voice_open, base, voice
@@ -332,6 +491,7 @@ class VideoGenerator:
             for scene in self.video_plan["scenes"]:
                 clip = self.make_scene(scene)
                 self.clips.append(clip)
+                print(f"Generated scene {self.video_plan['scenes'].index(scene) + 1} with URL: {scene.get('url')}")
 
             # add cover image at start
             cover_clip = self.make_cover(self.video_plan.get("video_cover_url", self.video_plan["scenes"][0]["url"]))
@@ -342,7 +502,7 @@ class VideoGenerator:
             # add watermark if specified
             if self.video_plan.get("watermark"):
                 watermark = self.make_watermark(self.video_plan["watermark"], duration=video.duration)
-                video = CompositeVideoClip([video, watermark])
+                video = CompositeVideoClip([video, watermark], size=video.size)
 
             # Background music
             music = None
@@ -362,7 +522,7 @@ class VideoGenerator:
                 video = video.with_audio(final_audio)
 
             # Render
-            video.write_videofile(output, fps=24, codec="libx264", audio_codec="aac")
+            video.write_videofile(output, fps=24, codec="libx264", preset="ultrafast", threads=4, audio_codec="aac")
 
             # Cleanup ffmpeg resources
             if video.audio:
@@ -387,8 +547,17 @@ class VideoGenerator:
             # Delete temp assets
             for f in os.listdir(TEMP_DIR):
                 os.remove(os.path.join(TEMP_DIR, f))
+
+            # Save video path in video plan
+            client = AutomatedClients.objects.get(client_id=self.page_id)
+            video_plan = client.saved_video_plan
+            video_plan["final_video_path"] = output
+
+            client.saved_video_plan = video_plan
+            client.save(update_fields=["saved_video_plan"])
             
             message = "Video rendered successfully"
+            print(message)
         except Exception as e:
             print(f"Error rendering video: {e}")
             output = None

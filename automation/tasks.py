@@ -12,6 +12,8 @@ from .messaging import send_text_reply, send_media_reply
 from api.ai import get_image_from_grok, get_structured_data_from_gemini_smart
 from .context_manager import save_context
 from .content_automation.facebook import AutomateFacebookPost
+from .content_automation.post_video import FacebookVideoUploader
+from .video_generator import VideoGenerator
 import time
 from django.utils import timezone
 from datetime import timedelta
@@ -54,32 +56,6 @@ def handle_inbound_event(self, payload):
         if sender_id not in tenant.customers:
             tenant.customers.append(sender_id)
             tenant.save(update_fields=["customers"])
-
-        # logger.info(f"[{platform}] Received message from {sender_id}: {message}")
-        # client = AutomatedClients.objects.filter(tenant=tenant, subscribed=False).first()
-        # if client:
-        #     # update the subscription to one year from today
-        #     client.business_details = business_info
-        #     client.subscribed = True
-        #     client.subscription_expires_at = timezone.now() + timezone.timedelta(days=365) # 1 year subscription
-        #     client.subscription_ref = f"sub_{client.client_id}_{int(time.time())}"
-        #     client.save(update_fields=["subscribed", "subscription_expires_at", "subscription_ref", "business_details"])
-        #     logger.info(f"Re-subscribed client {client.client_id} for tenant {tenant.waba_phone_number_id} with ref {client.subscription_ref}.")
-        # else:
-        #     client = AutomatedClients.objects.filter(tenant=tenant, subscribed=True).first()
-        #     client.evergreen_content = tenant.evergreen_content
-        #     client.content_schedule_times = tenant.content_schedule_times
-        #     client.business_details = business_info
-        #     client.save(update_fields=["evergreen_content", "content_schedule_times", "business_details"])
-        #     logger.warning(f"Client {client.client_id} already subscribed for tenant {tenant.waba_phone_number_id}.")
-        # # client = AutomatedClients.objects.filter(tenant=tenant, subscribed=True).first()
-        # if client:
-        #     page_id = client.client_id
-        #     automator = AutomateFacebookPost(page_id)
-        #     prompt = automator.get_content_prompt()
-        #     send_text_reply(event, sender_id, f"Hello! This business has the following info:\n {client.business_details}.")
-        #     send_text_reply(event, sender_id, f"Also, here is a sample of the type of content we create for this business:\n {prompt}.")
-        #     return
 
         # Enqueue next step (AI or auto reply)
         trigger_message_processing.delay(event.id)
@@ -404,21 +380,22 @@ def schedule_facebook_post(self):
             image_contents = [x for x in contents if x.get('content_type') == 'image']
             count = 0
             if len(image_contents) > 0:
-                for item in image_contents:
-                    if not isinstance(item['content'], (bytes, bytearray)) and not is_url(item['content']) and not media_post_log_obj.has_posted_image_today():
-                        image_prompt = item.get('content')
-                        image_data = get_image_from_grok(image_prompt)
-                        if image_data:
-                            count += 1
-                            item['content'] = image_data['image']
-                            item['prompt'] = image_data.get('description', '')
-                            media_post_log_obj.last_image_posted_at = timezone.now()
-                            logger.info(f"Image generated: {image_data}")
+                if  not media_post_log_obj.has_posted_image_today():
+                    for item in image_contents:
+                        if not isinstance(item['content'], (bytes, bytearray)) and not is_url(item['content']):
+                            image_prompt = item.get('content')
+                            image_data = get_image_from_grok(image_prompt)
+                            if image_data:
+                                count += 1
+                                item['content'] = image_data['image']
+                                item['prompt'] = image_data.get('description', '')
+                                media_post_log_obj.last_image_posted_at = timezone.now()
+                                logger.info(f"Image generated: {image_data}")
+                            else:
+                                logger.warning(f"Image generation failed for prompt: {image_prompt}, removing item.")
+                                contents.remove(item)
                         else:
-                            logger.warning(f"Image generation failed for prompt: {image_prompt}, removing item.")
-                            contents.remove(item)
-                    else:
-                        logger.warning(f"We got content from saved_contents")
+                            logger.warning(f"We got content from saved_contents")
             # temporarily save the final content 
             media_post_log_obj.image_count = count
             media_post_log_obj.save()
@@ -426,6 +403,10 @@ def schedule_facebook_post(self):
             client.saved_content = contents
             client.save(update_fields=["saved_content"])
             transaction.on_commit(lambda: make_facebook_posts.delay(page))
+
+            # create video post here if business subscribed for video content also
+            if "vid" in client.subscription_type.lower():
+                create_video_content.delay(page)
 
 @shared_task(bind=True, max_retries=3)
 def make_facebook_posts(self, page_id):
@@ -476,6 +457,19 @@ def make_facebook_posts(self, page_id):
         instance.send_email(message, email)
     except Exception as e:
         instance.send_email(str(e), 'zinando2000@gmail.com')
+
+
+@shared_task(bind=True, max_retrie=2)
+def create_video_content(self, page_id:str, video_plan:dict=None):
+    generator = VideoGenerator(page_id, video_plan)
+    output_path, message = generator.render()
+
+    post_video_content_to_facebook.delay(page_id)
+
+@shared_task(bind=True, max_retrie=2)
+def post_video_content_to_facebook(self, page_id:str):
+    uploader = FacebookVideoUploader(page_id)
+    result = uploader.upload()
 
 
 @shared_task(bind=True, max_retries=3)

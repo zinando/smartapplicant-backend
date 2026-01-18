@@ -15,9 +15,6 @@ load_dotenv(override=True)
 COOLDOWN = 60 * 60  # 1 hour cooldown between requests per user
 blocked = {}  # (model, key) → timestamp
 
-tts_client = texttospeech.TextToSpeechClient()
-print("Google TTS client initialized.")
-
 client = Client(
     api_key=settings.GROK_API_KEY,
     timeout=3600

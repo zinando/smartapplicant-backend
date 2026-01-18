@@ -196,6 +196,10 @@ custom_prompts= {
             Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
             Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
 
+            RULES:
+            - the 'content' value for link posts must be valid url only. No extra texts.
+            - you should only include link posts if the business has a website and valid urls
+            - if the business does not have a website, all 6 posts must be text posts only.
         """.strip(),
     'txt-img': """
             You are a skilled social media content creator for **business_name.
@@ -214,10 +218,14 @@ custom_prompts= {
             Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
             Image content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}
 
+            RULES:
+            - the 'content' value for link posts must be valid url only. No extra texts.
+            - you should only include link posts if the business has a website and valid urls
+            - if the business does not have a website, return 5 text posts and 1 image post
         """.strip(),
-    'txt-img-vid': """
+    'txt-vid': """
             You are a skilled social media content creator for **business_name.
-            Generate 6 Facebook posts for today: 3 text posts, 1 link posts (with caption), 1 image prompt (with caption- to be used to generate image from grok) and 1 video generation prompt (with caption- to be used to generate video from veo).
+            Generate 5 Facebook posts for today: 3 text posts, 2 link posts (with caption).
             If business has no sharable link, return all 4 text posts, 1 image post, and 1 video post.
             Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
             Keep tone friendly, professional, and appealing to Facebook users. 
@@ -231,8 +239,50 @@ custom_prompts= {
             Return output as a JSON list of dictionaries, with the following structures:\n
             Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
             Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
+            
+            RULES:
+            - the 'content' value for link posts must be valid url only. No extra texts.
+            - you should only include link posts if the business has a website and valid urls
+            - if the business does not have a website, all 5 posts must be text posts only.
+            """.strip(),
+    'img-vid': """
+            You are a skilled social media content creator for **business_name.
+            Generate 2 Facebook posts for today: 2 image prompt (with caption- to be used to generate image from grok).
+            Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
+            Keep tone friendly, professional, and appealing to Facebook users. 
+            For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. 
+            You are commenting as the post creator to encourage engagement and to add value to the post. 
+            You must not include personal information of the business owner or employees in the posts. 
+
+            Business details for context:
+            \n**business_details
+
+            Return output as a JSON list of dictionaries, with the following structures:\n
+            {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}
+            """.strip(),
+    'txt-img-vid': """
+            You are a skilled social media content creator for **business_name.
+            Generate 5 Facebook posts for today: 3 text posts, 1 link posts (with caption), 1 image prompt (with caption- to be used to generate image from grok).
+            If business has no sharable link, return all 4 text posts, and 1 image post.
+            Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
+            Keep tone friendly, professional, and appealing to Facebook users. 
+            For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. 
+            You are commenting as the post creator to encourage engagement and to add value to the post. 
+            You must not include personal information of the business owner or employees in the posts. 
+
+            Business details for context:
+            \n**business_details
+
+            Return output as a JSON list of dictionaries, with the following structures:\n
+            Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
+            Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
             Image content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}
-            Video content type - {"content": "<video generation prompt>", "caption": "<Text to be posted with the video>", "content_type": "video", "comments": "<List of 4 or more unique text comments to buttress the post>"}
+            
+            RULES:
+            - the 'content' value for link posts must be valid url only. No extra texts.
+            - you should only include link posts if the business has a website and valid urls
+            - if the business does not have a website, return 4 text posts and 1 image post.
+            
         """.strip()
 }
 
@@ -246,98 +296,112 @@ video_plan = {
   ],
   "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk",
   "video_cover_url": "https://drive.google.com/file/d/1c3WnhAyX-naa7SBPexHv6EG4BlcILxEY/view?usp=drivesdk",
-  "watermark": "Nail Extras",
+  "watermark": {"text":"Nail Extras", "text_color":"green", "font":"anton"},
   "scenes": [
     {
-      "media_type": "image",
-      "url": "https://drive.google.com/file/d/1c3WnhAyX-naa7SBPexHv6EG4BlcILxEY/view?usp=drivesdk",
-      "overlay_text": "Biting your nails?",
+      "media_type": "video",
+      "url": "https://drive.google.com/file/d/1ensR02kvLKjq--hhL-CWnMLqAshJpiB1/view?usp=drivesdk",
+      "overlay_text": {"text":"Do you bite your nails and feel embarrassed to show your hands?", "text_color":"green", "font":"anton", "font_size":60},
       "voice_over": "Do you bite your nails and feel embarrassed to show your hands?",
       "duration": 5,
       "transition": "fade",
       "fade_in": 0.5,
       "fade_out": 0.5,
       "animation": "zoom_in",
-      "background_url": None,
-      "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk"
+      "background_url": None
+      
     },
-    {
-      "media_type": "image",
-      "url": "https://drive.google.com/file/d/1hlFaDtqEN8wqm6-HEKkimpr_d_9g82ZD/view?usp=drivesdk",
-      "overlay_text": "Ugly, damaged nails",
-      "voice_over": "Damaged nails can make you lose confidence.",
-      "duration": 4,
-      "transition": "fade",
-      "fade_in": 0.3,
-      "fade_out": 0.3,
-      "animation": "pan",
-      "background_url": None,
-      "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk"
-    },
-    {
-      "media_type": "image",
-      "url": "https://drive.google.com/file/d/1OJbF59bfS1nvmiBV43ViJj1_DfQajG7J/view?usp=drivesdk",
-      "overlay_text": "Smooth & clean",
-      "voice_over": "With the right tools, your nails can look clean and smooth.",
-      "duration": 5,
-      "transition": "fade",
-      "fade_in": 0.3,
-      "fade_out": 0.3,
-      "animation": "zoom_in",
-      "background_url": None,
-      "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk"
-    },
-    {
-      "media_type": "image",
-      "url": "https://drive.google.com/file/d/1kTxjYUIYEaYAvvVeLl8Mv6uLkBi6pu2I/view?usp=drivesdk",
-      "overlay_text": "Trim & shape",
-      "voice_over": "Trim and shape your nails the right way.",
-      "duration": 4,
-      "transition": "fade",
-      "fade_in": 0.3,
-      "fade_out": 0.3,
-      "animation": "pan",
-      "background_url": None,
-      "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk"
-    },
-    {
-      "media_type": "image",
-      "url": "https://drive.google.com/file/d/1IGZPLIn1g7q72wvPWvN558JHHTfbKxve/view?usp=drivesdk",
-      "overlay_text": "Nourish your cuticles",
-      "voice_over": "Keep your cuticles healthy with nourishing oil.",
-      "duration": 4,
-      "transition": "fade",
-      "fade_in": 0.3,
-      "fade_out": 0.3,
-      "animation": "zoom_in",
-      "background_url": None,
-      "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk"
-    },
-    {
-      "media_type": "image",
-      "url": "https://drive.google.com/file/d/15MY0jk9nQ5ix3BKC5_UF0I5di91pS9k-/view?usp=drivesdk",
-      "overlay_text": "Beautiful, healthy nails",
-      "voice_over": "Enjoy beautiful, healthy looking nails every day.",
-      "duration": 4,
-      "transition": "fade",
-      "fade_in": 0.4,
-      "fade_out": 0.4,
-      "animation": "zoom_in",
-      "background_url": None,
-      "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk"
-    },
-    {
-      "media_type": "image",
-      "url": "https://drive.google.com/file/d/1CGTal8-apfpiC7Qto4ZKMFA8-tMX4z6v/view?usp=drivesdk",
-      "overlay_text": "Get yours today",
-      "voice_over": "Get your complete nail care kit today and feel confident again.",
-      "duration": 4,
-      "transition": "fade",
-      "fade_in": 0.5,
-      "fade_out": 0.5,
-      "animation": "zoom_in",
-      "background_url": None,
-      "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk"
-    }
+#     {
+#       "media_type": "image",
+#       "url": "https://drive.google.com/file/d/1hlFaDtqEN8wqm6-HEKkimpr_d_9g82ZD/view?usp=drivesdk",
+#       "overlay_text": "Ugly, damaged nails",
+#       "voice_over": "Damaged nails can make you lose confidence.",
+#       "duration": 4,
+#       "transition": "fade",
+#       "fade_in": 0.3,
+#       "fade_out": 0.3,
+#       "animation": "pan",
+#       "background_url": None,
+#       "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk"
+#     },
+#     {
+#       "media_type": "image",
+#       "url": "https://drive.google.com/file/d/1OJbF59bfS1nvmiBV43ViJj1_DfQajG7J/view?usp=drivesdk",
+#       "overlay_text": "Smooth & clean",
+#       "voice_over": "With the right tools, your nails can look clean and smooth.",
+#       "duration": 5,
+#       "transition": "fade",
+#       "fade_in": 0.3,
+#       "fade_out": 0.3,
+#       "animation": "zoom_in",
+#       "background_url": None,
+#       "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk"
+#     },
+#     {
+#       "media_type": "image",
+#       "url": "https://drive.google.com/file/d/1kTxjYUIYEaYAvvVeLl8Mv6uLkBi6pu2I/view?usp=drivesdk",
+#       "overlay_text": "Trim & shape",
+#       "voice_over": "Trim and shape your nails the right way.",
+#       "duration": 4,
+#       "transition": "fade",
+#       "fade_in": 0.3,
+#       "fade_out": 0.3,
+#       "animation": "pan",
+#       "background_url": None,
+#       "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk"
+#     },
+#     {
+#       "media_type": "image",
+#       "url": "https://drive.google.com/file/d/1IGZPLIn1g7q72wvPWvN558JHHTfbKxve/view?usp=drivesdk",
+#       "overlay_text": "Nourish your cuticles",
+#       "voice_over": "Keep your cuticles healthy with nourishing oil.",
+#       "duration": 4,
+#       "transition": "fade",
+#       "fade_in": 0.3,
+#       "fade_out": 0.3,
+#       "animation": "zoom_in",
+#       "background_url": None,
+#       "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk"
+#     },
+#     {
+#       "media_type": "image",
+#       "url": "https://drive.google.com/file/d/15MY0jk9nQ5ix3BKC5_UF0I5di91pS9k-/view?usp=drivesdk",
+#       "overlay_text": "Beautiful, healthy nails",
+#       "voice_over": "Enjoy beautiful, healthy looking nails every day.",
+#       "duration": 4,
+#       "transition": "fade",
+#       "fade_in": 0.4,
+#       "fade_out": 0.4,
+#       "animation": "zoom_in",
+#       "background_url": None,
+#       "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk"
+#     },
+#     {
+#       "media_type": "image",
+#       "url": "https://drive.google.com/file/d/1CGTal8-apfpiC7Qto4ZKMFA8-tMX4z6v/view?usp=drivesdk",
+#       "overlay_text": "Get yours today",
+#       "voice_over": "Get your complete nail care kit today and feel confident again.",
+#       "duration": 4,
+#       "transition": "fade",
+#       "fade_in": 0.5,
+#       "fade_out": 0.5,
+#       "animation": "zoom_in",
+#       "background_url": None,
+#       "background_music_url": "https://drive.google.com/file/d/1y-0z2zqXXnlfocaFGpud1FDuxxr0DTLj/view?usp=drivesdk"
+#     }
   ]
 }
+
+assets = [
+    "media type: image, url: https://drive.google.com/file/d/1Mfo_4itHFt16TFi2C_nYcDU6GV2dRObQ/view?usp=drivesdk, description: image showing smartapplicant.net page where ATS Compatibility scan is processing, no results displayed yet",
+    "media type: video, url: https://drive.google.com/file/d/1ensR02kvLKjq--hhL-CWnMLqAshJpiB1/view?usp=drivesdk, description: video showing displayed ATS-compatibility scan results. The screen scrolls down from the score, through all resume sections, down to AI-generated suggestions for improvement. Video is 17 seconds long",
+    "media type: image, url: https://drive.google.com/file/d/1kgtTYqpyOCDfgm7xRKOXYS_zhZRFzVMU/view?usp=drivesdk, description: image of smartapplicant.net page showing ATS_compatibility scan button with file already selected.",
+    "media type: image, url: https://drive.google.com/file/d/1UTqMTWnpSFZBXcG5qGpIIMzVF_WC10zG/view?usp=drivesdk, description: image of smartapplicant.net page showing ATS_compatibility scan button with No files selected.",
+    "media type : image, Url : https://drive.google.com/file/d/1GN-e-t-TEHWlNiSdt3eWeIsY6X2wIdsz/view?usp=drivesdk, Description : image of smartapplicant.net home page. Logo and name, mobile menu button (breadcrumb icon) are visible. Also, a button that says 'Analyze your resume - it's free' is visible as well. This button will take u to ATS-compatibility scan button where they can select their resume and scan for ATS-compatibility score.",
+    "media type :image, Url : https://drive.google.com/file/d/1PD_s22pLYf9YAYXJuAUMtL-7LQkPHOVk/view?usp=drivesdk, Description : image of smartapplicant.net logo",
+    "media type : audio, Url : https://drive.google.com/file/d/162glnaUtXE44bGDRw2F-0ExdlcAIk7Rt/view?usp=drivesdk, Description: music by 2face idibia title IF LOVE IS A CRIME and it is 4:26 long",
+    "media type : audio, url : https://drive.google.com/file/d/16KzWbCeABKlky3U81MwUYHjGCSxsRewS/view?usp=drivesdk, description : song by Alan Walker (remixed) titled FADED and it is 0.37 long",
+    "media type : audio, Url : https://drive.google.com/file/d/1P7ERN1sfs-zFVzKoIUAVc-rFE-HbTw_M/view?usp=drivesdk, Description : song by Sean Kingston titled FACE DROP and it's 3.07 long",
+    "media type : audio, Url : https://drive.google.com/file/d/13rFQqUbCb66Opy7dSr7LqVsc2jUfKF_C/view?usp=drivesdk, Description : instrumental titled EPIC RISE and it's 2.23 long",
+    "media type: image, url: https://drive.google.com/file/d/1O3VNz1PhNdxdljcyCTFbGsWEJph2tevX/view?usp=drivesdk, description: a page on smartapplicant.net showing user statistics and usage statistics"
+]

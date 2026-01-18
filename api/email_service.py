@@ -48,7 +48,7 @@ class EmailService:
             return True
 
         except Exception as e:
-            logger.error(f"[EmailService] Failed to send email: {e}")
+            logger.exception("[EmailService] Failed to send email")
             return False
 class DjangoEmailService:
     def __init__(self, subject: str, to_emails: List[str], context: dict, template_name: str, from_email: Optional[str] = None):

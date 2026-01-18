@@ -75,7 +75,10 @@ class AutomateFacebookPost:
                             Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
                             Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
 
-                            NOTE: ONLY RETURN LINK POSTS IF THE BUSINESS HAS A WEBSITE AND SHARABLE LINKS.
+                            RULES:
+                            - the 'content' value for link posts must be valid url only. No extra texts.
+                            - you should only include link posts if the business has a website and valid urls
+                            - if the business does not have a website, all 6 posts must be text posts only.
                         """.strip(),
                     'txt-img': """
                             You are a skilled social media content creator for **business_name.
@@ -93,12 +96,15 @@ class AutomateFacebookPost:
                             Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
                             Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
                             Image content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}
-                            
-                            NOTE: ONLY RETURN LINK POSTS IF THE BUSINESS HAS A WEBSITE AND SHARABLE LINKS.
+
+                            RULES:
+                            - the 'content' value for link posts must be valid url only. No extra texts.
+                            - you should only include link posts if the business has a website and valid urls
+                            - if the business does not have a website, return 5 text posts and 1 image post
                         """.strip(),
-                    'txt-img-vid': """
+                    'txt-vid': """
                             You are a skilled social media content creator for **business_name.
-                            Generate 6 Facebook posts for today: 3 text posts, 1 link posts (with caption), 1 image prompt (with caption- to be used to generate image from grok) and 1 video generation prompt (with caption- to be used to generate video from veo).
+                            Generate 5 Facebook posts for today: 3 text posts, 2 link posts (with caption).
                             If business has no sharable link, return all 4 text posts, 1 image post, and 1 video post.
                             Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
                             Keep tone friendly, professional, and appealing to Facebook users. 
@@ -112,10 +118,50 @@ class AutomateFacebookPost:
                             Return output as a JSON list of dictionaries, with the following structures:\n
                             Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
                             Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
-                            Image content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}
-                            Video content type - {"content": "<video generation prompt>", "caption": "<Text to be posted with the video>", "content_type": "video", "comments": "<List of 4 or more unique text comments to buttress the post>"}
+                            
+                            RULES:
+                            - the 'content' value for link posts must be valid url only. No extra texts.
+                            - you should only include link posts if the business has a website and valid urls
+                            - if the business does not have a website, all 5 posts must be text posts only.
+                            """.strip(),
+                    'img-vid': """
+                            You are a skilled social media content creator for **business_name.
+                            Generate 2 Facebook posts for today: 2 image prompt (with caption- to be used to generate image from grok).
+                            Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
+                            Keep tone friendly, professional, and appealing to Facebook users. 
+                            For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. 
+                            You are commenting as the post creator to encourage engagement and to add value to the post. 
+                            You must not include personal information of the business owner or employees in the posts. 
 
-                            NOTE: ONLY RETURN LINK POSTS IF THE BUSINESS HAS A WEBSITE AND SHARABLE LINKS.
+                            Business details for context:
+                            \n**business_details
+
+                            Return output as a JSON list of dictionaries, with the following structures:\n
+                            {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}
+                            """.strip(),
+                    'txt-img-vid': """
+                            You are a skilled social media content creator for **business_name.
+                            Generate 5 Facebook posts for today: 3 text posts, 1 link posts (with caption), 1 image prompt (with caption- to be used to generate image from grok).
+                            If business has no sharable link, return all 4 text posts, and 1 image post.
+                            Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
+                            Keep tone friendly, professional, and appealing to Facebook users. 
+                            For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. 
+                            You are commenting as the post creator to encourage engagement and to add value to the post. 
+                            You must not include personal information of the business owner or employees in the posts. 
+
+                            Business details for context:
+                            \n**business_details
+
+                            Return output as a JSON list of dictionaries, with the following structures:\n
+                            Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
+                            Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
+                            Image content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}
+                            
+                            RULES:
+                            - the 'content' value for link posts must be valid url only. No extra texts.
+                            - you should only include link posts if the business has a website and valid urls
+                            - if the business does not have a website, return 4 text posts and 1 image post.
+                            
                         """.strip()
                 }
         business_details = self.__get_business_details()
