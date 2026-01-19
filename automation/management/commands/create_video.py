@@ -13,6 +13,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         page_id = options['page_id']
-        create_video_content.delay(page_id, video_plan)
+        create_video_content.delay(page_id)
         # post_video_content_to_facebook.delay(page_id)
         self.stdout.write(self.style.SUCCESS(f'Video creation task dispatched.'))
