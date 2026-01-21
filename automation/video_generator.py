@@ -416,8 +416,8 @@ class VideoGenerator:
         """
         Renders ONE scene to disk using FFmpeg (streaming, low memory)
         """
-        temp_out_put = output_path.replace(".mp4", "_silent.mp4")
-        vo_output = output_path.replace(".mp4", "_vo_vid.mp4")
+        # temp_out_put = output_path.replace(".mp4", "_silent.mp4")
+        # vo_output = output_path.replace(".mp4", "_vo_vid.mp4")
 
         duration = scene["duration"]
         width, height = WIDTH, HEIGHT
@@ -529,11 +529,13 @@ class VideoGenerator:
         else:
             audio_filters.append(f"{audio_inputs[0]}copy[aout]")
 
+        full_filter_str = "; ".join(filters) + "; " + "; ".join(audio_filters)
+
         # 9️⃣ Final Command (Single Pass)
         cmd = [
             "ffmpeg", "-y",
             *inputs,
-            "-filter_complex", ";".join(filters + audio_filters),
+            "-filter_complex", full_filter_str,
             "-map", f"[{video_label}]",
             "-map", "[aout]",
             "-t", str(duration),
