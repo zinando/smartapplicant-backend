@@ -11,13 +11,13 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         page_id = options['page_id']
-        path = "temp_media/Smartapplicant.mp4"
-        client = AutomatedClients.objects.filter(client_id=page_id).first()
-        video_plan["final_video_path"] = path
-        # self.stdout.write(self.style.HTTP_INFO(f'Business info: {client.business_details}'))
-        video_plan["caption"] = "Are you planning on creating a job-winning Resume/CV soon?"
-        client.saved_video_plan = video_plan
-        client.save(update_fields=["saved_video_plan"])
+        # path = "temp_media/Smartapplicant.mp4"
+        # client = AutomatedClients.objects.filter(client_id=page_id).first()
+        # video_plan["final_video_path"] = path
+        # # self.stdout.write(self.style.HTTP_INFO(f'Business info: {client.business_details}'))
+        # video_plan["caption"] = "Are you planning on creating a job-winning Resume/CV soon?"
+        # client.saved_video_plan = video_plan
+        # client.save(update_fields=["saved_video_plan"])
 
         # create_video_content.delay(page_id, video_plan)
         post_video_content_to_facebook.delay(page_id)
