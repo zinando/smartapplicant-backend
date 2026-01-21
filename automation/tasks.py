@@ -368,7 +368,7 @@ def schedule_facebook_post(self):
             instance = AutomateFacebookPost(page)
             prompt = instance.get_content_prompt()
             contents = client.saved_content or get_structured_data_from_gemini_smart(prompt)  # get content that failed to post or generate new one
-            # logger.info(f"Gemini contents:\n{contents}")
+            logger.info(f"Gemini contents:\n{contents}")
             if not contents or len(contents) == 0:
                 logger.warning(f"No content generated for Facebook page {page}")
                 # get fallback content 
@@ -464,7 +464,7 @@ def create_video_content(self, page_id:str, video_plan:dict=None):
     generator = VideoGenerator(page_id, video_plan)
     output_path, message = generator.render()
 
-    post_video_content_to_facebook.delay(page_id)
+    # post_video_content_to_facebook.delay(page_id)
 
 @shared_task(bind=True, max_retrie=2)
 def post_video_content_to_facebook(self, page_id:str):

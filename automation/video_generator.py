@@ -4,6 +4,9 @@ from api.ai import get_structured_data_from_gemini, try_call_tts, get_structured
 from django.conf import settings
 from automation.models import AutomatedClients
 import uuid
+import subprocess
+from pathlib import Path
+import json 
 from urllib.parse import urlparse, unquote, parse_qs
 from moviepy.video.fx import FadeIn, FadeOut, Resize
 from moviepy.audio.fx import AudioFadeOut, AudioFadeIn, MultiplyVolume
@@ -39,6 +42,19 @@ is_voice_open = False
 base = None
 voice = None
 
+def has_audio(video_path:str):
+    video_clip = None
+    try:
+        video_clip = VideoFileClip(str(video_path))
+        has_audio = video_clip.audio is not None
+    except Exception as e:
+        print(str(e))
+        has_audio = False
+    finally:
+        if video_clip:
+            video_clip.close()
+    return has_audio
+
 def is_google_drive_view_link(url: str) -> bool:
     return bool(DRIVE_VIEW_REGEX.match(url))
 
@@ -53,6 +69,31 @@ def gaussian_blur(clip, sigma=25):
     return clip.image_transform(
         lambda frame: cv2.GaussianBlur(frame, (0, 0), sigma)
     )
+
+def run(cmd):
+    subprocess.run(cmd, check=True)
+
+def get_video_duration(path: str) -> float:
+    """
+    Returns video duration in seconds (float)
+    """
+    result = subprocess.run(
+        [
+            "ffprobe",
+            "-v", "error",
+            "-select_streams", "v:0",
+            "-show_entries", "format=duration",
+            "-of", "json",
+            path
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=True
+    )
+
+    data = json.loads(result.stdout)
+    return float(data["format"]["duration"])
 
 def fit_to_vertical(base, WIDTH, HEIGHT):
     # Background (blurred fill)
@@ -306,7 +347,7 @@ class VideoGenerator:
             return font_map
         return font_map.get(name, None)
     
-    def make_scene(self, scene):
+    def make_scenexxx(self, scene):
         global is_base_open, is_voice_open, base, voice
 
         try:
@@ -364,8 +405,338 @@ class VideoGenerator:
                 voice.close()
             print(f"Error creating scene for URL {scene['url']}: {e}")
             raise e
+        
+    def make_scene(self, scene:dict, output_path:str):
+        """
+        Renders ONE scene to disk using FFmpeg (streaming, low memory)
+        """
+        temp_out_put = output_path.replace(".mp4", "_silent.mp4")
+        vo_output = output_path.replace(".mp4", "_vo_vid.mp4")
+
+        duration = scene["duration"]
+        width, height = WIDTH, HEIGHT
+
+        # 1️⃣ Download media
+        media_type = scene["media_type"]
+        media_path = download(scene["url"], media_type=media_type)
+
+        inputs = []
+        filters = []
+        audio_filters = []
+
+        input_index = 0  # IMPORTANT: track -i inputs ONLY
+
+        # 2️⃣ Base media input
+        if media_type == "image":
+            inputs += [
+                "-loop", "1",
+                "-t", str(duration),
+                "-i", media_path
+            ]
+            input_index += 1
+        else:
+            inputs += ["-i", media_path]
+            input_index += 1
+
+        # 3️⃣ Scale & crop to vertical
+        filters.append(
+            f"[0:v]"
+            f"scale=w={width}:h={height}:force_original_aspect_ratio=increase,"
+            f"crop={width}:{height},setsar=1[v0]"
+        )
+        video_label = "v0"
+
+        # 4️⃣ Zoom animation
+        if scene.get("animation") == "zoom_in":
+            filters.append(
+                f"[{video_label}]"
+                f"zoompan=z='min(zoom+0.0015,1.3)':d=1:"
+                f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'[v1]"
+            )
+            video_label = "v1"
+
+        # 5️⃣ Text overlay (watermark consistency fixed)
+        overlay = scene.get("overlay_text", {})
+        text = overlay.get("text")
+
+        if text:
+            font = self.get_font(overlay.get("font", "montserrat-r"))
+            font_size = overlay.get("font_size", 60)
+            color = overlay.get("text_color", "white")
+
+            filters.append(
+                f"[{video_label}]drawtext="
+                f"fontfile='{font}':"
+                f"text='{text}':"
+                f"fontsize={font_size}:"
+                f"fontcolor={color}:"
+                f"x=(w-text_w)/2:"
+                f"y=h*0.78[text]"
+            )
+            video_label = "text"
+
+        # 6️⃣ Fade effects (fade-out guaranteed to finish)
+        if scene.get("fade_in"):
+            filters.append(
+                f"[{video_label}]"
+                f"fade=t=in:st=0:d={scene['fade_in']}[fadin]"
+            )
+            video_label = "fadin"
+
+        if scene.get("fade_out"):
+            fade_out_dur = scene["fade_out"]
+            fade_start = max(0, duration - fade_out_dur)
+
+            filters.append(
+                f"[{video_label}]"
+                f"fade=t=out:st={fade_start}:d={fade_out_dur}[fadout]"
+            )
+            video_label = "fadout"
+        
+        # 7️⃣ Prepare Audio Inputs
+        audio_inputs = []
+        voice_path = None
+        if scene.get("voice_over"):
+            voice_path, _ = try_call_tts(scene["voice_over"])
+
+        # We need a primary audio source to mix or use alone
+        if voice_path:
+            inputs += ["-i", voice_path]
+            # Filter the voice-over immediately to ensure it's stereo 44.1k/48k for mixing
+            # [v_a] ensures we have a standard format before the amix
+            audio_filters.append(f"[{input_index}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[vo_ready]")
+            audio_inputs.append("[vo_ready]")
+            input_index += 1
+
+        # Add silent background so the video always has an audio track
+        inputs += ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100"]
+        audio_filters.append(f"[{input_index}:a]asetpts=PTS-STARTPTS[silence_ready]")
+        audio_inputs.append("[silence_ready]")
+        input_index += 1
+
+        # 8️⃣ Mix Audio with Volume Normalization
+        if len(audio_inputs) > 1:
+            # mix the inputs, and use volume=2 to counter amix's 1/n scaling
+            mix_str = "".join(audio_inputs)
+            audio_filters.append(f"{mix_str}amix=inputs={len(audio_inputs)}:duration=first:dropout_transition=0,volume=2[aout]")
+        else:
+            audio_filters.append(f"{audio_inputs[0]}copy[aout]")
+
+        # 9️⃣ Final Command (Single Pass)
+        cmd = [
+            "ffmpeg", "-y",
+            *inputs,
+            "-filter_complex", ";".join(filters + audio_filters),
+            "-map", f"[{video_label}]",
+            "-map", "[aout]",
+            "-t", str(duration),
+            "-c:v", "libx264",
+            "-preset", "ultrafast",
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac",
+            "-b:a", "192k",      # Ensure decent audio bitrate
+            "-ac", "2",          # Force output to 2 channels (stereo)
+            "-movflags", "+faststart",
+            output_path
+        ]
+        run(cmd)
+
+        # # 7️⃣ Audio inputs
+        # audio_inputs = []
+        # voice_path = None
+
+        # # Optional voice-over
+        # if scene.get("voice_over"):
+        #     voice_path, _ = try_call_tts(scene["voice_over"])
+        # if voice_path:
+        #     inputs += ["-i", voice_path]
+        #     audio_inputs.append(f"[{input_index}:a]")
+        #     input_index += 1
+        # else:
+        #     print("⚠️ Voice-over failed, using silence")
+
+        #     # Always add silence fallback
+        #     inputs += [
+        #         "-f", "lavfi",
+        #         "-i", "anullsrc=channel_layout=mono:sample_rate=24000"
+        #     ]
+        #     audio_inputs.append(f"[{input_index}:a]")
+        #     input_index += 1
+
+        # # 8️⃣ Audio filter graph
+        # if len(audio_inputs) == 1:
+        #     audio_filters.append(
+        #         f"{audio_inputs[0]}asetpts=PTS-STARTPTS[aout]"
+        #     )
+        # else:
+        #     audio_filters.append(
+        #         f"{''.join(audio_inputs)}"
+        #         f"amix=inputs={len(audio_inputs)}:duration=first[aout]"
+        #     )
+
+        # # 9️⃣ Assemble FFmpeg command
+        # cmd = [
+        #     "ffmpeg", "-y",
+        #     *inputs,
+        #     "-filter_complex", ";".join(filters + audio_filters),
+        #     # "-filter_complex", ";".join(filters),
+        #     "-map", f"[{video_label}]",
+        #     "-map", "[aout]",
+        #     "-t", str(duration),
+        #     "-c:v", "libx264",
+        #     "-preset", "ultrafast",
+        #     "-pix_fmt", "yuv420p",
+        #     "-c:a", "aac",
+        #     "-movflags", "+faststart",
+        #     output_path
+        # ]
+        # run(cmd)
+
+        # # current_video = temp_out_put
+
+        # # # add voice over here
+        # # if scene.get("voice_over"):
+        # #     voice_path, _ = try_call_tts(scene["voice_over"])
+        # #     if voice_path:
+        # #         run([
+        # #             "ffmpeg", "-y",
+        # #             "-i", str(current_video),
+        # #             "-i", voice_path,
+        # #             "-c:v", "copy",
+        # #             "-c:a", "aac",
+        # #             "-map", "0:v:0",
+        # #             "-map", "1:a:0",
+        # #             "-shortest",
+        # #             str(vo_output)
+        # #         ])
+        # #         current_video = vo_output
+
+        # #     else:
+        # #         print("⚠️ Voice-over failed, using silence")
+        
+        # os.rename(current_video, output_path)
+
+    def make_sceneyyy(self, scene, output_path):
+        """
+        Renders ONE scene to disk using FFmpeg (streaming, low memory)
+        """
+
+        duration = scene["duration"]
+        width, height = WIDTH, HEIGHT
+
+        # 1️⃣ Download media
+        media_type = scene["media_type"]
+        media_path = download(scene["url"], media_type=media_type)
+
+        inputs = []
+        filters = []
+        input_index = 0
+
+        # 2️⃣ Base media input
+        if media_type == "image":
+            inputs += ["-loop", "1", "-t", str(duration), "-i", media_path]
+        else:
+            inputs += ["-i", media_path]
+
+        # 3️⃣ Scale & crop to vertical
+        filters.append(
+            f"[0:v]scale=w={width}:h={height}:force_original_aspect_ratio=increase,"
+            f"crop={width}:{height},setsar=1[v0]"
+        )
+
+        video_label = "v0"
+
+        # 4️⃣ Zoom animation
+        if scene.get("animation") == "zoom_in":
+            filters.append(
+                f"[{video_label}]zoompan=z='min(zoom+0.0015,1.3)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'[v1]"
+            )
+            video_label = "v1"
+
+        # 5️⃣ Text overlay
+        text = scene.get("overlay_text", {}).get("text")
+        if text:
+            font = self.get_font(scene["overlay_text"].get("font", "montserrat-r"))
+            font_size = scene["overlay_text"].get("font_size", 60)
+            color = scene["overlay_text"].get("text_color", "white")
+
+            filters.append(
+                f"[{video_label}]drawtext="
+                f"fontfile='{font}':"
+                f"text='{text}':"
+                f"fontsize={font_size}:"
+                f"fontcolor={color}:"
+                f"x=(w-text_w)/2:"
+                f"y=h*0.78[text]"
+            )
+            video_label = "text"
+
+        # 6️⃣ Fade effects
+        if scene.get("fade_in"):
+            filters.append(
+                f"[{video_label}]fade=t=in:st=0:d={scene['fade_in']}[fadin]"
+            )
+            video_label = "fadin"
+
+        if scene.get("fade_out"):
+            filters.append(
+                f"[{video_label}]fade=t=out:st={duration-scene['fade_out']}:d={scene['fade_out']}[fadout]"
+            )
+            video_label = "fadout"
+
+        # 7️⃣ Voice-over (optional)
+        audio_inputs = []
+        audio_filters = []
+
+        # Track how many inputs already exist
+        input_index = len(inputs) // 2
+
+        # Optional voice-over
+        if scene.get("voice_over"):
+            voice_path, _ = try_call_tts(scene["voice_over"])
+            if voice_path:
+                inputs += ["-i", voice_path]
+                audio_inputs.append(f"[{input_index}:a]")
+                input_index += 1
+            else:
+                print("⚠️ Voice-over failed, falling back to silence")
+
+        # Always add silence (fallback)
+        inputs += [
+            "-f", "lavfi",
+            "-i", "anullsrc=channel_layout=mono:sample_rate=24000"
+        ]
+        audio_inputs.append(f"[{input_index}:a]")
+
+        # Build audio filter graph
+        if len(audio_inputs) == 1:
+            audio_filters.append(
+                f"{audio_inputs[0]}asetpts=PTS-STARTPTS[aout]"
+            )
+        else:
+            audio_filters.append(
+                f"{''.join(audio_inputs)}amix=inputs={len(audio_inputs)}:duration=shortest[aout]"
+            )
+        
+        # 8️⃣ Assemble FFmpeg command
+        cmd = [
+            "ffmpeg", "-y",
+            *inputs,
+            "-filter_complex", ";".join(filters + audio_filters),
+            "-map", f"[{video_label}]",
+            "-map", "[aout]",
+            "-t", str(duration),
+            "-c:v", "libx264",
+            "-preset", "ultrafast",
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac",
+            "-movflags", "+faststart",
+            output_path
+        ]
+        
+        subprocess.run(cmd, check=True)
     
-    def make_cover(self, cover_url):
+    def make_coverxxx(self, cover_url):
         # ownload the cover image
         cover = download(cover_url, media_type="image")
         cover_obj = ImageClip(cover).with_duration(1.2)
@@ -374,7 +745,39 @@ class VideoGenerator:
             cover_obj = cover_obj.with_effects([vfx.Resize(width=WIDTH)])
         return cover_obj
     
-    def make_watermark(self, input:str|dict, duration:float=10):
+    def make_cover(self, cover_url, output_path):
+        """
+        Renders a 1.2s vertical cover video from an image using FFmpeg
+        """
+
+        duration = 1.2
+        image_path = download(cover_url, media_type="image")
+
+        # Scale to HEIGHT first, then pad/crop to WIDTH x HEIGHT
+        filter_chain = f"scale={WIDTH}:{HEIGHT}:force_original_aspect_ratio=increase,crop={WIDTH}:{HEIGHT}"
+        # (
+        #     # f"scale=-2:{HEIGHT}:force_original_aspect_ratio=decrease,"
+        #     f"scale={WIDTH}:{HEIGHT}:force_original_aspect_ratio=increase,crop={WIDTH}:{HEIGHT}"
+        #     # f"pad={WIDTH}:{HEIGHT}:(ow-iw)/2:(oh-ih)/2"
+        # )
+        # "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920"
+
+        cmd = [
+            "ffmpeg", "-y",
+            "-loop", "1",
+            "-t", str(duration),
+            "-i", image_path,
+            "-vf", filter_chain,
+            "-c:v", "libx264",
+            "-preset", "ultrafast",
+            "-pix_fmt", "yuv420p",
+            "-movflags", "+faststart",
+            output_path
+        ]
+
+        subprocess.run(cmd, check=True)
+    
+    def make_watermarkxxx(self, input:str|dict, duration:float=10):
         """Creates a watermark clip from text or logo image"""
         # if input.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')) or any(s in input for s in ["https://", "http://", "www.", "drive.google.com"]):
         if isinstance(input, str):    
@@ -400,6 +803,50 @@ class VideoGenerator:
                          .with_position((900, 20))
                         )
         return watermark
+    
+    def make_watermark(self, watermark, duration, video_width=WIDTH, video_height=HEIGHT):
+        """
+        Returns FFmpeg inputs and overlay filter for watermark
+        Supports:
+        - image watermark (URL)
+        - text watermark (dict)
+        """
+
+        inputs = []
+        filter_part = ""
+
+        # 🖼 IMAGE WATERMARK
+        if isinstance(watermark, str):
+            logo_path = download(watermark, media_type="image")
+
+            inputs = [
+                "-loop", "1",
+                "-t", str(duration),
+                "-i", logo_path
+            ]
+
+            filter_part = (
+                "[1:v]scale=-1:100,format=rgba,colorchannelmixer=aa=0.7[wm];"
+                "[0:v][wm]overlay=920:20"
+            )
+
+        # 📝 TEXT WATERMARK
+        else:
+            text = watermark.get("text", "")
+            text = text.replace(":", "\\:").replace("'", "\\'")
+            font = self.get_font(watermark.get("font", "anton"))
+            color = watermark.get("text_color", "white")
+
+            filter_part = (
+                f"[0:v]drawtext="
+                f"fontfile='{font}':"
+                f"text='{text}':"
+                f"fontsize=42:"
+                f"fontcolor={color}:"
+                f"x=900:y=20"
+            )
+
+        return inputs, filter_part
 
     def test_with_a_scene(self):
         """This is used to test all parts of the code to generate one scene only"""
@@ -480,7 +927,7 @@ class VideoGenerator:
         # client.save(update_fields=["saved_video_plan"])
         return output, "success"
     
-    def render(self):
+    def renderxxx(self):
         output = f"temp_media/{uuid.uuid4()}_final.mp4"
         global is_base_open, is_voice_open, base, voice
         open_audio_clips = []
@@ -564,3 +1011,137 @@ class VideoGenerator:
             message = str(e)
 
         return output, message
+
+    def render(self):
+        # output = f"temp_media/{uuid.uuid4()}_final.mp4"
+        TEMP_DIR = "temp_media"
+
+        job_id = uuid.uuid4().hex
+        workdir = Path(TEMP_DIR) / job_id
+        workdir.mkdir(parents=True, exist_ok=True)
+
+        scene_files = []
+        message = ""
+        final_output = f"{TEMP_DIR}/{job_id}_final.mp4"
+
+        try:
+            # 1️⃣ Render scenes individually
+            for i, scene in enumerate(self.video_plan["scenes"], start=1):
+                out = workdir / f"scene_{i}.mp4"
+                self.make_scene(scene, str(out))  # MUST render via ffmpeg
+                scene_files.append(out)
+                print(f"{out} created")
+
+            # 2️⃣ Render cover
+            cover = workdir / "cover.mp4"
+            self.make_cover(
+                self.video_plan.get("video_cover_url", self.video_plan["scenes"][0]["url"]),
+                str(cover)
+            )
+
+            # Insert cover at start
+            scene_files.insert(0, cover)
+
+            # 3️⃣ Create concat file
+            concat_file = workdir / "concat.txt"
+            with open(concat_file, "w") as f:
+                for file in scene_files:
+                    f.write(f"file '{file.resolve()}'\n")
+
+            base_video = workdir / "base.mp4"
+            run([
+                "ffmpeg", "-y",
+                "-f", "concat", "-safe", "0",
+                "-i", str(concat_file),
+                "-c", "copy",
+                str(base_video)
+            ])
+
+            current_video = base_video
+
+            # # 4️⃣ Watermark (optional)
+            video_duration = get_video_duration(current_video)
+            if self.video_plan.get("watermark"):
+                wm_inputs, wm_filter = self.make_watermark(
+                    self.video_plan["watermark"],
+                    duration=video_duration
+                )
+
+                watermarked = workdir / "watermarked.mp4"
+
+                cmd = [
+                    "ffmpeg", "-y",
+                    "-i", str(current_video),
+                    *wm_inputs,
+                    "-filter_complex", wm_filter,
+                    "-c:a", "copy",
+                    "-c:v", "libx264",
+                    "-preset", "ultrafast",
+                    "-pix_fmt", "yuv420p",
+                    str(watermarked)
+                ]
+
+                subprocess.run(cmd, check=True)
+                current_video = watermarked
+
+            # 5️⃣ Background music (optional)
+            if self.video_plan.get("background_music_url"):
+                music_path = download(self.video_plan["background_music_url"], media_type="audio")
+                music_video = workdir / "with_music.mp4"
+                if has_audio(current_video):
+                    run([
+                        "ffmpeg", "-y",
+                        "-i", str(current_video),
+                        "-i", music_path,
+                        "-filter_complex",
+                        "[1:a]volume=0.2[a1];[0:a][a1]amix=inputs=2:duration=shortest",
+                        "-c:v", "copy",
+                        str(music_video)
+                    ])
+                else:
+                    run([
+                        "ffmpeg", "-y",
+                        "-i", str(current_video),
+                        "-i", music_path,
+                        "-c:v", "copy",
+                        "-map", "0:v",
+                        "-map", "1:a",
+                        "-shortest",
+                        str(music_video)
+                    ])
+
+                current_video = music_video
+
+            # 6️⃣ Finalize
+            os.rename(current_video, final_output)
+
+            # 7️⃣ Save result
+            client = AutomatedClients.objects.get(client_id=self.page_id)
+            video_plan = client.saved_video_plan
+            video_plan["final_video_path"] = final_output
+            client.saved_video_plan = video_plan
+            client.save(update_fields=["saved_video_plan"])
+
+            message = "Video rendered successfully"
+
+        except Exception as e:
+            message = f"Render failed: {e}"
+            print(message)
+            final_output = None
+
+        finally:
+            # 🧹 HARD CLEANUP
+            for item in workdir.glob("*"):
+                try:
+                    item.unlink()
+                except:
+                    pass
+            asset_dir = Path("temp_assets")
+            for item in  asset_dir.glob("*"):
+                try:
+                    item.unlink()
+                except:
+                    pass
+            workdir.rmdir()
+
+        return final_output, message
