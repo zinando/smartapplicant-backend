@@ -467,18 +467,32 @@ class VideoGenerator:
 
         if text:
             text = self.format_text(text)
+            # text = self.format_text("Don't ever undergo that training.")
             font = self.get_font(overlay.get("font", "montserrat-r"))
             font_size = overlay.get("font_size", 60)
             color = overlay.get("text_color", "white")
 
+            # filters.append(
+            #     f"[{video_label}]drawtext="
+            #     f"fontfile='{font}':"
+            #     f"text='{text}':"
+            #     f"fontsize={font_size}:"
+            #     f"fontcolor={color}:"
+            #     f"x=(w-text_w)/2:"
+            #     f"y=h*0.78[text]"
+            # )
+            print(f"Font used: {font}")
             filters.append(
                 f"[{video_label}]drawtext="
                 f"fontfile='{font}':"
                 f"text='{text}':"
-                f"fontsize={font_size}:"
-                f"fontcolor={color}:"
+                f"fontsize=64:"
+                f"fontcolor=black:"
+                f"box=1:"
+                f"boxcolor=yellow:"
+                f"boxborderw=15:"
                 f"x=(w-text_w)/2:"
-                f"y=h*0.78[text]"
+                f"y=h*0.75[text]"
             )
             video_label = "text"
 
@@ -504,6 +518,7 @@ class VideoGenerator:
         audio_inputs = []
         voice_path = None
         if scene.get("voice_over"):
+            print(f"VOT: {scene['voice_over']}")
             voice_path, _ = try_call_tts(scene["voice_over"])
 
         # We need a primary audio source to mix or use alone
@@ -1088,9 +1103,25 @@ class VideoGenerator:
 
         return str(final_path)
     
-    def format_text(self, text:str):
+    def format_textxxx(self, text:str):
         """Removes or escapes special characters"""
         return text.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
+    def format_text(self, text: str):
+        """
+        Escapes characters for FFmpeg drawtext filter.
+        Note: Single quotes in FFmpeg filter_complex are extremely sensitive.
+        """
+        # 1. Handle backslashes first
+        text = text.replace("\\", "\\\\")
+        # 2. Handle colons (separator for filter options)
+        text = text.replace(":", "\\:")
+        # 3. Handle single quotes: FFmpeg requires '...' to contain them, 
+        # but the quote itself must be escaped as \' and the backslash must be escaped.
+        # Effectively, for many FFmpeg versions, replacing ' with ’ (smart quote) 
+        # or removing it is safer, but here is the correct escape:
+        text = text.replace("'", "'\\''") 
+        
+        return text
     
     def render(self):
         # output = f"temp_media/{uuid.uuid4()}_final.mp4"
