@@ -527,9 +527,9 @@ class VideoGenerator:
             mix_str = "".join(audio_inputs)
             audio_filters.append(f"{mix_str}amix=inputs={len(audio_inputs)}:duration=first:dropout_transition=0,volume=2[aout]")
         else:
-            audio_filters.append(f"{audio_inputs[0]}copy[aout]")
+            audio_filters.append(f"{audio_inputs[0]}anull[aout]")
 
-        full_filter_str = "; ".join(filters) + "; " + "; ".join(audio_filters)
+        full_filter_str = ";".join(filters) + ";" + ";".join(audio_filters)
 
         # 9️⃣ Final Command (Single Pass)
         cmd = [
@@ -549,81 +549,6 @@ class VideoGenerator:
             output_path
         ]
         run(cmd)
-
-        # # 7️⃣ Audio inputs
-        # audio_inputs = []
-        # voice_path = None
-
-        # # Optional voice-over
-        # if scene.get("voice_over"):
-        #     voice_path, _ = try_call_tts(scene["voice_over"])
-        # if voice_path:
-        #     inputs += ["-i", voice_path]
-        #     audio_inputs.append(f"[{input_index}:a]")
-        #     input_index += 1
-        # else:
-        #     print("⚠️ Voice-over failed, using silence")
-
-        #     # Always add silence fallback
-        #     inputs += [
-        #         "-f", "lavfi",
-        #         "-i", "anullsrc=channel_layout=mono:sample_rate=24000"
-        #     ]
-        #     audio_inputs.append(f"[{input_index}:a]")
-        #     input_index += 1
-
-        # # 8️⃣ Audio filter graph
-        # if len(audio_inputs) == 1:
-        #     audio_filters.append(
-        #         f"{audio_inputs[0]}asetpts=PTS-STARTPTS[aout]"
-        #     )
-        # else:
-        #     audio_filters.append(
-        #         f"{''.join(audio_inputs)}"
-        #         f"amix=inputs={len(audio_inputs)}:duration=first[aout]"
-        #     )
-
-        # # 9️⃣ Assemble FFmpeg command
-        # cmd = [
-        #     "ffmpeg", "-y",
-        #     *inputs,
-        #     "-filter_complex", ";".join(filters + audio_filters),
-        #     # "-filter_complex", ";".join(filters),
-        #     "-map", f"[{video_label}]",
-        #     "-map", "[aout]",
-        #     "-t", str(duration),
-        #     "-c:v", "libx264",
-        #     "-preset", "ultrafast",
-        #     "-pix_fmt", "yuv420p",
-        #     "-c:a", "aac",
-        #     "-movflags", "+faststart",
-        #     output_path
-        # ]
-        # run(cmd)
-
-        # # current_video = temp_out_put
-
-        # # # add voice over here
-        # # if scene.get("voice_over"):
-        # #     voice_path, _ = try_call_tts(scene["voice_over"])
-        # #     if voice_path:
-        # #         run([
-        # #             "ffmpeg", "-y",
-        # #             "-i", str(current_video),
-        # #             "-i", voice_path,
-        # #             "-c:v", "copy",
-        # #             "-c:a", "aac",
-        # #             "-map", "0:v:0",
-        # #             "-map", "1:a:0",
-        # #             "-shortest",
-        # #             str(vo_output)
-        # #         ])
-        # #         current_video = vo_output
-
-        # #     else:
-        # #         print("⚠️ Voice-over failed, using silence")
-        
-        # os.rename(current_video, output_path)
 
     def make_sceneyyy(self, scene, output_path):
         """
