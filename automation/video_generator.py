@@ -486,7 +486,7 @@ class VideoGenerator:
         if scene.get("fade_in"):
             filters.append(
                 f"[{video_label}]"
-                f"fade=t=in:start_time=0:d={scene['fade_in']}[fadin]"
+                f"fade=t=in:st=0:d={scene['fade_in']}[fadin]"
             )
             video_label = "fadin"
 
@@ -496,7 +496,7 @@ class VideoGenerator:
 
             filters.append(
                 f"[{video_label}]"
-                f"fade=t=out:start_time={fade_start}:d={fade_out_dur}[fadout]"
+                f"fade=t=out:st={fade_start}:d={fade_out_dur}[fadout]"
             )
             video_label = "fadout"
         
@@ -681,13 +681,13 @@ class VideoGenerator:
         # 6️⃣ Fade effects
         if scene.get("fade_in"):
             filters.append(
-                f"[{video_label}]fade=t=in:start_time=0:d={scene['fade_in']}[fadin]"
+                f"[{video_label}]fade=t=in:st=0:d={scene['fade_in']}[fadin]"
             )
             video_label = "fadin"
 
         if scene.get("fade_out"):
             filters.append(
-                f"[{video_label}]fade=t=out:start_time={duration-scene['fade_out']}:d={scene['fade_out']}[fadout]"
+                f"[{video_label}]fade=t=out:st={duration-scene['fade_out']}:d={scene['fade_out']}[fadout]"
             )
             video_label = "fadout"
 
