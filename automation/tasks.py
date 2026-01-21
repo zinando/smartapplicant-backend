@@ -365,48 +365,54 @@ def schedule_facebook_post(self):
                 #     if tenant.custom_prompts and isinstance(tenant.custom_prompts, dict):
                 #         client.custom_prompt = tenant.custom_prompts.get('facebook', '')
                 #         client.save(update_fields=['custom_prompt'])
-            instance = AutomateFacebookPost(page)
-            prompt = instance.get_content_prompt()
-            contents = client.saved_content or get_structured_data_from_gemini_smart(prompt)  # get content that failed to post or generate new one
-            logger.info(f"Gemini contents:\n{contents}")
-            if not contents or len(contents) == 0:
-                logger.warning(f"No content generated for Facebook page {page}")
-                # get fallback content 
-                contents = instance.get_fallback_posts()
-                # logger.warning(f"Fallback content {contents}")
-                if not contents or len(contents) < 6:
-                    logger.error(f"No fallback content available for Facebook page {page}, skipping.")
-                    continue
-            image_contents = [x for x in contents if x.get('content_type') == 'image']
             count = 0
-            if len(image_contents) > 0:
-                if  not media_post_log_obj.has_posted_image_today():
-                    for item in image_contents:
-                        if not isinstance(item['content'], (bytes, bytearray)) and not is_url(item['content']):
-                            image_prompt = item.get('content')
-                            image_data = get_image_from_grok(image_prompt)
-                            if image_data:
-                                count += 1
-                                item['content'] = image_data['image']
-                                item['prompt'] = image_data.get('description', '')
-                                media_post_log_obj.last_image_posted_at = timezone.now()
-                                logger.info(f"Image generated: {image_data}")
+            try:
+                instance = AutomateFacebookPost(page)
+                prompt = instance.get_content_prompt()
+                contents = client.saved_content or get_structured_data_from_gemini_smart(prompt)  # get content that failed to post or generate new one
+                logger.info(f"Gemini contents:\n{contents}")
+                if not contents or len(contents) == 0:
+                    logger.warning(f"No content generated for Facebook page {page}")
+                    # get fallback content 
+                    contents = instance.get_fallback_posts()
+                    # logger.warning(f"Fallback content {contents}")
+                    if not contents or len(contents) < 6:
+                        logger.error(f"No fallback content available for Facebook page {page}, skipping.")
+                        continue
+                image_contents = [x for x in contents if x.get('content_type') == 'image']
+                
+                if len(image_contents) > 0:
+                    if  not media_post_log_obj.has_posted_image_today():
+                        for item in image_contents:
+                            if not isinstance(item['content'], (bytes, bytearray)) and not is_url(item['content']):
+                                image_prompt = item.get('content')
+                                image_data = get_image_from_grok(image_prompt)
+                                if image_data:
+                                    count += 1
+                                    item['content'] = image_data['image']
+                                    item['prompt'] = image_data.get('description', '')
+                                    media_post_log_obj.last_image_posted_at = timezone.now()
+                                    logger.info(f"Image generated: {image_data}")
+                                else:
+                                    logger.warning(f"Image generation failed for prompt: {image_prompt}, removing item.")
+                                    contents.remove(item)
                             else:
-                                logger.warning(f"Image generation failed for prompt: {image_prompt}, removing item.")
-                                contents.remove(item)
-                        else:
-                            logger.warning(f"We got content from saved_contents")
-            # temporarily save the final content 
-            media_post_log_obj.image_count = count
-            media_post_log_obj.save()
-            
-            client.saved_content = contents
-            client.save(update_fields=["saved_content"])
-            transaction.on_commit(lambda: make_facebook_posts.delay(page))
+                                logger.warning(f"We got content from saved_contents")
+            except Exception as e:
+                logger.error(str(e))
+            finally:
+                # temporarily save the final content 
+                media_post_log_obj.image_count = count
+                media_post_log_obj.save()
+                
+                if contents:
+                    client.saved_content = contents
+                    client.save(update_fields=["saved_content"])
+                    transaction.on_commit(lambda: make_facebook_posts.delay(page))
 
-            # create video post here if business subscribed for video content also
-            if "vid" in client.subscription_type.lower():
-                create_video_content.delay(page)
+                # create video post here if business subscribed for video content also
+                if "vid" in client.subscription_type.lower():
+                    create_video_content.delay(page)
 
 @shared_task(bind=True, max_retries=3)
 def make_facebook_posts(self, page_id):
