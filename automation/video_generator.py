@@ -466,6 +466,7 @@ class VideoGenerator:
         text = overlay.get("text")
 
         if text:
+            text = self.format_text(text)
             font = self.get_font(overlay.get("font", "montserrat-r"))
             font_size = overlay.get("font_size", 60)
             color = overlay.get("text_color", "white")
@@ -932,8 +933,8 @@ class VideoGenerator:
 
         # 📝 TEXT WATERMARK
         else:
-            text = watermark.get("text", "")
-            text = text.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
+            text = self.format_text(watermark.get("text", ""))
+            # text = text.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
 
             font = self.get_font(watermark.get("font", "anton"))
             color = watermark.get("text_color", "white")
@@ -1159,6 +1160,10 @@ class VideoGenerator:
         save_cache(key, str(final_path), None)
 
         return str(final_path)
+    
+    def format_text(self, text:str):
+        """Removes or escapes special characters"""
+        return text.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
     
     def render(self):
         # output = f"temp_media/{uuid.uuid4()}_final.mp4"
