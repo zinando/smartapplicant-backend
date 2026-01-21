@@ -13,6 +13,9 @@ from moviepy.audio.fx import AudioFadeOut, AudioFadeIn, MultiplyVolume
 import cv2
 import re
 import numpy as np
+import shutil
+import hashlib
+from automation.helpers import save_cache, get_cache
 
 # from automation.tasks import post_video_content_to_facebook
 # from automation.content_automation.post_video import FacebookVideoUploader
@@ -41,6 +44,9 @@ is_base_open = False
 is_voice_open = False
 base = None
 voice = None
+
+LOGO_CACHE_DIR = Path("logo_cache")
+LOGO_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 def has_audio(video_path:str):
     video_clip = None
@@ -745,7 +751,7 @@ class VideoGenerator:
             cover_obj = cover_obj.with_effects([vfx.Resize(width=WIDTH)])
         return cover_obj
     
-    def make_cover(self, cover_url, output_path):
+    def make_coveryyy(self, cover_url, output_path):
         """
         Renders a 1.2s vertical cover video from an image using FFmpeg
         """
@@ -771,6 +777,43 @@ class VideoGenerator:
             "-c:v", "libx264",
             "-preset", "ultrafast",
             "-pix_fmt", "yuv420p",
+            "-movflags", "+faststart",
+            output_path
+        ]
+
+        subprocess.run(cmd, check=True)
+    
+    def make_cover(self, cover_url, output_path):
+        """
+        Renders a 1.2s vertical cover video with a silent audio track 
+        to ensure compatibility with voice-over scenes during concat.
+        """
+        duration = 1.2
+        image_path = download(cover_url, media_type="image")
+
+        # Scale and crop logic
+        filter_chain = f"scale={WIDTH}:{HEIGHT}:force_original_aspect_ratio=increase,crop={WIDTH}:{HEIGHT},setsar=1"
+
+        cmd = [
+            "ffmpeg", "-y",
+            # Input 0: The Image
+            "-loop", "1",
+            "-t", str(duration),
+            "-i", image_path,
+            # Input 1: Virtual silence generator (crucial for concat)
+            "-f", "lavfi",
+            "-i", "anullsrc=channel_layout=stereo:sample_rate=44100",
+            "-vf", filter_chain,
+            "-c:v", "libx264",
+            "-preset", "ultrafast",
+            "-pix_fmt", "yuv420p",
+            # Audio encoding settings
+            "-c:a", "aac",
+            "-ac", "2",           # 2 channels (stereo)
+            "-ar", "44100",       # 44.1kHz sample rate
+            "-map", "0:v",        # Map video from image
+            "-map", "1:a",        # Map audio from silence generator
+            "-shortest",          # Match duration to the video
             "-movflags", "+faststart",
             output_path
         ]
@@ -804,7 +847,7 @@ class VideoGenerator:
                         )
         return watermark
     
-    def make_watermark(self, watermark, duration, video_width=WIDTH, video_height=HEIGHT):
+    def make_watermarkyyy(self, watermark, duration, video_width=WIDTH, video_height=HEIGHT):
         """
         Returns FFmpeg inputs and overlay filter for watermark
         Supports:
@@ -818,6 +861,9 @@ class VideoGenerator:
         # 🖼 IMAGE WATERMARK
         if isinstance(watermark, str):
             logo_path = download(watermark, media_type="image")
+            
+            # convert logo image to webp
+            logo_path = self.ensure_webp(logo_path)
 
             inputs = [
                 "-loop", "1",
@@ -844,6 +890,63 @@ class VideoGenerator:
                 f"fontsize=42:"
                 f"fontcolor={color}:"
                 f"x=900:y=20"
+            )
+
+        return inputs, filter_part
+    
+    def make_watermark(self, watermark, duration, video_width=WIDTH, video_height=HEIGHT):
+        """
+        Returns FFmpeg inputs and overlay filter for watermark
+        Supports:
+        - image watermark (URL)
+        - text watermark (dict)
+        """
+
+        inputs = []
+        filter_part = ""
+
+        # 🖼 IMAGE WATERMARK
+        if isinstance(watermark, str):
+            # logo_path = download(watermark, media_type="image")
+            logo_path = self.get_cached_logo(watermark)
+
+            # ✅ Ensure WEBP (CPU + consistency fix)
+            logo_path = self.ensure_webp(logo_path)
+
+            inputs = [
+                "-loop", "1",
+                "-t", str(duration),
+                "-i", logo_path
+            ]
+
+            # ✅ Scale relative to video, consistent opacity
+            wm_width = int(video_width * 0.12)
+
+            filter_part = (
+                f"[1:v]scale={wm_width}:-1,format=rgba,"
+                f"colorchannelmixer=aa=0.6[wm];"
+                f"[0:v][wm]overlay="
+                f"x={video_width}-overlay_w-20:"
+                f"y=20"
+            )
+
+        # 📝 TEXT WATERMARK
+        else:
+            text = watermark.get("text", "")
+            text = text.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
+
+            font = self.get_font(watermark.get("font", "anton"))
+            color = watermark.get("text_color", "white")
+            size = watermark.get("font_size", 42)
+
+            filter_part = (
+                f"[0:v]drawtext="
+                f"fontfile='{font}':"
+                f"text='{text}':"
+                f"fontsize={size}:"
+                f"fontcolor={color}:"
+                f"x={video_width}-text_w-20:"
+                f"y=20"
             )
 
         return inputs, filter_part
@@ -1012,6 +1115,51 @@ class VideoGenerator:
 
         return output, message
 
+    def ensure_webp(self, image_path: str) -> str:
+        """
+        Converts image to WEBP if needed and returns the WEBP path.
+        If already WEBP, returns original path.
+        """
+        src = Path(image_path)
+
+        if src.suffix.lower() == ".webp":
+            return str(src)
+
+        webp_path = src.with_suffix(".webp")
+
+        subprocess.run([
+            "ffmpeg", "-y",
+            "-i", str(src),
+            "-pix_fmt", "yuv420p",
+            str(webp_path)
+        ], check=True)
+
+        return str(webp_path)
+
+    def get_cached_logo(self, logo_url: str) -> str:
+        # 1️⃣ Stable cache key (same URL → same key)
+        key = "logo:" + hashlib.sha1(logo_url.encode()).hexdigest()
+
+        # 2️⃣ Redis lookup
+        cached_path = get_cache(key)
+        if cached_path and Path(cached_path).exists():
+            return cached_path
+
+        # 3️⃣ Download once
+        logo_path = download(logo_url, media_type="image")
+
+        # 4️⃣ Convert once
+        logo_path = self.ensure_webp(logo_path)
+
+        # 5️⃣ Move to permanent cache location
+        final_path = LOGO_CACHE_DIR / Path(logo_path).name
+        Path(logo_path).replace(final_path)
+
+        # 6️⃣ Store path in Redis
+        save_cache(key, str(final_path), None)
+
+        return str(final_path)
+    
     def render(self):
         # output = f"temp_media/{uuid.uuid4()}_final.mp4"
         TEMP_DIR = "temp_media"
@@ -1071,9 +1219,12 @@ class VideoGenerator:
 
                 cmd = [
                     "ffmpeg", "-y",
+                    "-threads", "2",
                     "-i", str(current_video),
                     *wm_inputs,
                     "-filter_complex", wm_filter,
+                    "-map", "0:v",
+                    "-map", "0:a?",
                     "-c:a", "copy",
                     "-c:v", "libx264",
                     "-preset", "ultrafast",
@@ -1113,7 +1264,7 @@ class VideoGenerator:
                 current_video = music_video
 
             # 6️⃣ Finalize
-            os.rename(current_video, final_output)
+            shutil.move(current_video, final_output)
 
             # 7️⃣ Save result
             client = AutomatedClients.objects.get(client_id=self.page_id)
