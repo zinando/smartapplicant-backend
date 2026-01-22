@@ -95,6 +95,7 @@ class AutomatedClients(models.Model):
         ],
         default="txt"
     )
+    video_plan_history = models.JSONField(null=True, blank=True)  # history of video plans so AI doesn't repeat video plan content: [{}...]
     business_assets = models.JSONField(null=True, blank=True)  # store business assets like images and videos E.G ["str1", "str2"]
     default_video_plans = models.JSONField(default=list, blank=True, null=True)  # list of saved video plans [{"video_plan": {...}, "created_at": "datetime"}]
     saved_video_plan= models.JSONField(null=True, blank=True)  # current video plan being worked on {"media_type": "image | video", "url": "string", "overlay_text": "string", "voice_over": "string", "duration": number, "transition": "fade | slide | none", "fade_in": number, "fade_out": number}

@@ -1,4 +1,4 @@
-from automation.video_generator import VideoGenerator
+from automation.video_generator import VideoGenerator, get_audio_duration_from_video
 from automation.tasks import create_video_content, post_video_content_to_facebook
 from automation.models import AutomatedClients
 from django.core.management.base import BaseCommand
@@ -14,5 +14,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         page_id = options['page_id']
         create_video_content.delay(page_id)
+        # duration = get_audio_duration_from_video("C:/Users/user/Documents/GitHub/Projects 2/smartapplicant-backend/temp_media/10209caeaead4a83a55a6eaee6754d35_final.mp4")
+        # self.stdout.write(self.style.SUCCESS(f'Video duration is: {duration}'))
         # post_video_content_to_facebook.delay(page_id)
         self.stdout.write(self.style.SUCCESS(f'Video creation task dispatched.'))

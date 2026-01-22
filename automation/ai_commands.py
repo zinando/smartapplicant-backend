@@ -100,7 +100,7 @@ def confirm_payment(event:WebhookEvent, payment_ref:str):
 
 def get_subscription_type(amount):
     """Returns the subscription type based on payment amount"""
-    sub_types = ["txt", "txt-img", "txt-img-vid"]
+    sub_types = ["txt", "txt-img", "txt-img-vid", "img-vid", "txt-vid"]
     for x in sub_types:
         price = settings.SMARTAPPLICANT['PAGE_AUTOMATION_PRICES'].get(x)
         if price and int(amount) == price:
@@ -110,7 +110,7 @@ def get_subscription_type(amount):
 def subscribe(subscription_days:int, page_id, amount:int=0, method:str='auto'):
     """Subscribes for a given number of days for the page_id"""
     if subscription_days > 3 and method == 'auto':
-        return # monthly subscription is done mannual for now
+        return "Please contact admin for your monthly subscription. Ask the AI agent to give you admin contact. Thank you."
     allowed_number_of_days = [3, 30]
     message = ''
     subscription_type = get_subscription_type(amount)
