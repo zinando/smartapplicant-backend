@@ -371,7 +371,7 @@ class VideoGenerator:
                 - DO NOT REPEAT VIDEO PLAN. BE CREATIVE AND COMBINE ASSETS IN DIFFERENT PATTERNS TO CREATE UNIQUE VIDEO CONTENT THAT IS DIFFERENT FROM PREVIOUS CONTENTS
 
                 ### PREVIOUS CONTENTS ###
-                {"***".join(client.video_plan_history) if client.video_plan_history else ''}
+                {"***".join(str(client.video_plan_history)) if client.video_plan_history else ''}
 
         """.strip()
         # print(f"Prompt:\n{prompt}")
