@@ -375,7 +375,7 @@ class VideoGenerator:
 
         """.strip()
         # print(f"Prompt:\n{prompt}")
-        video_plan = get_structured_data_from_gemini_smart(prompt)
+        video_plan = get_structured_data_from_gemini(prompt)
         # print(f"Video plan: {video_plan}")
         # return
         if not video_plan:
