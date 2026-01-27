@@ -190,6 +190,27 @@ def download(url, media_type="image"):
 
     return full_path
 
+def wrap_text(text: str, max_chars: int = 30) -> str:
+    words = text.split()
+    lines = []
+    current_line = ""
+
+    for word in words:
+        # If adding the word exceeds the limit, start a new line
+        if len(current_line) + len(word) + (1 if current_line else 0) > max_chars:
+            lines.append(current_line)
+            current_line = word
+        else:
+            # Add word to current line
+            current_line = f"{current_line} {word}" if current_line else word
+
+    # Add the last line if it exists
+    if current_line:
+        lines.append(current_line)
+
+    return "\n".join(lines)
+
+
 def get_media_duration(media_path, stream_type="v"):
     """
     Returns the duration of a media file in seconds (float).
@@ -474,7 +495,7 @@ class VideoGenerator:
         text = overlay.get("text")
 
         if text:
-            text = self.format_text(text)
+            text = wrap_text(text)
             font = self.get_font("montserrat-b")
             font_size = overlay.get("font_size", 60)
             color = overlay.get("text_color", "white")
