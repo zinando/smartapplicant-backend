@@ -40,8 +40,8 @@ DRIVE_VIEW_REGEX = re.compile(
 
 # 1440 × 2640
 # 1080 x 1920
-WIDTH = 1440
-HEIGHT = 2640
+WIDTH = 1080
+HEIGHT = 1920
 
 is_base_open = False
 is_voice_open = False
@@ -460,14 +460,14 @@ class VideoGenerator:
         )
         video_label = "v0"
 
-        # 4️⃣ Zoom animation
-        if scene.get("animation") == "zoom_in":
-            filters.append(
-                f"[{video_label}]"
-                f"zoompan=z='min(zoom+0.0015,1.3)':d=1:"
-                f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'[v1]"
-            )
-            video_label = "v1"
+        # # 4️⃣ Zoom animation
+        # if scene.get("animation") == "zoom_in":
+        #     filters.append(
+        #         f"[{video_label}]"
+        #         f"zoompan=z='min(zoom+0.0015,1.3)':d=1:"
+        #         f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'[v1]"
+        #     )
+        #     video_label = "v1"
 
         # 5️⃣ Text overlay (watermark consistency fixed)
         overlay = scene.get("overlay_text", {})
@@ -479,20 +479,11 @@ class VideoGenerator:
             font_size = overlay.get("font_size", 60)
             color = overlay.get("text_color", "white")
 
-            # filters.append(
-            #     f"[{video_label}]drawtext="
-            #     f"fontfile='{font}':"
-            #     f"text='{text}':"
-            #     f"fontsize={font_size}:"
-            #     f"fontcolor={color}:"
-            #     f"x=(w-text_w)/2:"
-            #     f"y=h*0.78[text]"
-            # )
             filters.append(
                 f"[{video_label}]drawtext="
                 f"fontfile='{font}':"
                 f"text='{text}':"
-                f"fontsize=64:"
+                f"fontsize=60:"
                 f"fontcolor=black:"
                 f"box=1:"
                 f"boxcolor=yellow:"
@@ -749,9 +740,11 @@ class VideoGenerator:
             text = self.format_text(watermark.get("text", ""))
             # text = text.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
 
-            font = self.get_font(watermark.get("font", "anton"))
+            # font = self.get_font(watermark.get("font", "anton"))
+            font = self.get_font("anton")
             color = watermark.get("text_color", "white")
-            size = watermark.get("font_size", 42)
+            # size = watermark.get("font_size", 42)
+            size = 42
 
             filter_part = (
                 f"[0:v]drawtext="
@@ -988,17 +981,6 @@ class VideoGenerator:
                 "-c:a", "aac", "-ar", "44100", "-ac", "2", "-b:a", "192k",
                 str(base_video)
             ])
-            # run([
-            #     "ffmpeg", "-y",
-            #     "-f", "concat", "-safe", "0",
-            #     "-i", str(concat_file),
-            #     "-c:v", "copy",                 # copy video only
-            #     "-c:a", "aac",                  # re-encode audio
-            #     "-ar", "44100",
-            #     "-ac", "2",
-            #     "-b:a", "192k",
-            #     str(base_video)
-            # ])
 
             current_video = base_video
 
@@ -1030,33 +1012,33 @@ class VideoGenerator:
                 subprocess.run(cmd, check=True)
                 current_video = watermarked
 
-            # 5️⃣ Background music (optional)
-            if self.video_plan.get("background_music_url"):
-                music_path = download(self.video_plan["background_music_url"], media_type="audio")
-                music_video = workdir / "with_music.mp4"
-                if has_audio(current_video):
-                    run([
-                        "ffmpeg", "-y",
-                        "-i", str(current_video),
-                        "-i", music_path,
-                        "-filter_complex",
-                        "[1:a]volume=0.2[a1];[0:a][a1]amix=inputs=2:duration=shortest",
-                        "-c:v", "copy",
-                        str(music_video)
-                    ])
-                else:
-                    run([
-                        "ffmpeg", "-y",
-                        "-i", str(current_video),
-                        "-i", music_path,
-                        "-c:v", "copy",
-                        "-map", "0:v",
-                        "-map", "1:a",
-                        "-shortest",
-                        str(music_video)
-                    ])
+            # # 5️⃣ Background music (optional)
+            # if self.video_plan.get("background_music_url"):
+            #     music_path = download(self.video_plan["background_music_url"], media_type="audio")
+            #     music_video = workdir / "with_music.mp4"
+            #     if has_audio(current_video):
+            #         run([
+            #             "ffmpeg", "-y",
+            #             "-i", str(current_video),
+            #             "-i", music_path,
+            #             "-filter_complex",
+            #             "[1:a]volume=0.2[a1];[0:a][a1]amix=inputs=2:duration=shortest",
+            #             "-c:v", "copy",
+            #             str(music_video)
+            #         ])
+            #     else:
+            #         run([
+            #             "ffmpeg", "-y",
+            #             "-i", str(current_video),
+            #             "-i", music_path,
+            #             "-c:v", "copy",
+            #             "-map", "0:v",
+            #             "-map", "1:a",
+            #             "-shortest",
+            #             str(music_video)
+            #         ])
 
-                current_video = music_video
+            #     current_video = music_video
             v_duration = get_audio_duration_from_video(current_video)
             self.cut_video(current_video, v_duration, final_output)
 
