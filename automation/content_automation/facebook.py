@@ -58,112 +58,382 @@ class AutomateFacebookPost:
         self.__send_email(text, email)
     
     def __create_prompt_for_content_generation(self):
+        # prompts = {
+        #             'txt': """
+        #                     You are a skilled social media content creator for **business_name.
+        #                     Generate 6 Facebook posts for today: 4 text posts, and 2 link posts (with caption). If business has no sharable link, return all 6 posts as text posts.
+        #                     Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
+        #                     Keep tone friendly, professional, and appealing to Facebook users. 
+        #                     For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. 
+        #                     You are commenting as the post creator to encourage engagement and to add value to the post. 
+        #                     You must not include personal information of the business owner or employees in the posts. 
+
+        #                     Business details for context:
+        #                     \n**business_details
+
+        #                     Return output as a JSON list of dictionaries, with the following structures:\n
+        #                     Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
+        #                     Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
+
+        #                     RULES:
+        #                     - the 'content' value for link posts must be valid url only. No extra texts.
+        #                     - you should only include link posts if the business has a website and valid urls
+        #                     - if the business does not have a website, all 6 posts must be text posts only.
+        #                 """.strip(),
+        #             'txt-img': """
+        #                     You are a skilled social media content creator for **business_name.
+        #                     Generate 6 Facebook posts for today: 3 text posts, 2 link posts (with caption) and 1 image prompt (with caption- to be used to generate image from grok). If business has no sharable link, return 5 text posts and 1 image generation post.
+        #                     Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
+        #                     Keep tone friendly, professional, and appealing to Facebook users. 
+        #                     For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. 
+        #                     You are commenting as the post creator to encourage engagement and to add value to the post. 
+        #                     You must not include personal information of the business owner or employees in the posts. 
+
+        #                     Business details for context:
+        #                     \n**business_details
+
+        #                     Return output as a JSON list of dictionaries, with the following structures:\n
+        #                     Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
+        #                     Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
+        #                     Image content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}
+
+        #                     RULES:
+        #                     - the 'content' value for link posts must be valid url only. No extra texts.
+        #                     - you should only include link posts if the business has a website and valid urls
+        #                     - if the business does not have a website, return 5 text posts and 1 image post
+        #                 """.strip(),
+        #             'txt-vid': """
+        #                     You are a skilled social media content creator for **business_name.
+        #                     Generate 5 Facebook posts for today: 3 text posts, 2 link posts (with caption).
+        #                     If business has no sharable link, return all 4 text posts, 1 image post, and 1 video post.
+        #                     Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
+        #                     Keep tone friendly, professional, and appealing to Facebook users. 
+        #                     For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. 
+        #                     You are commenting as the post creator to encourage engagement and to add value to the post. 
+        #                     You must not include personal information of the business owner or employees in the posts. 
+
+        #                     Business details for context:
+        #                     \n**business_details
+
+        #                     Return output as a JSON list of dictionaries, with the following structures:\n
+        #                     Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
+        #                     Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
+                            
+        #                     RULES:
+        #                     - the 'content' value for link posts must be valid url only. No extra texts.
+        #                     - you should only include link posts if the business has a website and valid urls
+        #                     - if the business does not have a website, all 5 posts must be text posts only.
+        #                     """.strip(),
+        #             'img-vid': """
+        #                     You are a skilled social media content creator for **business_name.
+        #                     Generate 2 Facebook posts for today: 2 image prompt (with caption- to be used to generate image from grok).
+        #                     Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
+        #                     Keep tone friendly, professional, and appealing to Facebook users. 
+        #                     For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. 
+        #                     You are commenting as the post creator to encourage engagement and to add value to the post. 
+        #                     You must not include personal information of the business owner or employees in the posts. 
+
+        #                     Business details for context:
+        #                     \n**business_details
+
+        #                     Return output as a JSON list of dictionaries, with the following structures:\n
+        #                     {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}
+        #                     """.strip(),
+        #             'txt-img-vid': """
+        #                     You are a skilled social media content creator for **business_name.
+        #                     Generate 5 Facebook posts for today: 3 text posts, 1 link posts (with caption), 1 image prompt (with caption- to be used to generate image from grok).
+        #                     If business has no sharable link, return all 4 text posts, and 1 image post.
+        #                     Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
+        #                     Keep tone friendly, professional, and appealing to Facebook users. 
+        #                     For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. 
+        #                     You are commenting as the post creator to encourage engagement and to add value to the post. 
+        #                     You must not include personal information of the business owner or employees in the posts. 
+
+        #                     Business details for context:
+        #                     \n**business_details
+
+        #                     Return output as a JSON list of dictionaries, with the following structures:\n
+        #                     Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
+        #                     Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
+        #                     Image content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}
+                            
+        #                     RULES:
+        #                     - the 'content' value for link posts must be valid url only. No extra texts.
+        #                     - you should only include link posts if the business has a website and valid urls
+        #                     - if the business does not have a website, return 4 text posts and 1 image post.
+                            
+        #                 """.strip()
+        #         }
         prompts = {
-                    'txt': """
-                            You are a skilled social media content creator for **business_name.
-                            Generate 6 Facebook posts for today: 4 text posts, and 2 link posts (with caption). If business has no sharable link, return all 6 posts as text posts.
-                            Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
-                            Keep tone friendly, professional, and appealing to Facebook users. 
-                            For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. 
-                            You are commenting as the post creator to encourage engagement and to add value to the post. 
-                            You must not include personal information of the business owner or employees in the posts. 
+            'txt':  """
+                    You are a skilled social media content creator for **business_name**.
 
-                            Business details for context:
-                            \n**business_details
+                    Generate 6 Facebook posts for today:
+                    - 4 text posts
+                    - 2 link posts (with caption)
+                    If the business has no valid website or sharable links, return all 6 posts as text posts.
 
-                            Return output as a JSON list of dictionaries, with the following structures:\n
-                            Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
-                            Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
+                    CONTENT STRATEGY (VERY IMPORTANT):
+                    Each post MUST be curiosity-driven.
+                    - The main post content must raise a question, tease insights, or promise value WITHOUT fully explaining it.
+                    - The post itself should NOT give the answers.
+                    - The answers MUST be delivered exclusively in the comments.
 
-                            RULES:
-                            - the 'content' value for link posts must be valid url only. No extra texts.
-                            - you should only include link posts if the business has a website and valid urls
-                            - if the business does not have a website, all 6 posts must be text posts only.
-                        """.strip(),
-                    'txt-img': """
-                            You are a skilled social media content creator for **business_name.
-                            Generate 6 Facebook posts for today: 3 text posts, 2 link posts (with caption) and 1 image prompt (with caption- to be used to generate image from grok). If business has no sharable link, return 5 text posts and 1 image generation post.
-                            Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
-                            Keep tone friendly, professional, and appealing to Facebook users. 
-                            For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. 
-                            You are commenting as the post creator to encourage engagement and to add value to the post. 
-                            You must not include personal information of the business owner or employees in the posts. 
+                    COMMENT STRATEGY (MANDATORY):
+                    - Each post must have between 4 to 6 comments.
+                    - Each comment must clearly answer or expand on ONE specific point hinted at in the main post.
+                    - Together, the comments must fully satisfy the curiosity created by the post.
+                    - Comments should feel natural, valuable, and written by the post creator to encourage discussion and engagement.
 
-                            Business details for context:
-                            \n**business_details
+                    Example pattern:
+                    Post:  
+                    "Here are 5 reasons your CV isn’t getting interviews — even though you’re qualified."
 
-                            Return output as a JSON list of dictionaries, with the following structures:\n
-                            Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
-                            Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
-                            Image content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}
+                    Comments:
+                    1. Reason #1 explained clearly  
+                    2. Reason #2 explained clearly  
+                    3. Reason #3 explained clearly  
+                    4. Reason #4 explained clearly  
+                    5. Reason #5 explained clearly  
 
-                            RULES:
-                            - the 'content' value for link posts must be valid url only. No extra texts.
-                            - you should only include link posts if the business has a website and valid urls
-                            - if the business does not have a website, return 5 text posts and 1 image post
-                        """.strip(),
-                    'txt-vid': """
-                            You are a skilled social media content creator for **business_name.
-                            Generate 5 Facebook posts for today: 3 text posts, 2 link posts (with caption).
-                            If business has no sharable link, return all 4 text posts, 1 image post, and 1 video post.
-                            Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
-                            Keep tone friendly, professional, and appealing to Facebook users. 
-                            For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. 
-                            You are commenting as the post creator to encourage engagement and to add value to the post. 
-                            You must not include personal information of the business owner or employees in the posts. 
+                    GENERAL GUIDELINES:
+                    - Keep tone friendly, professional, and appealing to Facebook users.
+                    - Each post must be unique and relevant to the business.
+                    - Use at least two relevant hashtags per post.
+                    - Do NOT include personal information of the business owner or employees.
+                    - Posts should be written to naturally invite readers to check the comments.
 
-                            Business details for context:
-                            \n**business_details
+                    Business details for context:
+                    \n**business_details
 
-                            Return output as a JSON list of dictionaries, with the following structures:\n
-                            Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
-                            Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
-                            
-                            RULES:
-                            - the 'content' value for link posts must be valid url only. No extra texts.
-                            - you should only include link posts if the business has a website and valid urls
-                            - if the business does not have a website, all 5 posts must be text posts only.
-                            """.strip(),
-                    'img-vid': """
-                            You are a skilled social media content creator for **business_name.
-                            Generate 2 Facebook posts for today: 2 image prompt (with caption- to be used to generate image from grok).
-                            Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
-                            Keep tone friendly, professional, and appealing to Facebook users. 
-                            For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. 
-                            You are commenting as the post creator to encourage engagement and to add value to the post. 
-                            You must not include personal information of the business owner or employees in the posts. 
+                    OUTPUT FORMAT (STRICT):
+                    Return output as a JSON list of dictionaries using ONLY the following structures:
 
-                            Business details for context:
-                            \n**business_details
+                    Text content type:{"content": "<curiosity-driven text post>", "caption": "", "content_type": "text", "comments": ["Comment 1 answering part of the curiosity", "Comment 2 answering part of the curiosity", "Comment 3 answering part of the curiosity", "Comment 4 answering part of the curiosity"]}
+                    Link content type: {"content": "<valid url only>", "caption": "<curiosity-driven caption that encourages clicking but does not fully explain>", "content_type": "link", "comments": ["Comment 1 answering part of the curiosity", "Comment 2 answering part of the curiosity", "Comment 3 answering part of the curiosity", "Comment 4 answering part of the curiosity"]}
 
-                            Return output as a JSON list of dictionaries, with the following structures:\n
-                            {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}
-                            """.strip(),
-                    'txt-img-vid': """
-                            You are a skilled social media content creator for **business_name.
-                            Generate 5 Facebook posts for today: 3 text posts, 1 link posts (with caption), 1 image prompt (with caption- to be used to generate image from grok).
-                            If business has no sharable link, return all 4 text posts, and 1 image post.
-                            Each post must be unique, engaging, and relevant to the business, with at least two hashtags. 
-                            Keep tone friendly, professional, and appealing to Facebook users. 
-                            For each post, create between 4 to 6 unique comments to further buttress the point of the post or to drive engagement. 
-                            You are commenting as the post creator to encourage engagement and to add value to the post. 
-                            You must not include personal information of the business owner or employees in the posts. 
+                    RULES:
+                    - The 'content' value for link posts must be a valid URL only (no extra text).
+                    - Only include link posts if the business has a valid website.
+                    - If the business does not have a website, return all 6 posts as text posts.
+                    - NEVER reveal the full answers in the main post — answers must live in the comments.
 
-                            Business details for context:
-                            \n**business_details
+                    """.strip(),
+            'txt-img':  """
+                    You are a skilled social media content creator for **business_name**.
 
-                            Return output as a JSON list of dictionaries, with the following structures:\n
-                            Text content type - {"content": "<text>", "caption": "<empty>", "content_type": "text", "comments": "<List of 4 or more unique text comments to buttress the post>"}\n
-                            Link content type - {"content": "<url>", "caption": "<Text to encourage users to click the url>", "content_type": "link","comments": "<List of 4 or more unique text comments to buttress the post>"}
-                            Image content type - {"content": "<image generation prompt>", "caption": "<Text to be posted with the image>", "content_type": "image", "comments": "<List of 4 or more unique text comments to buttress the post>"}
-                            
-                            RULES:
-                            - the 'content' value for link posts must be valid url only. No extra texts.
-                            - you should only include link posts if the business has a website and valid urls
-                            - if the business does not have a website, return 4 text posts and 1 image post.
-                            
-                        """.strip()
-                }
+                    Generate 6 Facebook posts for today:
+                    - 3 text posts
+                    - 2 link posts (with caption)
+                    - 1 image prompt (with caption- to be used to generate image from grok)
+                    If the business has no valid website or sharable links, return all 5 text posts and 1 image prompt.
+
+                    CONTENT STRATEGY (VERY IMPORTANT):
+                    Each post MUST be curiosity-driven.
+                    - The main post content must raise a question, tease insights, or promise value WITHOUT fully explaining it.
+                    - The post itself should NOT give the answers.
+                    - The answers MUST be delivered exclusively in the comments.
+
+                    COMMENT STRATEGY (MANDATORY):
+                    - Each post must have between 4 to 6 comments.
+                    - Each comment must clearly answer or expand on ONE specific point hinted at in the main post.
+                    - Together, the comments must fully satisfy the curiosity created by the post.
+                    - Comments should feel natural, valuable, and written by the post creator to encourage discussion and engagement.
+
+                    Example pattern:
+                    Post:  
+                    "Here are 5 reasons your CV isn’t getting interviews — even though you’re qualified."
+
+                    Comments:
+                    1. Reason #1 explained clearly  
+                    2. Reason #2 explained clearly  
+                    3. Reason #3 explained clearly  
+                    4. Reason #4 explained clearly  
+                    5. Reason #5 explained clearly  
+
+                    GENERAL GUIDELINES:
+                    - Keep tone friendly, professional, and appealing to Facebook users.
+                    - Each post must be unique and relevant to the business.
+                    - Use at least two relevant hashtags per post.
+                    - Do NOT include personal information of the business owner or employees.
+                    - Posts should be written to naturally invite readers to check the comments.
+
+                    Business details for context:
+                    \n**business_details
+
+                    OUTPUT FORMAT (STRICT):
+                    Return output as a JSON list of dictionaries using ONLY the following structures:
+
+                    Text content type:{"content": "<curiosity-driven text post>", "caption": "", "content_type": "text", "comments": ["Comment 1 answering part of the curiosity", "Comment 2 answering part of the curiosity", "Comment 3 answering part of the curiosity", "Comment 4 answering part of the curiosity"]}
+                    Link content type: {"content": "<valid url only>", "caption": "<curiosity-driven caption that encourages clicking but does not fully explain>", "content_type": "link", "comments": ["Comment 1 answering part of the curiosity", "Comment 2 answering part of the curiosity", "Comment 3 answering part of the curiosity", "Comment 4 answering part of the curiosity"]}
+                    Image content type - {"content": "<image generation prompt>", "caption": "<curiosity-driven caption that encourages clicking but does not fully explain>", "content_type": "image", "comments": ["Comment 1 answering part of the curiosity", "Comment 2 answering part of the curiosity", "Comment 3 answering part of the curiosity", "Comment 4 answering part of the curiosity"]"}
+
+                    RULES:
+                    - The 'content' value for link posts must be a valid URL only (no extra text).
+                    - Only include link posts if the business has a valid website.
+                    - If the business does not have a website, return all 6 posts as text posts.
+                    - NEVER reveal the full answers in the main post — answers must live in the comments.
+
+                    """.strip(),
+            'txt-vid':  """
+                    You are a skilled social media content creator for **business_name**.
+
+                    Generate 5 Facebook posts for today:
+                    - 3 text posts
+                    - 2 link posts (with caption)
+                    If the business has no valid website or sharable links, return all 5 posts as text posts.
+
+                    CONTENT STRATEGY (VERY IMPORTANT):
+                    Each post MUST be curiosity-driven.
+                    - The main post content must raise a question, tease insights, or promise value WITHOUT fully explaining it.
+                    - The post itself should NOT give the answers.
+                    - The answers MUST be delivered exclusively in the comments.
+
+                    COMMENT STRATEGY (MANDATORY):
+                    - Each post must have between 4 to 6 comments.
+                    - Each comment must clearly answer or expand on ONE specific point hinted at in the main post.
+                    - Together, the comments must fully satisfy the curiosity created by the post.
+                    - Comments should feel natural, valuable, and written by the post creator to encourage discussion and engagement.
+
+                    Example pattern:
+                    Post:  
+                    "Here are 5 reasons your CV isn’t getting interviews — even though you’re qualified."
+
+                    Comments:
+                    1. Reason #1 explained clearly  
+                    2. Reason #2 explained clearly  
+                    3. Reason #3 explained clearly  
+                    4. Reason #4 explained clearly  
+                    5. Reason #5 explained clearly  
+
+                    GENERAL GUIDELINES:
+                    - Keep tone friendly, professional, and appealing to Facebook users.
+                    - Each post must be unique and relevant to the business.
+                    - Use at least two relevant hashtags per post.
+                    - Do NOT include personal information of the business owner or employees.
+                    - Posts should be written to naturally invite readers to check the comments.
+
+                    Business details for context:
+                    \n**business_details
+
+                    OUTPUT FORMAT (STRICT):
+                    Return output as a JSON list of dictionaries using ONLY the following structures:
+
+                    Text content type:{"content": "<curiosity-driven text post>", "caption": "", "content_type": "text", "comments": ["Comment 1 answering part of the curiosity", "Comment 2 answering part of the curiosity", "Comment 3 answering part of the curiosity", "Comment 4 answering part of the curiosity"]}
+                    Link content type: {"content": "<valid url only>", "caption": "<curiosity-driven caption that encourages clicking but does not fully explain>", "content_type": "link", "comments": ["Comment 1 answering part of the curiosity", "Comment 2 answering part of the curiosity", "Comment 3 answering part of the curiosity", "Comment 4 answering part of the curiosity"]}
+
+                    RULES:
+                    - The 'content' value for link posts must be a valid URL only (no extra text).
+                    - Only include link posts if the business has a valid website.
+                    - If the business does not have a website, return all 6 posts as text posts.
+                    - NEVER reveal the full answers in the main post — answers must live in the comments.
+
+                    """.strip(),
+            'img-vid':  """
+                    You are a skilled social media content creator for **business_name**.
+
+                    Generate 2 Facebook posts for today:
+                    - 2 image prompt (with caption- to be used to generate image from grok)
+
+                    CONTENT STRATEGY (VERY IMPORTANT):
+                    Each post caption MUST be curiosity-driven.
+                    - The main post must raise a question, tease insights, or promise value WITHOUT fully explaining it.
+                    - The post caption itself should NOT give the answers.
+                    - The answers MUST be delivered exclusively in the comments.
+
+                    COMMENT STRATEGY (MANDATORY):
+                    - Each post must have between 4 to 6 comments.
+                    - Each comment must clearly answer or expand on ONE specific point hinted at in the main post.
+                    - Together, the comments must fully satisfy the curiosity created by the post.
+                    - Comments should feel natural, valuable, and written by the post creator to encourage discussion and engagement.
+
+                    Example pattern:
+                    Image Post caption:
+                    "Here are 5 reasons your CV isn’t getting interviews — even though you’re qualified."
+
+                    Comments:
+                    1. Reason #1 explained clearly  
+                    2. Reason #2 explained clearly  
+                    3. Reason #3 explained clearly  
+                    4. Reason #4 explained clearly  
+                    5. Reason #5 explained clearly  
+
+                    GENERAL GUIDELINES:
+                    - Keep tone friendly, professional, and appealing to Facebook users.
+                    - Each post must be unique and relevant to the business.
+                    - Use at least two relevant hashtags per post.
+                    - Do NOT include personal information of the business owner or employees.
+                    - Posts should be written to naturally invite readers to check the comments.
+
+                    Business details for context:
+                    \n**business_details
+
+                    OUTPUT FORMAT (STRICT):
+                    Return output as a JSON list of dictionaries using ONLY the following structures:
+
+                    Image content type - {"content": "<image generation prompt>", "caption": "<curiosity-driven caption that encourages clicking but does not fully explain>", "content_type": "image", "comments": ["Comment 1 answering part of the curiosity", "Comment 2 answering part of the curiosity", "Comment 3 answering part of the curiosity", "Comment 4 answering part of the curiosity"]"}
+
+                    RULES:
+                    - NEVER reveal the full answers in the main post — answers must live in the comments.
+
+                    """.strip(),
+            'txt-img-vid':  """
+                    You are a skilled social media content creator for **business_name**.
+
+                    Generate 5 Facebook posts for today:
+                    - 3 text posts
+                    - 1 link post (with caption)
+                    - 1 image prompt (with caption- to be used to generate image from grok)
+                    If the business has no valid website or sharable links, return all 5 text posts and 1 image prompt.
+
+                    CONTENT STRATEGY (VERY IMPORTANT):
+                    Each post MUST be curiosity-driven.
+                    - The main post content must raise a question, tease insights, or promise value WITHOUT fully explaining it.
+                    - The post itself should NOT give the answers.
+                    - The answers MUST be delivered exclusively in the comments.
+
+                    COMMENT STRATEGY (MANDATORY):
+                    - Each post must have between 4 to 6 comments.
+                    - Each comment must clearly answer or expand on ONE specific point hinted at in the main post.
+                    - Together, the comments must fully satisfy the curiosity created by the post.
+                    - Comments should feel natural, valuable, and written by the post creator to encourage discussion and engagement.
+
+                    Example pattern:
+                    Post:  
+                    "Here are 5 reasons your CV isn’t getting interviews — even though you’re qualified."
+
+                    Comments:
+                    1. Reason #1 explained clearly  
+                    2. Reason #2 explained clearly  
+                    3. Reason #3 explained clearly  
+                    4. Reason #4 explained clearly  
+                    5. Reason #5 explained clearly  
+
+                    GENERAL GUIDELINES:
+                    - Keep tone friendly, professional, and appealing to Facebook users.
+                    - Each post must be unique and relevant to the business.
+                    - Use at least two relevant hashtags per post.
+                    - Do NOT include personal information of the business owner or employees.
+                    - Posts should be written to naturally invite readers to check the comments.
+
+                    Business details for context:
+                    \n**business_details
+
+                    OUTPUT FORMAT (STRICT):
+                    Return output as a JSON list of dictionaries using ONLY the following structures:
+
+                    Text content type:{"content": "<curiosity-driven text post>", "caption": "", "content_type": "text", "comments": ["Comment 1 answering part of the curiosity", "Comment 2 answering part of the curiosity", "Comment 3 answering part of the curiosity", "Comment 4 answering part of the curiosity"]}
+                    Link content type: {"content": "<valid url only>", "caption": "<curiosity-driven caption that encourages clicking but does not fully explain>", "content_type": "link", "comments": ["Comment 1 answering part of the curiosity", "Comment 2 answering part of the curiosity", "Comment 3 answering part of the curiosity", "Comment 4 answering part of the curiosity"]}
+                    Image content type - {"content": "<image generation prompt>", "caption": "<curiosity-driven caption that encourages clicking but does not fully explain>", "content_type": "image", "comments": ["Comment 1 answering part of the curiosity", "Comment 2 answering part of the curiosity", "Comment 3 answering part of the curiosity", "Comment 4 answering part of the curiosity"]"}
+
+                    RULES:
+                    - The 'content' value for link posts must be a valid URL only (no extra text).
+                    - Only include link posts if the business has a valid website.
+                    - If the business does not have a website, return all 6 posts as text posts.
+                    - NEVER reveal the full answers in the main post — answers must live in the comments.
+
+                    """.strip()
+        }
         business_details = self.__get_business_details()
         if not business_details:
             logger.warning("No business details found for content generation prompt.")
