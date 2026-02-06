@@ -422,8 +422,8 @@ def make_facebook_posts(self, page_id):
     client = AutomatedClients.objects.filter(client_id=page_id).first()
     contents = client.saved_content
     errors = []
-    # logger.info(f"Scheduling posts for Facebook page {page_id} at times: {schedule_times} with contents:\n{contents}")
-    # return
+    logger.info(f"Scheduling posts for Facebook page {page_id} at times: {schedule_times} with contents:\n{contents}")
+    return
     for x in range(len(contents)):
         content = contents[x]
         schedule_time = schedule_times[x % len(schedule_times)]
