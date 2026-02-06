@@ -9,6 +9,9 @@ from xai_sdk import Client
 from time import time
 import uuid
 from google.cloud import texttospeech
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv(override=True)
@@ -555,6 +558,7 @@ def get_structured_data_from_gemini_smart(prompt: str):
     response = ''
     try:
         text = call_gemini_smart(prompt)
+        logger.info(f"Raw Gemini response for structured data:\n{text}")
         match = re.search(r'\{[\s\S]*\}|\[[\s\S]*\]', text)
 
         if not match:
