@@ -377,7 +377,23 @@ class VideoGenerator:
                 ]
                 }}
 
-                Rules:
+                ### CONTENT DIVERSITY RULES ###
+                1. STRATEGY ROTATION: For this specific plan, you MUST choose one of these 3 frameworks:
+                - THE STORYTELLER: Start with a problem/pain point and end with a transformation.
+                - THE SHOWCASE: Focus on the aesthetic beauty and high-quality details of the assets.
+                - THE HOW-TO: Focus on the process, tools, and expertise behind the service.
+                
+                2. HOOK VARIATION: 
+                - Do not start with a question (e.g., "Tired of...?") if the last 2 videos in PREVIOUS CONTENTS did so.
+                - Instead, start with a "Did you know" fact, a bold claim, or an immediate high-energy visual.
+
+                3. ASSET SHUFFLING: 
+                - Avoid using the same 'Opening Asset' or 'Closing Asset' found in the last 3 entries of PREVIOUS CONTENTS.
+                - If images were used mostly in the last video, prioritize video assets for this one.
+
+                4. AUDIO DIVERSITY:
+                - Rotate between "High Energy/Upbeat" and "Soft/Instrumental" based on what was used previously.
+
                 - Use only URLs from the available assets list.
                 - Overlay text must be short, bold, and readable on mobile.
                 - return font names only from the available custom font names list below:
