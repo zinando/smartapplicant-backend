@@ -418,13 +418,15 @@ def schedule_facebook_post(self):
 @shared_task(bind=True, max_retries=3)
 def make_facebook_posts(self, page_id):
     """ Schedules Facebook posts based on provided contents and post times. """
+    if page_id == '750798604776594':
+        return
     instance = AutomateFacebookPost(page_id)
     schedule_times = instance.get_schedule_times()
     client = AutomatedClients.objects.filter(client_id=page_id).first()
     contents = client.saved_content
     errors = []
-    logger.info(f"Scheduling posts for Facebook page {page_id} at times: {schedule_times} with contents:\n{contents}")
-    return
+    # logger.info(f"Scheduling posts for Facebook page {page_id} at times: {schedule_times} with contents:\n{contents}")
+    # return
     for x in range(len(contents)):
         content = contents[x]
         schedule_time = schedule_times[x % len(schedule_times)]
