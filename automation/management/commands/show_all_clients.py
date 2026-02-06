@@ -30,7 +30,7 @@ class Command(BaseCommand):
                 custom_prompts: \n{client.custom_prompts}
                 saved_content: \n{client.saved_content}
                 secret_questions: \n{client.secret_questions}
-                Saved_Video_Plans: \n{client.saved_video_plan}
+                Video Plan History: \n{client.video_plan_history}
                 Business Assets: \n\n{assets_text}
                 <<<----------------------------END----------------------------------->>>\n\n
             """)
