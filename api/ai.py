@@ -558,6 +558,8 @@ def get_structured_data_from_gemini_smart(prompt: str):
     response = ''
     try:
         text = call_gemini_smart(prompt)
+        if not text:
+            raise ValueError("Empty response from Gemini")
         logger.info(f"Raw Gemini response for structured data:\n{text}")
         match = re.search(r'\{[\s\S]*\}|\[[\s\S]*\]', text)
 
