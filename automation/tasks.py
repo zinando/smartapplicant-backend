@@ -406,7 +406,7 @@ def schedule_facebook_post(self):
                 media_post_log_obj.image_count = count
                 media_post_log_obj.save()
                 
-                if contents:
+                if contents and isinstance(contents, list):
                     client.saved_content = contents
                     client.save(update_fields=["saved_content"])
                     transaction.on_commit(lambda: make_facebook_posts.delay(page))

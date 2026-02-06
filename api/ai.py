@@ -568,8 +568,8 @@ def get_structured_data_from_gemini_smart(prompt: str):
         text = match.group(0)
         text = text.replace('```json', '')
         text = text.replace('```', '')
-        # response = json.loads(text)
-        response = text
+        response = json.loads(text)
+        # response = text
     except Exception as e:
         print(f'Error parsing Gemini response: {e}')
         message = f'Gemini response: {e}'
