@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 import os
 import json
 import requests
+import re
 import base64
 from django.conf import settings
 from xai_sdk import Client
@@ -554,6 +555,11 @@ def get_structured_data_from_gemini_smart(prompt: str):
     response = ''
     try:
         text = call_gemini_smart(prompt)
+        match = re.search(r'\{[\s\S]*\}|\[[\s\S]*\]', text)
+
+        if not match:
+            raise ValueError("No JSON found in Gemini response. Full response: " + text)
+        text = match.group(0)
         text = text.replace('```json', '')
         text = text.replace('```', '')
         response = json.loads(text)
