@@ -9,7 +9,7 @@ from .admin_commands import process_admin_command
 from .admin_reply import process_admin_message
 from .customer_reply import process_customer_message
 from .messaging import send_text_reply, send_media_reply
-from api.ai import get_image_from_grok, get_structured_data_from_gemini_smart
+from api.ai import get_image_from_grok, get_structured_data_from_gemini_smart, get_structured_data_from_gemini
 from .context_manager import save_context
 from .content_automation.facebook import AutomateFacebookPost
 from .content_automation.post_video import FacebookVideoUploader
@@ -369,8 +369,8 @@ def schedule_facebook_post(self):
             try:
                 instance = AutomateFacebookPost(page)
                 prompt = instance.get_content_prompt()
-                logger.info(f"Content generation prompt for Facebook page {page}:\n{prompt}")
-                contents = client.saved_content or get_structured_data_from_gemini_smart(prompt)  # get content that failed to post or generate new one
+                # logger.info(f"Content generation prompt for Facebook page {page}:\n{prompt}")
+                contents = client.saved_content or get_structured_data_from_gemini(prompt)  # get content that failed to post or generate new one
                 logger.info(f"Gemini contents:\n{contents}")
                 if not contents or len(contents) == 0:
                     logger.warning(f"No content generated for Facebook page {page}")
