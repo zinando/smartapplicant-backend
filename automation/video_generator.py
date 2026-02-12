@@ -309,9 +309,9 @@ class VideoGenerator:
         if client.content_schedule_times:
             self.page_content_schedule_times = client.content_schedule_times
         
-        # # check if there is existing video plan
-        # if client.saved_video_plan:
-        #     return client.saved_video_plan
+        # check if there is existing video plan
+        if client.saved_video_plan:
+            return client.saved_video_plan
 
         # check if cliet has at least 10 assets: including audio and images/videos
         assets = client.business_assets or []
