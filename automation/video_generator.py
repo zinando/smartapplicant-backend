@@ -149,7 +149,7 @@ def extract_drive_id(url):
 def download(url, media_type="image"):
     os.makedirs(TEMP_DIR, exist_ok=True)
 
-     # Convert Google Drive links
+     # Convert Google Drive links 
     if "drive.google.com" in url:
         file_id = extract_drive_id(url)
         url = f"https://drive.google.com/uc?export=download&id={file_id}"
@@ -250,6 +250,8 @@ class VideoGenerator:
     def __init__(self, page_id:str, video_plan:dict=None):
         self.video_plan = video_plan
         self.page_id = page_id
+        self.asset_map = {}
+        self.formatted_assets = []
         if not page_id:
             raise ValueError("page_id is required")
         if not video_plan:
@@ -257,6 +259,9 @@ class VideoGenerator:
             self.video_plan = self.fetch_video_plan(page_id)
         if not self.video_plan:
             raise ValueError("Video plan could not be determined")
+        
+        self.video_plan = self.__mapp_video_plan_assets(self.video_plan)
+
         self.validate_video_plan()
         if not os.path.exists(TEMP_DIR):
             os.makedirs(TEMP_DIR)
@@ -304,17 +309,20 @@ class VideoGenerator:
         if client.content_schedule_times:
             self.page_content_schedule_times = client.content_schedule_times
         
-        # check if there is existing video plan
-        if client.saved_video_plan:
-            return client.saved_video_plan
+        # # check if there is existing video plan
+        # if client.saved_video_plan:
+        #     return client.saved_video_plan
 
         # check if cliet has at least 10 assets: including audio and images/videos
         assets = client.business_assets or []
         if len(assets) < 10:
             raise ValueError("Not enough business assets to create video plan")
         assets = "\n".join(assets)
-        if not ("audio" in assets or "music" in assets) or not any(key in assets for key in ["image", "video"]): #or not any(ext in assets for ext in [".jpg", ".PNG", ".jpeg", ".png", ".mp4", ".mov"]):
-            raise ValueError("Assets must include at least one audio and one image/video file")
+        # if not ("audio" in assets or "music" in assets) or not any(key in assets for key in ["image", "video"]): #or not any(ext in assets for ext in [".jpg", ".PNG", ".jpeg", ".png", ".mp4", ".mov"]):
+        if not any(key in assets for key in ["image", "video"]):
+            raise ValueError("Assets must include at least one image/video file")
+        
+        self.__parse_assets(client.business_assets)
         
         # compose prompt for Gemini
         system_prompt = """
@@ -336,7 +344,7 @@ class VideoGenerator:
                 {business_info}
 
                 AVAILABLE ASSETS:
-                {assets}
+                {self.formatted_assets}
 
                 Create a 30-second vertical video ad (9:16) for Facebook Reels that:
                 - Highlights the business’s main products or services
@@ -357,13 +365,13 @@ class VideoGenerator:
                 "media_type": "video",
                 "caption": "str - used to post along with the video on social media",
                 "comments": ["str", "str", "4 to 6 comments to post along with the video on social media to set the tone for engagement"],
-                "background_music_url": "string or null - must come from available assets",
-                "video_cover_url": "string or null - must come from available assets",
+                "background_music_asset_id": "string or null - must come from available assets",
+                "video_cover_asset_id": "string or null - must come from available assets",
                 "watermark": "str | dict - you can return the business logo url as string if available, or you can return a dictionary in the format: {{"text":"business name well-formatted", "text_color":"red | yellow | white | grey | etc", "font":"return a font name from the list below"}}",
                 "scenes": [
                     {{
                     "media_type": "image | video",
-                    "url": "string (must come from available assets)",
+                    "asset_id": "string (must come from available assets)",
                     "overlay_text": "dict - should be in the format: {{"text":"text to be overlayed", "text_color":"green | red | black | white | etc", "font":"str - font name from the list of custom font names", "font_size": int - must be 60 or more}}",
                     "voice_over": "string (spoken narration text) that will be converted to audio via TTS",
                     "duration": number (seconds),
@@ -371,7 +379,7 @@ class VideoGenerator:
                     "fade_in": number (seconds),
                     "fade_out": number (seconds),
                     "animation": "zoom_in | pan | null",
-                    "background_url": "string or null - image from assets"
+                    "background_asset_id": "string or null - image from assets"
                     }},
                     ...
                 ]
@@ -452,6 +460,59 @@ class VideoGenerator:
         tw = (WIDTH * 0.8) / (font_size * 0.6)
         lines = textwrap.wrap(text, width=int(tw))
         return "\\\n".join(lines) # Double backslash for FFmpeg parsing
+    
+    def __mapp_video_plan_assets(self, video_plan: dict):
+        """Maps asset IDs in video_plan to their respective URLs"""
+        valid_ids = set(self.asset_map.keys())
+
+        # replace bg music url 
+        video_plan['background_music_url'] = self.asset_map.get(video_plan.get('background_music_asset_id', ''))
+
+        # replace cover media url 
+        video_plan['video_cover_url'] = self.asset_map.get(video_plan.get('video_cover_asset_id', ''))
+
+        for scene in video_plan["scenes"]:
+            if scene["asset_id"] not in valid_ids:
+                raise Exception("Gemini referenced invalid asset")
+            
+            scene['url'] = self.asset_map.get(scene.get('asset_id', ''))
+            scene['background_url'] = self.asset_map.get(scene.get('background_asset_id', ''))
+        
+        return video_plan
+    
+    def __parse_assets(self, asset_strings: list[str]) -> tuple[list[dict], dict]:
+        """Parses raw asset strings into structured format and creates a mapping of asset IDs to URLs."""
+
+        formatted_assets = []
+        asset_map = {}
+
+        for idx, raw in enumerate(asset_strings, start=1):
+            asset_id = f"asset_{idx}"
+
+            # Extract media type
+            media_type_match = re.search(r"media type\s*:\s*(\w+)", raw, re.IGNORECASE)
+            media_type = media_type_match.group(1).lower() if media_type_match else None
+
+            # Extract URL
+            url_match = re.search(r"https?://[^\s,]+", raw)
+            url = url_match.group(0) if url_match else None
+
+            # Extract description
+            desc_match = re.search(r"description\s*:\s*(.+)", raw, re.IGNORECASE)
+            description = desc_match.group(1).strip() if desc_match else ""
+
+            formatted_assets.append({
+                "asset_id": asset_id,
+                "media_type": media_type,
+                "description": description
+            })
+
+            asset_map[asset_id] = url
+        
+        self.asset_map = asset_map
+        self.formatted_assets = formatted_assets
+
+        return formatted_assets, asset_map
     
     def make_scene(self, scene:dict, output_path:str):
         """
