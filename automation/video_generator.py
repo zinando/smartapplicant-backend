@@ -302,6 +302,7 @@ class VideoGenerator:
             client = AutomatedClients.objects.get(client_id=page_id)
         except AutomatedClients.DoesNotExist:
             raise ValueError(f"Client with page ID {page_id} does not exist")
+
         business_info = client.business_details
         if not business_info:
             raise ValueError("Business details are missing for the client")
@@ -311,6 +312,9 @@ class VideoGenerator:
         
         # check if there is existing video plan
         if client.saved_video_plan:
+            # check if there is existing video 
+            if client.saved_video_plan.get("final_video_path"):
+                raise ValueError("Existing video plan with completed video found. Video will be posted to Facebook.")
             return client.saved_video_plan
 
         # check if cliet has at least 10 assets: including audio and images/videos
