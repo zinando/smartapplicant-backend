@@ -17,8 +17,6 @@ import textwrap
 import shutil
 import hashlib
 from automation.helpers import save_cache, get_cache
-
-from automation.tasks import post_video_content_to_facebook
 # from automation.content_automation.post_video import FacebookVideoUploader
 from moviepy import (
     VideoFileClip,
@@ -314,6 +312,7 @@ class VideoGenerator:
         if client.saved_video_plan:
             # check if there is existing video 
             if client.saved_video_plan.get("final_video_path"):
+                from automation.tasks import post_video_content_to_facebook
                 post_video_content_to_facebook.delay(page_id)
                 raise ValueError("Existing video plan with completed video found. Video will be posted to Facebook.")
             return client.saved_video_plan
