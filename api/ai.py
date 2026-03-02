@@ -582,7 +582,7 @@ def get_image_from_grok(prompt:str):
     result = {}
     try:
         response = client.image.sample(
-            model="grok-2-image-1212",
+            model="grok-imagine-image",
             prompt=prompt,
             image_format="url"
         )
