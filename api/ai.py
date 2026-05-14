@@ -215,17 +215,37 @@ def try_call(model, api_key, prompt):
     payload = {
         "contents": [{"parts": [{"text": prompt}]}]
     }
-    print(f"Calling Gemini model {model} with key {api_key}")
 
-    r = requests.post(url, headers=headers, json=payload, timeout=60)
+    print(f"Calling Gemini model {model}")
 
-    if r.status_code == 200:
-        data = r.json()
-        return data["candidates"][0]["content"]["parts"][0]["text"], 200
-    
-    print(f"Gemini call failed with status {r.status_code}: {r.text}")
+    try:
+        r = requests.post(
+            url,
+            headers=headers,
+            json=payload,
+            timeout=(10, 120)  # (connect_timeout, read_timeout)
+        )
 
-    return None, r.status_code
+        if r.status_code == 200:
+            data = r.json()
+
+            try:
+                text = data["candidates"][0]["content"]["parts"][0]["text"]
+                return text, 200
+            except (KeyError, IndexError):
+                return "Invalid response structure from Gemini", 502
+
+        print(f"Gemini call failed with status {r.status_code}: {r.text}")
+        return f"Gemini API error: {r.text}", r.status_code
+
+    except requests.exceptions.Timeout:
+        return "Gemini request timed out", 405
+
+    except requests.exceptions.ConnectionError:
+        return "Connection error while calling Gemini", 503
+
+    except requests.exceptions.RequestException as e:
+        return f"Unexpected request error: {str(e)}", 500
 
 def call_gemini_smart(prompt):
     """Use for text-based content that do not require structured response."""
@@ -240,7 +260,7 @@ def call_gemini_smart(prompt):
                 if status == 200:
                     return response
 
-                if status in (400, 403, 404, 429):
+                if status in (400, 403, 404, 405, 429):
                     block(model, key)
                     continue
 
@@ -290,7 +310,7 @@ def call_gemini(prompt: str) -> str:
                 {"parts": [{"text": prompt}]}
             ]
         }
-        return requests.post(url, headers=headers, json=payload, timeout=60)
+        return requests.post(url, headers=headers, json=payload, timeout=120)
 
     try:
         response = _make_request(model_id)
