@@ -370,7 +370,7 @@ def schedule_facebook_post(self):
                 instance = AutomateFacebookPost(page)
                 prompt = instance.get_content_prompt()
                 # logger.info(f"Content generation prompt for Facebook page {page}:\n{prompt}")
-                contents = client.saved_content or get_structured_data_from_gemini_smart(prompt)  # get content that failed to post or generate new one
+                contents = client.saved_content or get_structured_data_from_gemini(prompt)  # get content that failed to post or generate new one
                 logger.info(f"Gemini contents:\n{contents}")
                 if not contents or len(contents) == 0:
                     logger.warning(f"No content generated for Facebook page {page}")
