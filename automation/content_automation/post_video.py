@@ -85,23 +85,6 @@ class FacebookVideoUploader:
         if not video_id:
             raise RuntimeError(f"Upload failed: {response}")
         
-        # # fetch the post_id with video_id 
-        # time.sleep(1)
-        # post_id = None
-
-        # for attempt in range(10):  # ~50 seconds total
-        #     post_id = self._get_post_id(video_id)
-        #     if post_id:
-        #         break
-        #     time.sleep(5)
-
-        # if not post_id:
-        #     raise RuntimeError("Post ID not available yet")
-
-        # self._add_comments(post_id)
-
-        # self._like_post(post_id)
-
         self._send_email(f"Video has been posted to your facebook page: {self.video.get('page_name', self.page_id)}.\nVideo Caption: {self.video.get('caption', '')}.\nSchedule Time: {self.video.get('schedule_time', '')}th hour today.", self.video.get("email", "zinando2000@gmail.com"))
 
         # empty saved video plan

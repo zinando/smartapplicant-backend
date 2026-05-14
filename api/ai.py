@@ -260,7 +260,7 @@ def call_gemini_smart(prompt):
                 if status == 200:
                     return response
 
-                if status in (400, 403, 404, 405, 429):
+                if status in (400, 403, 404, 405, 429,  500, 502, 503, 504):
                     block(model, key)
                     continue
 
