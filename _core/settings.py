@@ -3,7 +3,8 @@ import os
 from dotenv import load_dotenv
 from datetime import timedelta, datetime
 import json
-from celery.schedules import crontab
+# from celery.schedules import crontab
+from .log_config import LOGGING
 
 # Load environment variables from .env file
 load_dotenv(override=True)
@@ -14,9 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 run_minute = (datetime.now() + timedelta(minutes=10)).minute
 run_hour = (datetime.now() + timedelta(minutes=10)).hour
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
+DEBUG = os.getenv("ENVIRONMENT", "development") == "development"
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
@@ -85,20 +84,23 @@ for page_id, token in ACCESS_TOKENS.items():
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # Disable Django features that eat memory
-DEBUG = False
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
+
+if DEBUG:
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+                'formatter': 'standard',},
         },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
-    },
-}  # Reduce log verbosity
+        'root': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    }  # Reduce log verbosity
+else:
+    LOGGING = LOGGING  # Use the detailed logging configuration for production
 
 ALLOWED_HOSTS = [
     "localhost",
@@ -152,12 +154,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     
 ]
-
-# Reduce memory usage
-# SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"  # Faster than DB
-# STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"  # Smaller footprint
-
-# resource.setrlimit(resource.RLIMIT_AS, (400_000_000, 400_000_000))  # Hard cap at 400MB
 
 # Media files (for resume uploads)
 MEDIA_URL = '/media/'
@@ -282,17 +278,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CELERY_BROKER_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')  # Replace with Render/Redis Cloud URL
 CELERY_RESULT_BACKEND = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')  # Replace with Render/Redis Cloud URL
 CELERY_TIMEZONE = 'UTC'
-
-# CELERY_BEAT_SCHEDULE = {
-#     'daily-facebook-posts': {
-#         'task': 'automation.tasks.schedule_facebook_post',
-#         'schedule': crontab(hour=run_hour, minute=run_minute),
-#     },
-#     'test-schedule': {
-#         'task': 'automation.tasks.test_beat_task',
-#         'schedule': crontab(hour=run_hour, minute=run_minute),
-#     }
-# }
 
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')  # Default to SMTP backend
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')  # Default to Gmail SMTP
