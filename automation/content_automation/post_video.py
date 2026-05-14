@@ -2,11 +2,14 @@
 from automation.models import AutomatedClients
 import os
 from api.email_service import EmailService
+import logging
 import requests
 import random
 from datetime import datetime, timezone
 from automation.utils import to_facebook_timestamp
 # import time
+
+logger = logging.getLogger(__name__)
 
 GRAPH_API_BASE = "https://graph.facebook.com/v24.0"
 CHUNK_SIZE = 1024 * 1024 * 4  # 4MB
@@ -55,6 +58,8 @@ class FacebookVideoUploader:
 
         if not vp.get("final_video_path"):
             raise ValueError(f"Video was not created")
+        
+        logger.info(f"Video plan with completed video found. PATH: {vp.get('final_video_path')}")
 
         return {
             "access_token": page.page_access_token,

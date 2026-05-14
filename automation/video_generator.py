@@ -1,33 +1,30 @@
 import os
 import requests
 from api.ai import get_structured_data_from_gemini, try_call_tts, get_structured_data_from_gemini_smart
-from django.conf import settings
 from automation.models import AutomatedClients
 import uuid
 import subprocess
 from pathlib import Path
 import json 
 from urllib.parse import urlparse, unquote, parse_qs
-from moviepy.video.fx import FadeIn, FadeOut, Resize
-from moviepy.audio.fx import AudioFadeOut, AudioFadeIn, MultiplyVolume
+from moviepy.audio.fx import MultiplyVolume
 import cv2
 import re
-import numpy as np
 import textwrap
-import shutil
+import logging
 import hashlib
 from automation.helpers import save_cache, get_cache
 # from automation.content_automation.post_video import FacebookVideoUploader
 from moviepy import (
     VideoFileClip,
-    ImageClip,
-    TextClip,
     CompositeVideoClip,
     CompositeAudioClip,
     AudioFileClip,
     concatenate_videoclips,
-    vfx, afx
+    vfx
 )
+
+logger = logging.getLogger(__name__)
 
 TEMP_DIR = "temp_assets"
 os.makedirs(TEMP_DIR, exist_ok=True)
@@ -251,12 +248,14 @@ class VideoGenerator:
         self.asset_map = {}
         self.formatted_assets = []
         if not page_id:
-            raise ValueError("page_id is required")
+            logger.error("page_id is required")
+            return
         if not video_plan:
             # Placeholder for fetching video plan by page_id
             self.video_plan = self.fetch_video_plan(page_id)
         if not self.video_plan:
-            raise ValueError("Video plan could not be determined")
+            logger.error("Video plan could not be determined")
+            return
         
         self.video_plan = self.__mapp_video_plan_assets(self.video_plan)
 
@@ -312,9 +311,10 @@ class VideoGenerator:
         if client.saved_video_plan:
             # check if there is existing video 
             if client.saved_video_plan.get("final_video_path"):
-                from automation.tasks import post_video_content_to_facebook
+                from automation.tasks import post_video_content_to_facebook                
+                logger.info("Existing video plan with completed video found. Video will be posted to Facebook.")
                 post_video_content_to_facebook.delay(page_id)
-                raise ValueError("Existing video plan with completed video found. Video will be posted to Facebook.")
+                return {}
             return client.saved_video_plan
 
         # check if cliet has at least 10 assets: including audio and images/videos

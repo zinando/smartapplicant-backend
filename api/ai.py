@@ -30,35 +30,49 @@ def _save_base64_audio_to_mp3(base64_audio: str, filename: str):
     return filename
 
 GEMMA_MODEL_KEY_POOL = {
-    # "gemma-3-1b-it": [
-    #     os.getenv("GEMENAI_API_KEY_2"),
-    #     os.getenv("GEMENAI_API_KEY_3"),
-    #     os.getenv("GEMENAI_API_KEY_4"),
-    #     os.getenv("GEMENAI_API_KEY_5"),
-    #     os.getenv("GEMENAI_API_KEY_6"),
-    #     os.getenv("GEMENAI_API_KEY_7"),
-    #     os.getenv("GEMENAI_API_KEY_8"),
-    #     os.getenv("GEMENAI_API_KEY_9"),
-    #     os.getenv("GEMENAI_API_KEY_10"),
-    #     os.getenv("GEMENAI_API_KEY_11"),
-    #     os.getenv("GEMENAI_API_KEY_12"),
-    #     os.getenv("GEMENAI_API_KEY_13")
-    # ],
-    # "gemma-3-12b-it": [
-    #     os.getenv("GEMENAI_API_KEY_2"),
-    #     os.getenv("GEMENAI_API_KEY_3"),
-    #     os.getenv("GEMENAI_API_KEY_4"),
-    #     os.getenv("GEMENAI_API_KEY_5"),
-    #     os.getenv("GEMENAI_API_KEY_6"),
-    #     os.getenv("GEMENAI_API_KEY_7"),
-    #     os.getenv("GEMENAI_API_KEY_8"),
-    #     os.getenv("GEMENAI_API_KEY_9"),
-    #     os.getenv("GEMENAI_API_KEY_10"),
-    #     os.getenv("GEMENAI_API_KEY_11"),
-    #     os.getenv("GEMENAI_API_KEY_12"),
-    #     os.getenv("GEMENAI_API_KEY_13")
-    # ],
-    "gemma-3-27b-it": [
+    "gemma-4-31b-it": [
+        os.getenv("GEMENAI_API_KEY_2"),
+        os.getenv("GEMENAI_API_KEY_3"),
+        os.getenv("GEMENAI_API_KEY_4"),
+        os.getenv("GEMENAI_API_KEY_5"),
+        os.getenv("GEMENAI_API_KEY_6"),
+        os.getenv("GEMENAI_API_KEY_7"),
+        os.getenv("GEMENAI_API_KEY_8"),
+        os.getenv("GEMENAI_API_KEY_9"),
+        os.getenv("GEMENAI_API_KEY_10"),
+        os.getenv("GEMENAI_API_KEY_11"),
+        os.getenv("GEMENAI_API_KEY_12"),
+        os.getenv("GEMENAI_API_KEY_13")
+    ],
+    "gemma-4-26b-a4b-it": [
+        os.getenv("GEMENAI_API_KEY_2"),
+        os.getenv("GEMENAI_API_KEY_3"),
+        os.getenv("GEMENAI_API_KEY_4"),
+        os.getenv("GEMENAI_API_KEY_5"),
+        os.getenv("GEMENAI_API_KEY_6"),
+        os.getenv("GEMENAI_API_KEY_7"),
+        os.getenv("GEMENAI_API_KEY_8"),
+        os.getenv("GEMENAI_API_KEY_9"),
+        os.getenv("GEMENAI_API_KEY_10"),
+        os.getenv("GEMENAI_API_KEY_11"),
+        os.getenv("GEMENAI_API_KEY_12"),
+        os.getenv("GEMENAI_API_KEY_13")
+    ],
+    "gemma-4-e4b-it": [
+        os.getenv("GEMENAI_API_KEY_2"),
+        os.getenv("GEMENAI_API_KEY_3"),
+        os.getenv("GEMENAI_API_KEY_4"),
+        os.getenv("GEMENAI_API_KEY_5"),
+        os.getenv("GEMENAI_API_KEY_6"),
+        os.getenv("GEMENAI_API_KEY_7"),
+        os.getenv("GEMENAI_API_KEY_8"),
+        os.getenv("GEMENAI_API_KEY_9"),
+        os.getenv("GEMENAI_API_KEY_10"),
+        os.getenv("GEMENAI_API_KEY_11"),
+        os.getenv("GEMENAI_API_KEY_12"),
+        os.getenv("GEMENAI_API_KEY_13")
+    ],
+    "gemma-4-e2b-it": [
         os.getenv("GEMENAI_API_KEY_2"),
         os.getenv("GEMENAI_API_KEY_3"),
         os.getenv("GEMENAI_API_KEY_4"),
@@ -226,7 +240,7 @@ def call_gemini_smart(prompt):
                 if status == 200:
                     return response
 
-                if status in (403, 429):
+                if status in (400, 403, 404, 429):
                     block(model, key)
                     continue
 
