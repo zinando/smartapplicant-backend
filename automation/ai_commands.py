@@ -30,7 +30,7 @@ def add_new_client(page_id:str, platform:str, session_id:str, secret_questions:s
         if not page_access_token:
             raise Exception("no valid page access token found for the given page id")
         
-        obj, created = AutomatedClients.objects.get_or_create(
+        obj, created = AutomatedClients.objects.update_or_create(
             tenant=default_tenant,
             auth_log=auth_log,
             platform=platform,

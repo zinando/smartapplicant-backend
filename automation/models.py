@@ -112,6 +112,10 @@ class AutomatedClients(models.Model):
             self.subscribed = False
             self.save(update_fields=['subscribed'])
 
+    @property
+    def business_name(self):
+        return self.business_details.get("name") if self.business_details else "my page name"
+
 class MediaPostLog(models.Model):
     """Keeps track of daily image posts per client"""
     client = models.OneToOneField(AutomatedClients, on_delete=models.CASCADE, related_name='image_post_log')

@@ -406,6 +406,17 @@ def facebook_select_page(request):
     # 2. Save to .env
     update_env(page_name, page_access_token)
 
+    client = update_existing_client(page_id, page_access_token)
+    if client:
+        auth_log.message = f"Existing client updated with new page access token for page ID {page_id}."
+        auth_log.save()
+
+        wa_url = f"https://wa.me/{settings.SMARTAPPLICANT['PHONE_NUMBER']}?text=I've%20updated%20my%20Facebook%20page%20{client.business_name}%20connection%20with%20a%20new%20page%20access%20token."
+        return Response(
+            {"message": "Page connected successfully.", "redirect_url": wa_url},
+            status=200
+        )
+
     # 3. Redirect to WhatsApp
     wa_url = f"https://wa.me/{settings.SMARTAPPLICANT['PHONE_NUMBER']}?text=I've%20connected%20my%20Facebook%20page%20with%20page_id:%20{page_id}%20and%20session%20ID:%20{state}."
     return Response(
@@ -432,3 +443,16 @@ def update_env(key, value):
 
         if not updated:
             f.write(f"{key}={value}\n")
+
+def update_existing_client(page_id, page_access_token):
+    """Updates the existing client's page access token and auth log with the latest login info"""
+    from automation.models import AutomatedClients
+
+    try:
+        obj  = AutomatedClients.objects.get(client_id=page_id)
+        obj.page_access_token = str(page_access_token)
+        obj.save(update_fields=['page_access_token'])
+        return obj
+
+    except AutomatedClients.DoesNotExist:
+        return False

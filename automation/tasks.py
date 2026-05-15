@@ -345,22 +345,22 @@ def schedule_facebook_post(self):
                 }
             )
             tenant = client.tenant
-            if tenant:
-                logger.info("tenant found")
-                if client.content_schedule_times and not isinstance(client.content_schedule_times, list):
-                    logger.info("about to update saved contents")
-                    if tenant.content_schedule_times and isinstance(tenant.content_schedule_times, dict):
-                        logger.info("Updating saved contents")
-                        client.content_schedule_times = tenant.content_schedule_times.get('facebook', [])
-                        client.save(update_fields=['content_schedule_times'])
-                if client.media_history and not isinstance(client.media_history, list):
-                    if tenant.media_history and isinstance(tenant.media_history, dict):
-                        client.media_history = tenant.media_history.get('facebook', [])
-                        client.save(update_fields=['media_history'])
-                if client.evergreen_content and not isinstance(client.evergreen_content, list):
-                    if tenant.evergreen_content and isinstance(tenant.evergreen_content, list):
-                        client.evergreen_content = tenant.evergreen_content
-                        client.save(update_fields=['evergreen_content'])
+            # if tenant:
+            #     logger.info("tenant found")
+            #     if client.content_schedule_times and not isinstance(client.content_schedule_times, list):
+            #         logger.info("about to update saved contents")
+            #         if tenant.content_schedule_times and isinstance(tenant.content_schedule_times, dict):
+            #             logger.info("Updating saved contents")
+            #             client.content_schedule_times = tenant.content_schedule_times.get('facebook', [])
+            #             client.save(update_fields=['content_schedule_times'])
+            #     if client.media_history and not isinstance(client.media_history, list):
+            #         if tenant.media_history and isinstance(tenant.media_history, dict):
+            #             client.media_history = tenant.media_history.get('facebook', [])
+            #             client.save(update_fields=['media_history'])
+            #     if client.evergreen_content and not isinstance(client.evergreen_content, list):
+            #         if tenant.evergreen_content and isinstance(tenant.evergreen_content, list):
+            #             client.evergreen_content = tenant.evergreen_content
+            #             client.save(update_fields=['evergreen_content'])
                 # if client.custom_prompt and not isinstance(client.custom_prompt, str):
                 #     if tenant.custom_prompts and isinstance(tenant.custom_prompts, dict):
                 #         client.custom_prompt = tenant.custom_prompts.get('facebook', '')
@@ -371,7 +371,7 @@ def schedule_facebook_post(self):
                 prompt = instance.get_content_prompt()
                 # logger.info(f"Content generation prompt for Facebook page {page}:\n{prompt}")
                 contents = client.saved_content or get_structured_data_from_gemini(prompt)  # get content that failed to post or generate new one
-                logger.info(f"Gemini contents:\n{contents}")
+                # logger.info(f"Gemini contents:\n{contents}")
                 if not contents or len(contents) == 0:
                     logger.warning(f"No content generated for Facebook page {page}")
                     # get fallback content 
@@ -393,7 +393,7 @@ def schedule_facebook_post(self):
                                     item['content'] = image_data['image']
                                     item['prompt'] = image_data.get('description', '')
                                     media_post_log_obj.last_image_posted_at = timezone.now()
-                                    logger.info(f"Image generated: {image_data}")
+                                    # logger.info(f"Image generated: {image_data}")
                                 else:
                                     logger.warning(f"Image generation failed for prompt: {image_prompt}, removing item.")
                                     contents.remove(item)
