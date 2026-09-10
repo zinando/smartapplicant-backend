@@ -72,7 +72,7 @@ class AutomatedClientManager(models.Manager):
 
 class AutomatedClients(models.Model):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='automated_clients')
-    auth_log = models.OneToOneField(FacebookAuthLog, on_delete=models.CASCADE, null=True, blank=True, related_name='automated_client')
+    auth_log = models.ForeignKey(FacebookAuthLog, on_delete=models.CASCADE, null=True, blank=True, related_name='automated_client')
     platform = models.CharField(max_length=50)  # e.g., "facebook", "instagram"
     client_id = models.CharField(max_length=100)  # e.g., Facebook Page ID or Instagram Business Account ID
     business_details = models.JSONField(null=True, blank=True)  # store additional business info
