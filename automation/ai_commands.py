@@ -8,8 +8,195 @@ from .mydata import business_info_form_template, business_info
 from .context_manager import save_context
 from .helpers import remove_pending_request
 
+def add_new_client(page_id: str, platform: str, session_id: str, secret_questions: str):
+    """Adds new client to database/automatedclients."""
 
-def add_new_client(page_id:str, platform:str, session_id:str, secret_questions:str):
+    form = ""
+
+    try:
+        # ============================================================
+        # 1. Get default tenant
+        # ============================================================
+
+        phone_number_id = settings.SMARTAPPLICANT.get(
+            "PHONE_NUMBER_ID"
+        )
+
+        if not phone_number_id:
+            raise Exception(
+                "No valid WABA phone number ID detected."
+            )
+
+        default_tenant = Tenant.objects.get(
+            waba_phone_number_id=phone_number_id
+        )
+
+        # ============================================================
+        # 2. Get Facebook authorization log
+        # ============================================================
+
+        auth_log = (
+            FacebookAuthLog.objects
+            .filter(state=session_id)
+            .first()
+        )
+
+        if not auth_log:
+            raise Exception(
+                "No valid Facebook page authorization log "
+                "detected for the given session ID."
+            )
+
+        # ============================================================
+        # 3. Safely decode page authorization payload
+        # ============================================================
+
+        payload = {}
+
+        if auth_log.page_access_token_payload:
+            try:
+                payload = json.loads(
+                    auth_log.page_access_token_payload
+                )
+            except (json.JSONDecodeError, TypeError, ValueError):
+                raise Exception(
+                    "Invalid page access payload stored in "
+                    "Facebook authorization log."
+                )
+
+        if not isinstance(payload, dict) or not payload:
+            raise Exception(
+                "No page access payload data found."
+            )
+
+        # ============================================================
+        # 4. Find the selected page
+        #
+        # facebook_select_page() now stores:
+        #
+        # "selected_pages": {
+        #     "PAGE_ID_1": {...},
+        #     "PAGE_ID_2": {...},
+        #     "PAGE_ID_3": {...}
+        # }
+        # ============================================================
+
+        selected_pages = payload.get(
+            "selected_pages",
+            {}
+        )
+
+        if not isinstance(selected_pages, dict):
+            raise Exception(
+                "Invalid selected pages data."
+            )
+
+        # Page IDs are stored as dictionary keys, therefore
+        # normalize the incoming page_id to string.
+        target_page = selected_pages.get(
+            str(page_id)
+        )
+
+        if not target_page:
+            raise Exception(
+                f"The given page ID {page_id} was not found "
+                f"in the selected pages for this session."
+            )
+
+        if not isinstance(target_page, dict):
+            raise Exception(
+                f"Invalid data stored for page ID {page_id}."
+            )
+
+        # ============================================================
+        # 5. Get Page Access Token
+        # ============================================================
+
+        page_access_token = target_page.get(
+            "access_token"
+        )
+
+        if not page_access_token:
+            raise Exception(
+                f"No valid page access token found for "
+                f"page ID {page_id}."
+            )
+
+        # ============================================================
+        # 6. Create/update AutomatedClients record
+        # ============================================================
+
+        obj, created = AutomatedClients.objects.update_or_create(
+            tenant=default_tenant,
+            auth_log=auth_log,
+            platform=platform,
+            client_id=page_id,
+            defaults={
+                "page_access_token": str(page_access_token),
+                "secret_questions": secret_questions,
+                # "subscription_ref": payment_ref,
+            },
+        )
+
+        # ============================================================
+        # 7. Prepare response message
+        # ============================================================
+
+        if created:
+            message = (
+                f"Facebook page with ID {page_id} has been "
+                f"successfully registered for content automation.\n"
+                f"You are to securely keep your page ID, and "
+                f"reference it for future use."
+            )
+
+            message += (
+                "\nNext step: update your page account with "
+                "information about your business by copying the "
+                "form below and updating the relevant fields:\n"
+            )
+
+            form += business_info_form_template
+
+        else:
+            message = (
+                f"Facebook page with ID {page_id} is already "
+                f"registered for content automation."
+            )
+
+            if not obj.business_details:
+                message += (
+                    "\nNext step: update your page account with "
+                    "information about your business by copying "
+                    "the form below and updating the relevant "
+                    "fields:\n"
+                )
+
+                form += business_info_form_template
+
+        return {
+            "success": True,
+            "created": created,
+            "message": message,
+            "form": form,
+            "client": obj,
+        }
+
+    except Tenant.DoesNotExist:
+        return {
+            "success": False,
+            "message": "No tenant found for the configured WABA phone number.",
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "message": str(e),
+        }
+
+
+
+def add_new_clientxxx(page_id:str, platform:str, session_id:str, secret_questions:str):
     """Adds new client to database/automatedclients"""
     form = ''
     try:

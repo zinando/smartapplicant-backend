@@ -25,6 +25,30 @@ import json
 
 ENV_FILE = os.path.join(settings.BASE_DIR, ".env")
 
+def safe_json_loads(value, default=None):
+    """
+    Safely decode JSON stored in the database.
+
+    Returns `default` when:
+    - value is None/empty
+    - JSON is malformed
+    - decoded value is not usable
+    """
+    if not value:
+        return {} if default is None else default
+
+    try:
+        data = json.loads(value)
+
+        if data is None:
+            return {} if default is None else default
+
+        return data
+
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return {} if default is None else default
+
+
 class ResumeParseView(APIView):
     def post(self, request):
         try:
@@ -337,9 +361,390 @@ def facebook_callback(request):
     # Show page selection UI
     return redirect(f"https://smartapplicant.net/fb_page_selector/?code={state}")
 
+
 @api_view(["POST", "GET"])
 @csrf_exempt
 def facebook_select_page(request):
+    """
+    GET:
+        Return all Facebook pages available for the current session.
+
+    POST:
+        Connect one selected Facebook page.
+
+    Multiple pages can be selected using the same `state`.
+    Each selected page is stored under `selected_pages[page_id]`
+    so selecting another page does not overwrite previous selections.
+    """
+
+    # ============================================================
+    # GET
+    # Return all Facebook pages available for this session
+    # ============================================================
+
+    if request.method == "GET":
+        try:
+            state = request.GET.get("code")
+
+            if not state:
+                return Response(
+                    "Missing code parameter.",
+                    status=400
+                )
+
+            auth_log = (
+                FacebookAuthLog.objects
+                .filter(state=state)
+                .first()
+            )
+
+            if not auth_log:
+                return Response(
+                    "Invalid code parameter.",
+                    status=400
+                )
+
+            # Safely decode page_access_token_payload
+            payload = safe_json_loads(
+                auth_log.page_access_token_payload,
+                default={}
+            )
+
+            if not isinstance(payload, dict):
+                return Response(
+                    "Invalid page data stored in auth log.",
+                    status=400
+                )
+
+            page_data = payload.get(
+                "fetch_pages_payload",
+                {}
+            )
+
+            if not isinstance(page_data, dict):
+                return Response(
+                    "Invalid Facebook pages payload.",
+                    status=400
+                )
+
+            pages = page_data.get("data", [])
+
+            if not isinstance(pages, list):
+                return Response(
+                    "Invalid Facebook pages data.",
+                    status=400
+                )
+
+            return Response(
+                pages,
+                status=200
+            )
+
+        except Exception as e:
+            return Response(
+                f"Error: {e}",
+                status=400
+            )
+
+    # ============================================================
+    # POST
+    # User selects a Facebook page
+    # ============================================================
+
+    request_data = request.data
+
+    page_id = request_data.get("page_id")
+    state = request_data.get("code")
+
+    if not page_id or not state:
+        return Response(
+            "Missing page_id or code parameter.",
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # ------------------------------------------------------------
+    # Find the auth log belonging to this business/session
+    # ------------------------------------------------------------
+
+    auth_log = (
+        FacebookAuthLog.objects
+        .filter(state=state)
+        .first()
+    )
+
+    if not auth_log:
+        return Response(
+            "Invalid code parameter.",
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # ============================================================
+    # Get Facebook user access token
+    # ============================================================
+
+    short_lived_token_payload = safe_json_loads(
+        auth_log.short_lived_token_payload,
+        default={}
+    )
+
+    if not isinstance(short_lived_token_payload, dict):
+        return Response(
+            "Invalid Facebook user token data. Restart login.",
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    user_token = short_lived_token_payload.get(
+        "access_token"
+    )
+
+    if not user_token:
+        return Response(
+            "Missing user access token. Restart login.",
+            status=400
+        )
+
+    # ============================================================
+    # 1. Fetch Page Access Token
+    # ============================================================
+
+    page_token_url = (
+        f"https://graph.facebook.com/{page_id}"
+        f"?fields=access_token"
+        f"&access_token={user_token}"
+    )
+
+    try:
+        response = requests.get(
+            page_token_url,
+            timeout=15
+        )
+        response.raise_for_status()
+        page_data = response.json()
+
+    except requests.RequestException as e:
+        auth_log.step_status = "failed"
+        auth_log.message = (
+            f"Facebook API request failed: {e}"
+        )
+        auth_log.save(
+            update_fields=[
+                "step_status",
+                "message",
+            ]
+        )
+
+        return Response(
+            "Failed to communicate with Facebook.",
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+
+    except ValueError:
+        auth_log.step_status = "failed"
+        auth_log.message = (
+            "Facebook returned an invalid JSON response."
+        )
+        auth_log.save(
+            update_fields=[
+                "step_status",
+                "message",
+            ]
+        )
+
+        return Response(
+            "Facebook returned an invalid response.",
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+
+    # Make sure Facebook returned an object/dict
+    if not isinstance(page_data, dict):
+        auth_log.step_status = "failed"
+        auth_log.message = (
+            "Unexpected Facebook API response format."
+        )
+        auth_log.save(
+            update_fields=[
+                "step_status",
+                "message",
+            ]
+        )
+
+        return Response(
+            "Unexpected Facebook API response.",
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+
+    # ============================================================
+    # Check Facebook API error
+    # ============================================================
+
+    facebook_error = page_data.get("error")
+
+    if facebook_error:
+        auth_log.step_status = "failed"
+        auth_log.message = (
+            f"Error fetching page access token: "
+            f"{facebook_error}"
+        )
+        auth_log.save(
+            update_fields=[
+                "step_status",
+                "message",
+            ]
+        )
+
+        return Response(
+            {
+                "error": "Failed to fetch page access token.",
+                "details": facebook_error,
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    page_access_token = page_data.get(
+        "access_token"
+    )
+
+    if not page_access_token:
+        auth_log.step_status = "failed"
+        auth_log.message = (
+            "Facebook response did not contain a page access token."
+        )
+        auth_log.save(
+            update_fields=[
+                "step_status",
+                "message",
+            ]
+        )
+
+        return Response(
+            "Failed to retrieve Page Access Token.",
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # ============================================================
+    # 2. Safely update selected pages
+    # ============================================================
+
+    pl_data = safe_json_loads(
+        auth_log.page_access_token_payload,
+        default={}
+    )
+
+    if not isinstance(pl_data, dict):
+        pl_data = {}
+
+    # Existing selected pages
+    selected_pages = pl_data.get(
+        "selected_pages",
+        {}
+    )
+
+    # Make sure selected_pages is a dictionary
+    if not isinstance(selected_pages, dict):
+        selected_pages = {}
+
+    # ------------------------------------------------------------
+    # Store this page by page_id.
+    #
+    # If the page was already selected, this updates its data.
+    # Other selected pages remain untouched.
+    # ------------------------------------------------------------
+
+    selected_pages[str(page_id)] = {
+        **page_data,
+        "page_id": str(page_id),
+    }
+
+    pl_data["selected_pages"] = selected_pages
+
+    auth_log.page_access_token_payload = json.dumps(
+        pl_data
+    )
+
+    auth_log.step_status = "success"
+    auth_log.message = (
+        f"Page {page_id} connected successfully."
+    )
+
+    auth_log.save(
+        update_fields=[
+            "page_access_token_payload",
+            "step_status",
+            "message",
+        ]
+    )
+
+    # ============================================================
+    # 3. Save Page Access Token to .env
+    # ============================================================
+
+    page_name = f"page_{page_id}"
+
+    update_env(
+        page_name,
+        page_access_token
+    )
+
+    # ============================================================
+    # 4. Check whether Client already exists
+    # ============================================================
+
+    client = update_existing_client(
+        page_id,
+        page_access_token
+    )
+
+    if client:
+        auth_log.message = (
+            f"Existing client updated with new page access token "
+            f"for page ID {page_id}."
+        )
+
+        auth_log.save(
+            update_fields=["message"]
+        )
+
+        wa_url = (
+            f"https://wa.me/"
+            f"{settings.SMARTAPPLICANT['PHONE_NUMBER']}"
+            f"?text=I've%20updated%20my%20Facebook%20page%20"
+            f"{client.business_name}"
+            f"%20connection%20with%20a%20new%20page%20access%20token."
+        )
+
+        return Response(
+            {
+                "message": "Page connected successfully.",
+                "redirect_url": wa_url,
+            },
+            status=200
+        )
+
+    # ============================================================
+    # 5. New Client
+    # Redirect to WhatsApp
+    # ============================================================
+
+    wa_url = (
+        f"https://wa.me/"
+        f"{settings.SMARTAPPLICANT['PHONE_NUMBER']}"
+        f"?text=I've%20connected%20my%20Facebook%20page"
+        f"%20with%20page_id:%20{page_id}"
+        f"%20and%20session%20ID:%20{state}."
+    )
+
+    return Response(
+        {
+            "message": "Page connected successfully.",
+            "redirect_url": wa_url,
+        },
+        status=200
+    )
+
+
+@api_view(["POST", "GET"])
+@csrf_exempt
+def facebook_select_pagexxx(request):
     """User selects which page to connect → save PAT + page_id → redirect to WhatsApp"""
     if request.method == "GET":
         try:
