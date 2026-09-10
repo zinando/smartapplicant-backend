@@ -174,25 +174,13 @@ def add_new_client(page_id: str, platform: str, session_id: str, secret_question
 
                 form += business_info_form_template
 
-        return {
-            "success": True,
-            "created": created,
-            "message": message,
-            "form": form,
-            "client": obj,
-        }
+        return message, form
 
     except Tenant.DoesNotExist:
-        return {
-            "success": False,
-            "message": "No tenant found for the configured WABA phone number.",
-        }
+        return 'No default tenant found. Please ensure the WABA phone number ID is correctly configured.', ''
 
     except Exception as e:
-        return {
-            "success": False,
-            "message": str(e),
-        }
+        return str(e), ''
 
 
 
