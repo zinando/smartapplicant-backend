@@ -31,4 +31,5 @@ urlpatterns = [
     path("facebook/login/", facebook_login_view, name="facebook_login"),
     path("facebook/callback/", facebook_callback, name="facebook_callback"),
     path("facebook/select-page/", facebook_select_page, name="facebook_select_page"),
+    path('api/smtb/', include('smtb.urls')),
 ]

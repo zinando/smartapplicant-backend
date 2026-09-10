@@ -14,7 +14,7 @@ class AutomationConfig(AppConfig):
         # cache.clear()
         self.save_admin_contacts_to_cache()
         # cache.set("startup_flag", True, timeout=None)
-        pass
+        # pass
     
     def save_admin_contacts_to_cache(self):
         from .models import Tenant

@@ -58,34 +58,6 @@ GEMMA_MODEL_KEY_POOL = {
         os.getenv("GEMENAI_API_KEY_12"),
         os.getenv("GEMENAI_API_KEY_13")
     ],
-    # "gemma-4-e4b-it": [
-    #     os.getenv("GEMENAI_API_KEY_2"),
-    #     os.getenv("GEMENAI_API_KEY_3"),
-    #     os.getenv("GEMENAI_API_KEY_4"),
-    #     os.getenv("GEMENAI_API_KEY_5"),
-    #     os.getenv("GEMENAI_API_KEY_6"),
-    #     os.getenv("GEMENAI_API_KEY_7"),
-    #     os.getenv("GEMENAI_API_KEY_8"),
-    #     os.getenv("GEMENAI_API_KEY_9"),
-    #     os.getenv("GEMENAI_API_KEY_10"),
-    #     os.getenv("GEMENAI_API_KEY_11"),
-    #     os.getenv("GEMENAI_API_KEY_12"),
-    #     os.getenv("GEMENAI_API_KEY_13")
-    # ],
-    # "gemma-4-e2b-it": [
-    #     os.getenv("GEMENAI_API_KEY_2"),
-    #     os.getenv("GEMENAI_API_KEY_3"),
-    #     os.getenv("GEMENAI_API_KEY_4"),
-    #     os.getenv("GEMENAI_API_KEY_5"),
-    #     os.getenv("GEMENAI_API_KEY_6"),
-    #     os.getenv("GEMENAI_API_KEY_7"),
-    #     os.getenv("GEMENAI_API_KEY_8"),
-    #     os.getenv("GEMENAI_API_KEY_9"),
-    #     os.getenv("GEMENAI_API_KEY_10"),
-    #     os.getenv("GEMENAI_API_KEY_11"),
-    #     os.getenv("GEMENAI_API_KEY_12"),
-    #     os.getenv("GEMENAI_API_KEY_13")
-    # ],
     "gemini-flash-latest": [
         os.getenv("GEMENAI_API_KEY_2"),
         os.getenv("GEMENAI_API_KEY_3"),

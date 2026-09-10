@@ -123,7 +123,7 @@ def generate_ai_response(self, event_id: int, prompt: str):
     event = WebhookEvent.objects.get(id=event_id)
     try:
         logger.info(f"Generating AI response for event {event.id}")
-        ai_response = get_structured_data_from_gemini_smart(prompt)
+        ai_response = get_structured_data_from_gemini(prompt)
         print(f"AI Response: {ai_response}")
 
         context_id = f"{event.tenant.waba_phone_number_id}_{event.sender_id}"
@@ -424,6 +424,58 @@ def make_facebook_posts(self, page_id):
     schedule_times = instance.get_schedule_times()
     client = AutomatedClients.objects.filter(client_id=page_id).first()
     contents = client.saved_content
+    errors = []
+    # logger.info(f"Scheduling posts for Facebook page {page_id} at times: {schedule_times} with contents:\n{contents}")
+    # return
+    for x in range(len(contents)):
+        content = contents[x]
+        schedule_time = schedule_times[x % len(schedule_times)]
+        
+        result = instance.post_content(
+            # content= base64_to_bytes(content['content']) if content.get('content_type') == 'image' else content['content'],
+            content= content['content'],
+            caption=content['caption'],
+            content_type=content.get('content_type'),
+            publish_now= False,
+            comments=content.get("comments", []),
+            scheduled_time=to_facebook_timestamp(schedule_time)
+        )
+        # logger.info(f"Post result data: {result}")
+        if isinstance(result, dict) and "error" in result.keys():
+            errors.append(result)
+        # logger.info(f"Scheduled post result for Facebook page {page_id}: {result}")
+        time.sleep(0.25)  # brief pause between posts for 2 seconds
+    
+    # delete saved_content from client if not all content returned error
+    # logger.info(f"Errors encountered: {errors}")
+    if len(errors) != len(contents):
+        
+        if client:
+            client.saved_content = []
+            client.save(update_fields=["saved_content"])
+            logger.info(f"Some contents were posted...")
+    
+    try:
+        # send email notification concerning the errors 
+        if len(errors) > 0:
+            message = f'The following errors were encountered while scheduling posts on your page ({instance.page_name()}):\n{errors}'
+        else:
+            message = f"Today's post schedule on your page ({instance.page_name()}) was successful."
+        
+        email = instance.page_email()
+        instance.send_email(message, email)
+    except Exception as e:
+        instance.send_email(str(e), 'zinando2000@gmail.com')
+
+@shared_task(bind=True, max_retries=3)
+def automate_facebook_posts(self, page_id, contents=None, schedule_times=None):
+    """ Schedules Facebook posts from n8n automation workflow based on provided contents and post times. """
+    # if page_id == '750798604776594':
+    #     return
+    instance = AutomateFacebookPost(page_id)
+    schedule_times = instance.get_schedule_times() if schedule_times is None else schedule_times
+    client = AutomatedClients.objects.filter(client_id=page_id).first()
+    contents = client.saved_content if contents is None else contents
     errors = []
     # logger.info(f"Scheduling posts for Facebook page {page_id} at times: {schedule_times} with contents:\n{contents}")
     # return

@@ -18,6 +18,8 @@ run_hour = (datetime.now() + timedelta(minutes=10)).hour
 DEBUG = os.getenv("ENVIRONMENT", "development") == "development"
 
 # SECURITY WARNING: keep the secret key used in production secret!
+SMTB_HOME_COUNTRY_CODE = "NG"
+SMTB_HOME_STATE_NAME = "Oyo"
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 FERNET_KEYS = [os.getenv("FERNET_KEY")]
 META_GRAPH_API_VERSION = 'v24.0'
@@ -150,6 +152,7 @@ INSTALLED_APPS = [
     'api',
     'auth_user',
     'automation',
+    'smtb',
 ]
 
 MIDDLEWARE = [

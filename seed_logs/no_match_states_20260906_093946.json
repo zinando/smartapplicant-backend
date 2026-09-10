@@ -1,0 +1,601 @@
+{
+  "count": 23,
+  "items": [
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Katsina",
+        "city_name": "Mai’Adua",
+        "locations": [
+          "Baida",
+          "Buduma",
+          "Bula",
+          "Bumbum",
+          "Daba",
+          "Dadin Sarki",
+          "Dagon Hawa",
+          "Dagura",
+          "Dan Nasara",
+          "Dan Yawa",
+          "Danmisa",
+          "Dansawa",
+          "Dunyashe",
+          "Galadimawa",
+          "Garon Maje",
+          "Gojo-Gogo",
+          "Guzu",
+          "Gwajo-Gwajo",
+          "Jassai",
+          "Jirdede",
+          "Ka Dangwaras",
+          "Kahe",
+          "Kalansanmi",
+          "Katsinawa",
+          "Kokutuko",
+          "Kongolam",
+          "Koza",
+          "Kudi Jika",
+          "Kurchi",
+          "Kwadage",
+          "Madaddaga",
+          "Mai Daniya",
+          "Mai Faru",
+          "Mai Gari",
+          "Mai Kwamame",
+          "Mai-Adua",
+          "Maikoni",
+          "Maiturmi",
+          "Makerawa",
+          "Muludu",
+          "Natsalle",
+          "Saitawa",
+          "Shabewa",
+          "Sharta",
+          "Shekiya",
+          "Shiroka",
+          "Tadi",
+          "Tafakai",
+          "Tilla",
+          "Tsabu",
+          "Tsauri",
+          "Tsiga-Hamisu",
+          "Tsohou Birni",
+          "Tuga",
+          "Unguwar Jimmai",
+          "Unguwar Tuka",
+          "Wala",
+          "Yan Harkum",
+          "Yan Kara",
+          "Yar Yandi",
+          "Yarima Jatau",
+          "Yarogel"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "Katsina, Nigeria.",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Birnin Kebbi",
+        "locations": [
+          "Birnin Kebbi",
+          "Badariya",
+          "Gesse",
+          "Kardi",
+          "Kola",
+          "Lema",
+          "Makera",
+          "Nassarawa",
+          "Rafin Atiku",
+          "Rafin Koto",
+          "Sabon Gari",
+          "Tudun Wada",
+          "Zauro"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Argungu",
+        "locations": [
+          "Argungu",
+          "Alwasa",
+          "Dikko",
+          "Gulma",
+          "Gwamba",
+          "Kangiwa",
+          "Sauwa",
+          "Sarkin Dawaki",
+          "Tungar Kabi",
+          "Tungar Zazzau",
+          "Yelwa"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Yauri",
+        "locations": [
+          "Yauri",
+          "Chulu",
+          "Garin Baka",
+          "Gungun Sarki",
+          "Jijima",
+          "Kamba",
+          "Kaoje",
+          "Tadurga",
+          "Tunga",
+          "Wasagu",
+          "Yelwa"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Zuru",
+        "locations": [
+          "Zuru",
+          "Bedi",
+          "Dabai",
+          "Danjawa",
+          "Isgogo",
+          "Janjala",
+          "Manga",
+          "Rafin Zuru",
+          "Rikoto",
+          "Senchi",
+          "Tadurga",
+          "Wasagu"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Jega",
+        "locations": [
+          "Jega",
+          "Alelu",
+          "Dangama",
+          "Doko",
+          "Gindi",
+          "Gujungu",
+          "Jega Magajiya",
+          "Katin Hausa",
+          "Kebbe",
+          "Kyara",
+          "Sabon Gari",
+          "Tungar Kuka"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Bagudo",
+        "locations": [
+          "Bagudo",
+          "Bani Zumbu",
+          "Danko",
+          "Illo",
+          "Kaoje",
+          "Kashingi",
+          "Kokani",
+          "Kwasara",
+          "Lolo",
+          "Matsinkari",
+          "Tuga",
+          "Zagga"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Bunza",
+        "locations": [
+          "Bunza",
+          "Babeji",
+          "Dakingari",
+          "Gwamba",
+          "Kawara",
+          "Kurdugu",
+          "Sabon Birni",
+          "Sarkin Pawa",
+          "Tilli",
+          "Tunga",
+          "Zogirma"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Danko-Wasagu",
+        "locations": [
+          "Danko",
+          "Wasagu",
+          "Ayaka",
+          "Bena",
+          "Dan Gwanro",
+          "Kebbe",
+          "Kongoro",
+          "Kwasara",
+          "Ribah",
+          "Rafin Gora",
+          "Tadurga",
+          "Wasagu"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Fakai",
+        "locations": [
+          "Fakai",
+          "Bajida",
+          "Bena",
+          "Birnin Tudu",
+          "Dabai",
+          "Danko",
+          "Kangiwa",
+          "Koro",
+          "Mahuta",
+          "Manga",
+          "Shengel",
+          "Tadurga"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Gwandu",
+        "locations": [
+          "Gwandu",
+          "Dalijan",
+          "Fana",
+          "Gulma",
+          "Jiga",
+          "Kangiwa",
+          "Kwasara",
+          "Marafa",
+          "Nassarawa",
+          "Rafin Gora",
+          "Suru",
+          "Tundubega"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Kalgo",
+        "locations": [
+          "Kalgo",
+          "Badariya",
+          "Dandi",
+          "Dangoma",
+          "Girma",
+          "Kebbe",
+          "Kwanar Jega",
+          "Mago",
+          "Nassarawa",
+          "Rafin Atiku",
+          "Tudun Wada"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Koko-Besse",
+        "locations": [
+          "Koko",
+          "Besse",
+          "Dole Kaina",
+          "Dutsin Mari",
+          "Gulumbe",
+          "Kamba",
+          "Kangiwa",
+          "Kwanar Tofa",
+          "Maidaji",
+          "Matsinkari",
+          "Tungan Waje"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Maiyama",
+        "locations": [
+          "Maiyama",
+          "Birnin Tudu",
+          "Dakingari",
+          "Danguimi",
+          "Gidan Bawa",
+          "Goronyo",
+          "Katsinawa",
+          "Kebbe",
+          "Kokani",
+          "Maidaji",
+          "Sakace",
+          "Tungar Bube"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Ngaski",
+        "locations": [
+          "Ngaski",
+          "Birnin Yauri",
+          "Dugabau",
+          "Garin Baka",
+          "Kamba",
+          "Kaoje",
+          "Kwanar Tunga",
+          "Lolo",
+          "Makawa",
+          "Nassarawa",
+          "Utono",
+          "Yelwa"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Sakaba",
+        "locations": [
+          "Sakaba",
+          "Adai",
+          "Dankolo",
+          "Janbirni",
+          "Kebbe",
+          "Kwanar Gamba",
+          "Makuku",
+          "Manga",
+          "Rafin Gora",
+          "Ribah",
+          "Tadurga"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Shanga",
+        "locations": [
+          "Shanga",
+          "Arewa",
+          "Dugu",
+          "Kangiwa",
+          "Kawara",
+          "Kebbe",
+          "Ribah",
+          "Sakaba",
+          "Tungar Gero",
+          "Tungan Buda",
+          "Tunga"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Suru",
+        "locations": [
+          "Suru",
+          "Aljannare",
+          "Bakale",
+          "Dakingari",
+          "Dangaladima",
+          "Dendi",
+          "Kangiwa",
+          "Kebbe",
+          "Kofa",
+          "Makera",
+          "Nassarawa",
+          "Rafin Gora",
+          "Tungar Bawa"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Augie",
+        "locations": [
+          "Augie",
+          "Birnin Tudu",
+          "Dariya",
+          "Garin Baka",
+          "Gawazzai",
+          "Illela",
+          "Kwanar Kuka",
+          "Mera",
+          "Tiggi",
+          "Tunga",
+          "Yola"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Dandi",
+        "locations": [
+          "Kamba",
+          "Dandi",
+          "Buma",
+          "Dole Kaina",
+          "Fana",
+          "Kangiwa",
+          "Kaoje",
+          "Kebbe",
+          "Lolo",
+          "Maidaji",
+          "Tungar Gero",
+          "Waje"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Aliero",
+        "locations": [
+          "Aliero",
+          "Danbeguwa",
+          "Fagada",
+          "Gari Yari",
+          "Jiga Birni",
+          "Jiga Makera",
+          "Kashin Zama",
+          "Sabon Gari",
+          "Sarkawa",
+          "Tudun Wada",
+          "Unguwar Sarki"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Kebbi",
+        "city_name": "Arewa",
+        "locations": [
+          "Arewa",
+          "Danko",
+          "Dumbegu",
+          "Falde",
+          "Goronyo",
+          "Jarkasa",
+          "Kangiwa",
+          "Kebbe",
+          "Maidaji",
+          "Rafin Gora",
+          "Tungar Alhaji"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "None",
+      "matched_city": "None"
+    },
+    {
+      "location_data": {
+        "country_code": "NG",
+        "state_capital": "Jos",
+        "city_name": "Qua’an Pan",
+        "locations": [
+          "Ba’ap",
+          "Bwall",
+          "Doemak-Goechim",
+          "Doemak-Koplong",
+          "Dokan Kasuwa",
+          "Kurgwi",
+          "Kwa",
+          "Kwalla Moeda",
+          "Kwalla Yitla’ar",
+          "Kwande",
+          "Kwang",
+          "Namu"
+        ]
+      },
+      "matched_country": "Nigeria",
+      "matched_state": "Plateau, Nigeria.",
+      "matched_city": "None"
+    }
+  ],
+  "note": "These state names were not found in the database.",
+  "action_required": "Please review and add these states or correct the city data."
+}
