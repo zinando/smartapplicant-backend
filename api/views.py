@@ -851,12 +851,12 @@ def facebook_select_page(request):
     # 3. Save Page Access Token to .env
     # ============================================================
 
-    page_name = f"page_{page_id}"
+    # page_name = f"page_{page_id}"
 
-    update_env(
-        page_name,
-        page_access_token
-    )
+    # update_env(
+    #     page_name,
+    #     page_access_token
+    # )
 
     # ============================================================
     # 4. Check whether Client already exists
