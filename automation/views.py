@@ -11,11 +11,12 @@ from django.views.decorators.http import require_http_methods
 from .tasks import handle_inbound_event, automate_facebook_posts
 # from .content_automation.facebook import AutomateFacebookPost
 from .helpers import save_cache, get_cache
-# from api.email_service import send_email
+from _core.utils import QueuedTaskTracker
 from api.ai import get_structured_data_from_gemini_smart, get_structured_data_from_gemini
 
 
 logger = logging.getLogger(__name__)
+task_tracker = QueuedTaskTracker()
 
 VERIFY_TOKEN = settings.WEBHOOK_VERIFY_TOKEN  # set in env
 
@@ -37,6 +38,7 @@ class AutomationToFacebookView(APIView):
                 raise ValueError('Schedule times not found, must be supplied')
             
             result = automate_facebook_posts.delay(page_id, contents, schedule_times)
+            task_tracker.track_task(result.id)
 
             return Response(
                 {
@@ -123,9 +125,5 @@ def webhook_entry(request):
                     save_cache(message_id,True,15)
                     
                     handle_inbound_event.delay(payload)  # celery
-                    # logger.info('received new instruction to post')
-                    # auto = AutomateFacebookPost("750798604776594")
-                    # send_email("This is a test email from webhook_entry", "belovedsamex@yahoo.com")
-                    # auto.make_a_test_post()
-    
+                    
     return JsonResponse({"status": "received"})

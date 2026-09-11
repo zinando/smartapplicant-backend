@@ -22,8 +22,10 @@ from automation.helpers import save_cache, get_cache
 from automation.models import FacebookAuthLog
 import secrets
 import json
+from  _core.utils import QueuedTaskTracker
 
 ENV_FILE = os.path.join(settings.BASE_DIR, ".env")
+task_tracker = QueuedTaskTracker()
 
 def safe_json_loads(value, default=None):
     """
@@ -65,6 +67,8 @@ class ResumeParseView(APIView):
 
             if file.size > 2 * 1024 * 1024:  # Example: 2MB+ → async
                 task = async_extract_and_score.delay(file_bytes, file.name)
+                task_tracker.track_task(task.id)
+
                 res_status = 2
                 data = {
                     'task_id': task.id,
@@ -96,30 +100,41 @@ class ResumeParseView(APIView):
             
         except Exception as e:
             error = str(e)
-            print(f"Error: {error}")
+            # print(f"Error: {error}")
             return Response({'status': 0, 'message': error}, status=status.HTTP_400_BAD_REQUEST)
         
 class TaskStatusView(APIView):
     def get(self, request, task_id):
-        task = AsyncResult(task_id)
-        result = None
+        try:
+            if not task_id:
+                raise ValueError("Task ID is required")
+            
+            if not task_tracker.is_task_tracked(task_id):
+                raise ValueError("Task ID not found or expired")
+            
+            task = AsyncResult(task_id)
+            result = None
 
-        if task.state == 'PENDING':
-            message = 'Still Processing'
-        elif task.state == 'SUCCESS':
-            message = 'Task Completed'
-            result = task.result
-        elif task.state == 'FAILURE':
-            message = 'Task Failed'
-            result = str(task.result)
-        
-        data = {
-            'task_id': task_id,
-            'status': task.status,
-            'result': result,
-        }
-        
-        return Response({'status': 1, 'data': data, 'message': message}, status=status.HTTP_200_OK)
+            if task.state == 'PENDING':
+                message = 'Still Processing'
+            elif task.state == 'SUCCESS':
+                message = 'Task Completed'
+                result = task.result
+            elif task.state == 'FAILURE':
+                message = 'Task Failed'
+                result = str(task.result)
+            
+            data = {
+                'task_id': task_id,
+                'status': task.status,
+                'result': result,
+            }
+            
+            return Response({'status': 1, 'data': data, 'message': message}, status=status.HTTP_200_OK)
+        except Exception as e:
+            error = str(e)
+            # print(f"Error: {error}")
+            return Response({'status': 0, 'message': error}, status=status.HTTP_400_BAD_REQUEST)
 
 class StatsAPIView(APIView):
     def get(self, request):
@@ -209,7 +224,7 @@ class AnalyticsAPIView(APIView):
 
             return Response({'status': 1, 'data': dashboard_data, 'message': 'success'}, status=status.HTTP_200_OK)
         except Exception as e:
-            print(f"Analytics error: {e}")
+            # print(f"Analytics error: {e}")
             return Response({'status': 0, 'message': str(e)}, status=status.HTTP_200_OK)
 
 # view for fetching input suggestions during form filling
@@ -218,17 +233,6 @@ class InputSuggestionsAPIView(APIView):
     serializer_class = JobTitleSerializer
     def get(self, request, *args, **kwargs):
         try:
-            # JTs = JobTitle.objects.all()
-            # serialized_JTs = self.serializer_class(JTs, many=True).data
-            # suggestions = {
-            #     jt['title'].lower()
-            #     :
-            #     [resp['text'] for resp in jt['responsibilities']] for jt in serialized_JTs}
-            # skills = {
-            #     jt['title'].lower()
-            #     :
-            #     [skill['name'] for skill in jt['skills']] for jt in serialized_JTs
-            # }
             suggestions, skills = get_suggestions_for_all_job_titles()
             return Response({
                 'status': 1, 
@@ -237,7 +241,7 @@ class InputSuggestionsAPIView(APIView):
                 'message': 'success'
                 }, status=status.HTTP_200_OK)
         except Exception as e:
-            print(f"Input suggestions error: {e}")
+            # print(f"Input suggestions error: {e}")
             return Response({'status': 0, 'message': str(e)}, status=status.HTTP_200_OK)
         
     def put(self, request, *args, **kwargs):
@@ -248,11 +252,13 @@ class InputSuggestionsAPIView(APIView):
 
             if new_job_title:
                 task = async_process_new_jt_suggestion.delay(new_job_title)
+                task_tracker.track_task(task.id)
             elif new_skill:
                 job_title = request.GET.get('job_title', '').strip().lower()
                 if not job_title:
                     raise Exception("Job title must be provided when suggesting a new skill")
                 task = async_process_new_skill_suggestion.delay(new_skill, job_title)
+                task_tracker.track_task(task.id)
             else:
                 raise Exception("No new job title or skill provided")
             
@@ -262,7 +268,7 @@ class InputSuggestionsAPIView(APIView):
                 'message': 'job submitted for suggestions update'}, 
                 status=status.HTTP_200_OK)
         except Exception as e:
-            print(f"Input suggestions update error: {e}")
+            # print(f"Input suggestions update error: {e}")
             return Response({'status': 0, 'message': str(e)}, status=status.HTTP_200_OK)
 
 @api_view(["GET"])

@@ -7,6 +7,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.hashers import make_password
 from .serializers import UserSerializer
 from django.db.models import Q
+from _core.utils import QueuedTaskTracker
 from api.utils import *
 from api.resources import technical_keywords
 from api.tasks import *
@@ -27,7 +28,7 @@ import requests
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
-
+task_tracker = QueuedTaskTracker()
 
 User = get_user_model()
 
@@ -195,6 +196,8 @@ class ResumeUploadView(generics.GenericAPIView):
 
             if file.size > 2 * 1024 * 1024:  # Example: 2MB+ → async
                 task = async_extract_and_score.delay(file_bytes, file.name)
+                task_tracker.track_task(task.id)
+
                 res_status = 2
                 data = {
                     'task_id': task.id,
@@ -292,7 +295,7 @@ class ResumeUploadView(generics.GenericAPIView):
                 'user': UserSerializer(user).data
             }, status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
+            # print(e)
             return Response(
                 {'status': 0, 'message': str(e)},
                 status=status.HTTP_200_OK
@@ -324,6 +327,7 @@ class ResumeAnalysisView(generics.GenericAPIView):
 
             # Submit the analysis task
             task = async_match_resume_with_jd.delay(resume["resume_text"], job_description, user.id, job_title)
+            task_tracker.track_task(task.id)
 
             return Response({
                 'status': 1,
@@ -502,8 +506,10 @@ class ResumeGeneratorView(generics.GenericAPIView):
                 if serialized_user.get('account_type', 'basic') != 'premium' and user.resume_credits <= 0:
                     raise Exception('You must be a premium user to generate a multi-section resume. Please purchase resume credits or subscribe to our premium service.')
                 task = async_generate_premium_resume.delay(resume_data, filename, user.id)
+                task_tracker.track_task(task.id)
             else:
                 task = async_generate_resume.delay(resume_data, filename, user.id)
+                task_tracker.track_task(task.id)
 
             return Response({
                 'status': 1,
@@ -511,7 +517,7 @@ class ResumeGeneratorView(generics.GenericAPIView):
                 'task_id': task.id,
             }, status=status.HTTP_200_OK)
         except Exception as e:
-            print(f'server error: {e}')
+            # print(f'server error: {e}')
             return Response(
                 {'status': 0, 'message': str(e)},
                 status=status.HTTP_200_OK
@@ -545,7 +551,7 @@ class ResumeMatchAndGenerateView(generics.GenericAPIView):
             # Generate the new resume
             filename = f"{user.username}_matched_resume.docx"
             task = async_generate_matching_resume.delay(resume_data, filename, user.id)
-            print(f'task with id: {task.id} has been created for resume matching and generation.')
+            task_tracker.track_task(task.id)
 
             return Response({
                 'status': 1,
@@ -554,7 +560,7 @@ class ResumeMatchAndGenerateView(generics.GenericAPIView):
                 'task_id': task.id,
             }, status=status.HTTP_200_OK)
         except Exception as e:
-            print(f'server error: {e}')
+            # print(f'server error: {e}')
             return Response(
                 {'status': 0,
                  'user': self.get_serializer(user).data if user.is_authenticated else None, 
@@ -962,7 +968,7 @@ class RequestPasswordResetView(generics.GenericAPIView):
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
-            print(f'Error in RequestPasswordResetView: {e}')
+            # print(f'Error in RequestPasswordResetView: {e}')
             return Response({
                 'status': 0,
                 'message': str(e)
@@ -1004,7 +1010,7 @@ class RequestPasswordResetView(generics.GenericAPIView):
             # Delete the cached code
             cache.delete(cache_key)
 
-            print(f'Token generated for {email}: {token}')
+            # print(f'Token generated for {email}: {token}')
 
             return Response({
                 'status': 1,
@@ -1015,7 +1021,7 @@ class RequestPasswordResetView(generics.GenericAPIView):
             )
 
         except Exception as e:
-            print(f'Error in RequestPasswordResetView POST: {e}')
+            # print(f'Error in RequestPasswordResetView POST: {e}')
             return Response({
                 'status': 0,
                 'message': str(e)
@@ -1026,7 +1032,7 @@ class RequestPasswordResetView(generics.GenericAPIView):
             token = request.data.get('token')
             new_password = request.data.get('new_password')
 
-            print(f'Token: {token}, New Password: {new_password}')
+            # print(f'Token: {token}, New Password: {new_password}')
             
             if not token or not new_password:
                 raise ValueError('Token and new password are required')
@@ -1055,7 +1061,7 @@ class RequestPasswordResetView(generics.GenericAPIView):
                 raise ValueError('User not found')
 
         except Exception as e:
-            print(f'Error in RequestPasswordResetView PUT: {e}')
+            # print(f'Error in RequestPasswordResetView PUT: {e}')
             return Response({
                 'status': 0,
                 'message': str(e)
@@ -1098,7 +1104,7 @@ class ResumeDraftView(generics.GenericAPIView):
                 raise ValueError("User is not authenticated")
             resume_data = request.data
 
-            print(f'Resume draft: {resume_data}')
+            # print(f'Resume draft: {resume_data}')
 
             if not resume_data:
                 raise ValueError("Resume data is required")
