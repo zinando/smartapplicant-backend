@@ -24,7 +24,7 @@ class AutomateFacebookPost:
         if not self.__business_info:
             logger.warning(f"No business info found for page_id: {page_id}")
             raise ValueError("Invalid page_id or business info not found. Ensure the business that owns this page is registered with us.")
-        self.__page_access_token = settings.PAGE_DATA.get(page_id, {}).get("access_token", "") or self.__business_info.page_access_token
+        self.__page_access_token = self.__business_info.page_access_token
         if not self.__page_access_token:
             logger.warning(f"No access token found for page_id: {page_id}")
             raise ValueError("Access token not found for the given page_id.")
