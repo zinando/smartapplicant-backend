@@ -301,10 +301,177 @@ def facebook_login_view(request):
         status=status.HTTP_200_OK
     )
 
-
 @api_view(["POST", "GET"])
 @csrf_exempt
 def facebook_callback(request):
+    """Handles redirect from Facebook OAuth; retrieves the user's pages."""
+    state = request.GET.get("state")
+    code = request.GET.get("code")
+
+    auth_log = FacebookAuthLog.objects.filter(state=state).first()
+    if not auth_log:
+        return redirect("https://smartapplicant.net/fb_page_selector/?error=Forbidden_invalid_state")
+
+    if not code:
+        auth_log.step_status = "failed"
+        auth_log.message = f"Missing code parameter in callback: {request.GET}"
+        auth_log.save()
+        return redirect("https://smartapplicant.net/fb_page_selector/?error=missing_code")
+
+    auth_log.code = code
+    auth_log.step_status = "success"
+    auth_log.save()
+
+    # ============================================================
+    # 1. Exchange code for short-lived user access token
+    # ============================================================
+    token_url = (
+        f"{settings.META_GRAPH_URL}/oauth/access_token"
+        f"?client_id={settings.SMARTAPPLICANT['APP_ID']}"
+        f"&redirect_uri={settings.SMARTAPPLICANT['REDIRECT_URI']}"
+        f"&client_secret={settings.SMARTAPPLICANT['APP_SECRET']}"
+        f"&code={code}"
+    )
+    auth_log.step = "short_lived_token"
+    auth_log.step_status = "initiated"
+    auth_log.save()
+
+    try:
+        response = requests.get(token_url, timeout=15)
+        response.raise_for_status()
+        token_res = response.json()
+    except requests.RequestException as e:
+        auth_log.step_status = "failed"
+        auth_log.message = f"Request failed during short-lived token exchange: {e}"
+        auth_log.save()
+        return redirect("https://smartapplicant.net/fb_page_selector/?error=token_exchange_failed")
+    except ValueError:
+        auth_log.step_status = "failed"
+        auth_log.message = "Facebook returned invalid JSON during short-lived token exchange."
+        auth_log.save()
+        return redirect("https://smartapplicant.net/fb_page_selector/?error=token_exchange_failed")
+
+    access_token = token_res.get("access_token")
+
+    if not access_token:
+        auth_log.step_status = "failed"
+        auth_log.message = f"Failed to exchange code for access token: {token_res}"
+        auth_log.save()
+        return redirect("https://smartapplicant.net/fb_page_selector/?error=token_exchange_failed")
+
+    auth_log.step_status = "success"
+    auth_log.short_lived_token_payload = json.dumps(token_res)
+    auth_log.save()
+
+    # ============================================================
+    # 1b. Exchange short-lived user token for a LONG-LIVED user token
+    # ============================================================
+    long_lived_url = (
+        f"{settings.META_GRAPH_URL}/oauth/access_token"
+        f"?grant_type=fb_exchange_token"
+        f"&client_id={settings.SMARTAPPLICANT['APP_ID']}"
+        f"&client_secret={settings.SMARTAPPLICANT['APP_SECRET']}"
+        f"&fb_exchange_token={access_token}"
+    )
+    auth_log.step = "long_lived_token"
+    auth_log.step_status = "initiated"
+    auth_log.save()
+
+    try:
+        ll_response = requests.get(long_lived_url, timeout=15)
+        ll_response.raise_for_status()
+        ll_token_res = ll_response.json()
+    except requests.RequestException as e:
+        auth_log.step_status = "failed"
+        auth_log.message = f"Request failed during long-lived token exchange: {e}"
+        auth_log.save()
+        return redirect("https://smartapplicant.net/fb_page_selector/?error=long_lived_exchange_failed")
+    except ValueError:
+        auth_log.step_status = "failed"
+        auth_log.message = "Facebook returned invalid JSON during long-lived token exchange."
+        auth_log.save()
+        return redirect("https://smartapplicant.net/fb_page_selector/?error=long_lived_exchange_failed")
+
+    long_lived_token = ll_token_res.get("access_token")
+
+    if not long_lived_token:
+        auth_log.step_status = "failed"
+        auth_log.message = f"Failed to exchange for long-lived token: {ll_token_res}"
+        auth_log.save()
+        return redirect("https://smartapplicant.net/fb_page_selector/?error=long_lived_exchange_failed")
+
+    auth_log.step_status = "success"
+    # Store the long-lived token payload — this is what facebook_select_page
+    # will read as the "user_token" used to fetch the Page Access Token.
+    auth_log.long_lived_token_payload = json.dumps(ll_token_res)
+    auth_log.save()
+
+        # ============================================================
+    # 2. Fetch pages the user manages (paginated)
+    # ============================================================
+    pages_url = f"https://graph.facebook.com/me/accounts?access_token={long_lived_token}&limit=100"
+    auth_log.step = "page_token"
+    auth_log.step_status = "initiated"
+    auth_log.save()
+
+    all_pages = []
+    next_url = pages_url
+    pagination_error = None
+
+    while next_url:    
+        try:        
+            pages_response = requests.get(next_url, timeout=15)
+            pages_response.raise_for_status()
+            pages_res = pages_response.json()
+
+            if "data" not in pages_res:
+                pagination_error = f"Unexpected pages response format: {pages_res}"
+                break
+
+            all_pages.extend(pages_res["data"])
+
+            # Facebook includes paging.next only when there's another page of results
+            next_url = pages_res.get("paging", {}).get("next")
+
+        except requests.RequestException as e:
+            pagination_error = f"Request failed while fetching pages: {e}"
+            break
+        except ValueError:
+            pagination_error = "Facebook returned invalid JSON while fetching pages."
+            break
+
+    if pagination_error:
+        # Log the failure regardless, but only treat it as fatal if we
+        # ended up with zero pages overall — a partial failure with some
+        # pages already collected should still let the user proceed.
+        auth_log.message = pagination_error
+        if not all_pages:
+            auth_log.step_status = "failed"
+            auth_log.save()
+            return redirect("https://smartapplicant.net/fb_page_selector/?error=no_pages_found")
+        else:
+            auth_log.step_status = "partial_success"
+            auth_log.save()
+
+    # Single source of truth: do we have any pages at all?
+    if not all_pages:
+        auth_log.step_status = "failed"
+        auth_log.message = pagination_error or "No pages found for user."
+        auth_log.save()
+        return redirect("https://smartapplicant.net/fb_page_selector/?error=no_pages_found")
+
+    pl_data = {"fetch_pages_payload": {"data": all_pages}}
+    auth_log.page_access_token_payload = json.dumps(pl_data)
+    auth_log.step_status = "partial_success" if pagination_error else "success"
+    auth_log.message = pagination_error or f"Fetched {len(all_pages)} page(s) successfully."
+    auth_log.save()
+
+    return redirect(f"https://smartapplicant.net/fb_page_selector/?code={state}")
+
+
+@api_view(["POST", "GET"])
+@csrf_exempt
+def facebook_callbackxxx(request):
     """Handles redirect from Facebook OAuth; retrieves the user's pages."""
     state = request.GET.get("state")
     code = request.GET.get("code")
@@ -488,18 +655,18 @@ def facebook_select_page(request):
     # Get Facebook user access token
     # ============================================================
 
-    short_lived_token_payload = safe_json_loads(
-        auth_log.short_lived_token_payload,
+    long_lived_token_payload = safe_json_loads(
+        auth_log.long_lived_token_payload,
         default={}
     )
 
-    if not isinstance(short_lived_token_payload, dict):
+    if not isinstance(long_lived_token_payload, dict):
         return Response(
             "Invalid Facebook user token data. Restart login.",
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    user_token = short_lived_token_payload.get(
+    user_token = long_lived_token_payload.get(
         "access_token"
     )
 
