@@ -7,7 +7,7 @@ from smtb.services.orders import (create_order, mark_order_paid, start_order_pro
                                   mark_order_shipped, mark_ready_for_pickup, complete_order)
 from smtb.services.delivery import get_delivery_charge, determine_delivery_type
 from api.models import Country, State, City, Location
-
+from api.permissions import HasServiceAPIKey
 from smtb.services.products import (
     check_product_availability,
     get_product_details,
@@ -15,7 +15,8 @@ from smtb.services.products import (
 
 
 class SMTBLocationAPIView(APIView):
-    # permission_classes = [IsAuthenticated]
+    # permission_classes = [HasServiceAPIKey]
+    # authentication_classes = []  # Disable authentication for this view
 
     def get(self, request):
         country_name = request.query_params.get('country')
@@ -171,7 +172,8 @@ class SMTBLocationAPIView(APIView):
         })
 
 class SMTBDeliveryChargeAPIView(APIView):
-    # permission_classes = [IsAuthenticated]
+    # permission_classes = [HasServiceAPIKey]
+    # authentication_classes = []
 
     def post(self, request):
         try:            
@@ -246,7 +248,8 @@ class SMTBDeliveryChargeAPIView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
 class SMTBOrderPaymentAPIView(APIView):
-    # permission_classes = [IsAuthenticated]
+    # permission_classes = [HasServiceAPIKey]
+    # authentication_classes = []
 
     def post(self, request, order_id):
         try:
@@ -283,7 +286,8 @@ class SMTBOrderPaymentAPIView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
 class SMTBCreateOrderAPIView(APIView):
-    # permission_classes = [IsAuthenticated]
+    # permission_classes = [HasServiceAPIKey]
+    # authentication_classes = []
 
     def get(self, request):
         orders = (
@@ -384,7 +388,8 @@ class SMTBCreateOrderAPIView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
 class SMTBProductAPIView(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [HasServiceAPIKey]
+    authentication_classes = []
 
     def get(self, request, product_id):
         result = check_product_availability(product_id)
@@ -409,6 +414,7 @@ class SMTBProductAPIView(APIView):
 
 class SMTBOrderProcessAPIView(APIView):
     # permission_classes = [IsAuthenticated]
+    # authentication_classes = [] 
 
     def post(self, request, order_id):
         try:
@@ -436,7 +442,8 @@ class SMTBOrderProcessAPIView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
 class SMTBOrderShipAPIView(APIView):
-    # permission_classes = [IsAuthenticated]
+    # permission_classes = [HasServiceAPIKey]
+    # authentication_classes = []  # Disable authentication for this view
 
     def post(self, request, order_id):
         try:
@@ -464,7 +471,8 @@ class SMTBOrderShipAPIView(APIView):
             }, status=400)
 
 class SMTBOrderReadyForPickupAPIView(APIView):
-    # permission_classes = [IsAuthenticated]
+    # permission_classes = [HasServiceAPIKey]
+    # authentication_classes = []  # Disable authentication for this view
 
     def post(self, request, order_id):
         try:
@@ -492,7 +500,8 @@ class SMTBOrderReadyForPickupAPIView(APIView):
             }, status=400)
         
 class SMTBOrderCompleteAPIView(APIView):
-    # permission_classes = [IsAuthenticated]
+    # permission_classes = [HasServiceAPIKey]
+    # authentication_classes = []  # Disable authentication for this view
 
     def post(self, request, order_id):
         try:
@@ -520,7 +529,8 @@ class SMTBOrderCompleteAPIView(APIView):
             }, status=400)
 
 class SMTBOrderDetailAPIView(APIView):
-    # permission_classes = [IsAuthenticated]
+    # permission_classes = [HasServiceAPIKey]
+    # authentication_classes = []  # Disable authentication for this view
 
     def get(self, request, order_id):
         try:

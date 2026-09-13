@@ -1,4 +1,5 @@
 from django.db import models
+import hashlib
 
 # Create your models here.
 
@@ -211,3 +212,14 @@ class JobTitleAudit(models.Model):
     action = models.CharField(max_length=50)  # created / ai_generated / updated_by_user
     payload = models.JSONField() # store the changes made
     created_at = models.DateTimeField(auto_now_add=True)
+
+class ServiceAPIKey(models.Model):
+    name = models.CharField(max_length=100) # e.g. 'n8n automation', 'AI service', 'Third-party integration'
+    key_hash = models.CharField(max_length=64, unique=True, db_index=True)  # SHA-256 hex digest
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+
+    @staticmethod
+    def hash_key(raw_key: str) -> str:
+        return hashlib.sha256(raw_key.encode()).hexdigest()
