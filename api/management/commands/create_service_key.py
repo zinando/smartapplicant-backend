@@ -16,6 +16,6 @@ class Command(BaseCommand):
             key_hash=ServiceAPIKey.hash_key(raw_key)
         )
 
-        self.stdout.write(self.style.SUCCESS(f'Created key for "options["name"]":')) 
+        self.stdout.write(self.style.SUCCESS(f'Created key for "{options["name"]}":')) 
         self.stdout.write(raw_key) 
         self.stdout.write('Save this now — store it in n8n credentials immediately.')

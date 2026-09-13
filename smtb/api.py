@@ -1,5 +1,5 @@
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
+# from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from smtb.models import SMTBCustomer, FulfillmentMethod, SMTBOrder, OrderStatus
@@ -8,6 +8,7 @@ from smtb.services.orders import (create_order, mark_order_paid, start_order_pro
 from smtb.services.delivery import get_delivery_charge, determine_delivery_type
 from api.models import Country, State, City, Location
 from api.permissions import HasServiceAPIKey
+from api.ai import get_structured_data_from_gemini
 from smtb.services.products import (
     check_product_availability,
     get_product_details,
@@ -15,8 +16,8 @@ from smtb.services.products import (
 
 
 class SMTBLocationAPIView(APIView):
-    # permission_classes = [HasServiceAPIKey]
-    # authentication_classes = []  # Disable authentication for this view
+    permission_classes = [HasServiceAPIKey]
+    authentication_classes = []  # Disable authentication for this view
 
     def get(self, request):
         country_name = request.query_params.get('country')
@@ -172,8 +173,8 @@ class SMTBLocationAPIView(APIView):
         })
 
 class SMTBDeliveryChargeAPIView(APIView):
-    # permission_classes = [HasServiceAPIKey]
-    # authentication_classes = []
+    permission_classes = [HasServiceAPIKey]
+    authentication_classes = []
 
     def post(self, request):
         try:            
@@ -248,8 +249,8 @@ class SMTBDeliveryChargeAPIView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
 class SMTBOrderPaymentAPIView(APIView):
-    # permission_classes = [HasServiceAPIKey]
-    # authentication_classes = []
+    permission_classes = [HasServiceAPIKey]
+    authentication_classes = []
 
     def post(self, request, order_id):
         try:
@@ -286,8 +287,8 @@ class SMTBOrderPaymentAPIView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
 class SMTBCreateOrderAPIView(APIView):
-    # permission_classes = [HasServiceAPIKey]
-    # authentication_classes = []
+    permission_classes = [HasServiceAPIKey]
+    authentication_classes = []
 
     def get(self, request):
         orders = (
@@ -413,8 +414,8 @@ class SMTBProductAPIView(APIView):
         )
 
 class SMTBOrderProcessAPIView(APIView):
-    # permission_classes = [IsAuthenticated]
-    # authentication_classes = [] 
+    permission_classes = [HasServiceAPIKey]
+    authentication_classes = []
 
     def post(self, request, order_id):
         try:
@@ -442,8 +443,8 @@ class SMTBOrderProcessAPIView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
 class SMTBOrderShipAPIView(APIView):
-    # permission_classes = [HasServiceAPIKey]
-    # authentication_classes = []  # Disable authentication for this view
+    permission_classes = [HasServiceAPIKey]
+    authentication_classes = []  # Disable authentication for this view
 
     def post(self, request, order_id):
         try:
@@ -471,8 +472,8 @@ class SMTBOrderShipAPIView(APIView):
             }, status=400)
 
 class SMTBOrderReadyForPickupAPIView(APIView):
-    # permission_classes = [HasServiceAPIKey]
-    # authentication_classes = []  # Disable authentication for this view
+    permission_classes = [HasServiceAPIKey]
+    authentication_classes = []  # Disable authentication for this view
 
     def post(self, request, order_id):
         try:
@@ -500,8 +501,8 @@ class SMTBOrderReadyForPickupAPIView(APIView):
             }, status=400)
         
 class SMTBOrderCompleteAPIView(APIView):
-    # permission_classes = [HasServiceAPIKey]
-    # authentication_classes = []  # Disable authentication for this view
+    permission_classes = [HasServiceAPIKey]
+    authentication_classes = []  # Disable authentication for this view
 
     def post(self, request, order_id):
         try:
@@ -529,8 +530,8 @@ class SMTBOrderCompleteAPIView(APIView):
             }, status=400)
 
 class SMTBOrderDetailAPIView(APIView):
-    # permission_classes = [HasServiceAPIKey]
-    # authentication_classes = []  # Disable authentication for this view
+    permission_classes = [HasServiceAPIKey]
+    authentication_classes = []  # Disable authentication for this view
 
     def get(self, request, order_id):
         try:
@@ -632,4 +633,34 @@ class SMTBOrderDetailAPIView(APIView):
                 "status": 0,
                 "message": "Order not found.",
             }, status=404)
+        
+class SMTBQueryAiAPIView(APIView):
+    permission_classes = [HasServiceAPIKey]
+    authentication_classes = []
 
+    def post(self, request):
+        try:
+            prompt = request.data.get("prompt")
+
+            if not prompt:
+                raise ValueError("Prompt is required.")
+            
+            structured_data = get_structured_data_from_gemini(prompt)
+
+            if isinstance(structured_data, dict) and structured_data.get("error"):
+                raise ValueError(structured_data["error"])
+            
+            return Response({
+                "status": 1,
+                "data": structured_data
+            }, status=status.HTTP_200_OK)
+        except ValueError as e:
+            return Response({
+                "status": 0,
+                "message": str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({
+                "status": 0,
+                "message": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
