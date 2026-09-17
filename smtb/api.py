@@ -1,5 +1,5 @@
 from rest_framework.views import APIView
-# from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from smtb.models import SMTBCustomer, FulfillmentMethod, SMTBOrder, OrderStatus
@@ -7,7 +7,8 @@ from smtb.services.orders import (create_order, mark_order_paid, start_order_pro
                                   mark_order_shipped, mark_ready_for_pickup, complete_order)
 from smtb.services.delivery import get_delivery_charge, determine_delivery_type
 from api.models import Country, State, City, Location
-from api.permissions import HasServiceAPIKey
+# from api.permissions import HasServiceAPIKey
+from api.authentications import ServiceAPIKeyAuthentication
 from api.ai import get_structured_data_from_gemini
 from smtb.services.products import (
     check_product_availability,
@@ -16,8 +17,9 @@ from smtb.services.products import (
 
 
 class SMTBLocationAPIView(APIView):
-    permission_classes = [HasServiceAPIKey]
-    authentication_classes = []  # Disable authentication for this view
+    authentication_classes = [ServiceAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated]
+    
 
     def get(self, request):
         country_name = request.query_params.get('country')
@@ -173,8 +175,8 @@ class SMTBLocationAPIView(APIView):
         })
 
 class SMTBDeliveryChargeAPIView(APIView):
-    permission_classes = [HasServiceAPIKey]
-    authentication_classes = []
+    authentication_classes = [ServiceAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         try:            
@@ -249,8 +251,8 @@ class SMTBDeliveryChargeAPIView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
 class SMTBOrderPaymentAPIView(APIView):
-    permission_classes = [HasServiceAPIKey]
-    authentication_classes = []
+    authentication_classes = [ServiceAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, order_id):
         try:
@@ -287,8 +289,8 @@ class SMTBOrderPaymentAPIView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
 class SMTBCreateOrderAPIView(APIView):
-    permission_classes = [HasServiceAPIKey]
-    authentication_classes = []
+    authentication_classes = [ServiceAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         orders = (
@@ -389,33 +391,75 @@ class SMTBCreateOrderAPIView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
 class SMTBProductAPIView(APIView):
-    permission_classes = [HasServiceAPIKey]
-    authentication_classes = []
+    authentication_classes = [ServiceAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated]
+    
 
     def get(self, request, product_id):
-        result = check_product_availability(product_id)
+        try:
+            result = check_product_availability(product_id)
 
-        if not result['available']:
+            if not result['available']:
+                raise ValueError(result['message'])
+
+            return Response(
+                {
+                    'status': 1,
+                    'data': get_product_details(product_id),
+                    'message': 'success',
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
             return Response(
                 {
                     'status': 0,
-                    'message': result['message'],
+                    'message': str(e),
                 },
-                status=status.HTTP_404_NOT_FOUND,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        return Response(
-            {
-                'status': 1,
-                'data': get_product_details(product_id),
-                'message': 'success',
-            },
-            status=status.HTTP_200_OK,
-        )
+    def post(self, request, product_id=''):
+        """This endpoint would use product IDs from request data to check availability and return details."""
+        try:
+            product_ids = request.data.get('product_ids', [])
+
+            if not product_ids:
+                raise ValueError("Product IDs are required.")
+
+            products_data = []
+
+            for pid in product_ids:
+                result = check_product_availability(pid)
+
+                if not result['available']:
+                    continue  # Skip unavailable products
+
+                products_data.append(get_product_details(pid))
+            
+            if not products_data:
+                raise ValueError(f"No available products found for the provided IDs: {', '.join(product_ids)}")
+
+            return Response(
+                {
+                    'status': 1,
+                    'data': products_data,
+                    'message': 'success',
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            return Response(
+                {
+                    'status': 0,
+                    'message': str(e),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 class SMTBOrderProcessAPIView(APIView):
-    permission_classes = [HasServiceAPIKey]
-    authentication_classes = []
+    authentication_classes = [ServiceAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, order_id):
         try:
@@ -443,8 +487,9 @@ class SMTBOrderProcessAPIView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
 class SMTBOrderShipAPIView(APIView):
-    permission_classes = [HasServiceAPIKey]
-    authentication_classes = []  # Disable authentication for this view
+    authentication_classes = [ServiceAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated]
+    
 
     def post(self, request, order_id):
         try:
@@ -472,8 +517,9 @@ class SMTBOrderShipAPIView(APIView):
             }, status=400)
 
 class SMTBOrderReadyForPickupAPIView(APIView):
-    permission_classes = [HasServiceAPIKey]
-    authentication_classes = []  # Disable authentication for this view
+    authentication_classes = [ServiceAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated]
+    
 
     def post(self, request, order_id):
         try:
@@ -501,8 +547,8 @@ class SMTBOrderReadyForPickupAPIView(APIView):
             }, status=400)
         
 class SMTBOrderCompleteAPIView(APIView):
-    permission_classes = [HasServiceAPIKey]
-    authentication_classes = []  # Disable authentication for this view
+    authentication_classes = [ServiceAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, order_id):
         try:
@@ -530,8 +576,9 @@ class SMTBOrderCompleteAPIView(APIView):
             }, status=400)
 
 class SMTBOrderDetailAPIView(APIView):
-    permission_classes = [HasServiceAPIKey]
-    authentication_classes = []  # Disable authentication for this view
+    authentication_classes = [ServiceAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated]
+    
 
     def get(self, request, order_id):
         try:
@@ -635,8 +682,8 @@ class SMTBOrderDetailAPIView(APIView):
             }, status=404)
         
 class SMTBQueryAiAPIView(APIView):
-    permission_classes = [HasServiceAPIKey]
-    authentication_classes = []
+    authentication_classes = [ServiceAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         try:
@@ -659,6 +706,24 @@ class SMTBQueryAiAPIView(APIView):
                 "status": 0,
                 "message": str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({
+                "status": 0,
+                "message": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class SMTBPrintIncomingMessageAPIView(APIView):
+    authentication_classes = [ServiceAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            data = request.data
+            print("Incoming SMTB Message:", data)
+            return Response({
+                "status": 1,
+                "message": "Message printed successfully."
+            }, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({
                 "status": 0,

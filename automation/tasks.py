@@ -518,6 +518,7 @@ def automate_facebook_posts(self, page_id, contents=None, schedule_times=None):
         instance.send_email(message, email)
     except Exception as e:
         instance.send_email(str(e), 'zinando2000@gmail.com')
+    return errors
 
 
 @shared_task(bind=True, max_retrie=2)

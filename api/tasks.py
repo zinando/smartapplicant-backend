@@ -3,6 +3,8 @@ import time
 from .utils import *
 from .file_generator import ResumeGenerator
 from .suggestion_utils import get_title_suggestions_from_gemini, get_skill_suggestion_from_gemini
+from .models import Conversation, ConversationMessage, ConversationState
+from django.utils import timezone
 
 @shared_task
 def mock_heavy_parsing(file_data, filename):
@@ -69,3 +71,36 @@ def async_process_new_skill_suggestion(new_skill: str, job_title: str):
         'responsibilities': suggestions,
         'skills': skills
     }
+
+@shared_task
+def persist_conversation_to_db(user_phone:str, conversation: dict, state:dict={}):
+    """
+    Persist conversation to database.
+    """
+        
+    # Save conversation messages
+    convo, created = Conversation.objects.get_or_create(
+        user_phone=user_phone,
+        defaults={'active_status': True, 'timestamps': timezone.now()}
+    )
+
+    if not created:
+        convo.active_status = True
+        convo.timestamps = timezone.now()
+        convo.save()    
+    
+    obj, created = ConversationMessage.objects.get_or_create(
+        conversation=convo,
+        role=conversation['role'],
+        message=conversation['message'],
+        defaults={'timestamp': timezone.now()}
+    )
+    
+    # Save conversation state
+    if state:
+        ConversationState.objects.update_or_create(
+            conversation=convo,
+            defaults={'structured_json_state': state}
+        )
+    
+    return "Conversation context persisted to the database successfully."

@@ -14,15 +14,17 @@ from .analytics import RevenueAnalytics
 import os
 from django.http import FileResponse, Http404
 from django.conf import settings
-from django.shortcuts import render, redirect
+from django.shortcuts import redirect
 import requests
-from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
-from automation.helpers import save_cache, get_cache
 from automation.models import FacebookAuthLog
 import secrets
 import json
 from  _core.utils import QueuedTaskTracker
+# from .permissions import IsAuthenticatedOrServiceAPIKey
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from .authentications import ServiceAPIKeyAuthentication
+from .context_manager import get_conversation_context, set_conversation_context
 
 ENV_FILE = os.path.join(settings.BASE_DIR, ".env")
 task_tracker = QueuedTaskTracker()
@@ -270,6 +272,61 @@ class InputSuggestionsAPIView(APIView):
         except Exception as e:
             # print(f"Input suggestions update error: {e}")
             return Response({'status': 0, 'message': str(e)}, status=status.HTTP_200_OK)
+
+class ConversationContextAPIView(APIView):
+    authentication_classes = [JWTAuthentication, ServiceAPIKeyAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        """
+        Retrieve the conversation context for a given user phone number.
+        """
+        try:
+            user_phone = request.GET.get('user_phone')
+            limit = int(request.GET.get('limit', 200))  # Default to last 200 messages
+            if not user_phone:
+                raise ValueError("user_phone parameter is required")
+               
+            conversation_text, conversation_state = get_conversation_context(user_phone, limit)
+            return Response({
+                'status': 1,
+                'conversation_text': conversation_text,
+                'conversation_state': conversation_state,
+                'message': 'success'
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'status': 0, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+    def post(self, request, *args, **kwargs):
+        """Sets the conversation context for a given user phone number with the provided role, message, and optional structured JSON state."""
+        try:
+            user_phone = request.data.get('user_phone')
+            conversations = request.data.get('conversations', [])
+            structured_json_state = request.data.get('structured_json_state', None)
+            ttl = request.data.get('ttl', None)  # Optional TTL in seconds
+
+            if not user_phone or not conversations:
+                raise ValueError("user_phone and conversations parameters are required")
+
+            for conv in conversations:
+                role = conv.get('role')
+                message = conv.get('message')
+                if not role or not message:
+                    raise ValueError("Each conversation must include a role and message")
+            
+            print(f"Setting conversation context for user_phone: {user_phone} with {len(conversations)} messages.")
+
+            # for conv in conversations:
+            #     set_conversation_context(
+            #         user_phone,
+            #         conv['role'],
+            #         conv['message'],
+            #         structured_json_state,
+            #         ttl
+            #     )
+            return Response({'status': 1, 'message': 'Conversation context updated successfully'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'status': 0, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(["GET"])
 @csrf_exempt

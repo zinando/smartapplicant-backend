@@ -1,7 +1,8 @@
 from django.urls import path
 from .api import (SMTBProductAPIView, SMTBCreateOrderAPIView, SMTBOrderPaymentAPIView,
     SMTBDeliveryChargeAPIView, SMTBLocationAPIView, SMTBOrderCompleteAPIView, SMTBOrderProcessAPIView,
-    SMTBOrderReadyForPickupAPIView, SMTBOrderShipAPIView, SMTBOrderDetailAPIView, SMTBQueryAiAPIView)
+    SMTBOrderReadyForPickupAPIView, SMTBOrderShipAPIView, SMTBOrderDetailAPIView, SMTBQueryAiAPIView,
+    SMTBPrintIncomingMessageAPIView)
 
 
 urlpatterns = [
@@ -56,5 +57,9 @@ urlpatterns = [
     path(
         "query_ai/",
         SMTBQueryAiAPIView.as_view()
+    ),
+    path(
+        "print_incoming_message/",
+        SMTBPrintIncomingMessageAPIView.as_view()
     ),
 ]

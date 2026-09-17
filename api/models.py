@@ -3,6 +3,11 @@ import hashlib
 
 # Create your models here.
 
+class ConversationRole(models.TextChoices):
+    CUSTOMER = 'customer', 'Customer'
+    ASSISTANT = 'assistant', 'Assistant'
+    ADMIN = 'admin', 'Admin'
+    SYSTEM_REPORTER = 'system_reporter', 'System Reporter'
 class SuggestionBase(models.Model):
     """Abstract base class for all suggestion models"""
     validated = models.BooleanField(default=False)
@@ -223,3 +228,25 @@ class ServiceAPIKey(models.Model):
     @staticmethod
     def hash_key(raw_key: str) -> str:
         return hashlib.sha256(raw_key.encode()).hexdigest()
+
+    # assign is_authenticated to True if the key is valid and active
+    @property
+    def is_authenticated(self):
+        return self.is_active
+
+class Conversation(models.Model):
+    """This model IDs the conversation between a user and the AI assistant"""
+    user_phone = models.CharField(max_length=15, unique=True)  # Assuming phone numbers are unique identifiers for users
+    active_status = models.BooleanField(default=True)
+    timestamps = models.DateTimeField(auto_now_add=True)
+
+class ConversationMessage(models.Model):
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
+    role = models.CharField(max_length=20, choices=ConversationRole.choices)
+    message = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+class ConversationState(models.Model):
+    conversation = models.OneToOneField(Conversation, on_delete=models.CASCADE, related_name='state')
+    structured_json_state = models.JSONField()
+
